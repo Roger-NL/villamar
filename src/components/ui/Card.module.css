@@ -1,0 +1,127 @@
+.card {
+    background-color: var(--bg-card);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-card);
+    border: 1px solid rgba(0, 0, 0, 0.02);
+    /* Extremely subtle border */
+    overflow: hidden;
+    transition: transform 0.2s var(--ease-spring), box-shadow 0.2s var(--ease-spring);
+}
+
+/* Hover Effect - Subtle Lift */
+.hover:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+}
+
+/* Variants */
+.default {
+    /* Standard white card */
+}
+
+.elevated {
+    box-shadow: var(--shadow-md);
+}
+
+.outline {
+    background: transparent;
+    border: 1px solid var(--border-medium);
+    box-shadow: none;
+}
+
+.glass {
+    background: rgba(255, 255, 255, 0.7);
+    backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.5);
+}
+
+/* Semantic Variants - Subtle Backgrounds */
+.accent {
+    background-color: #F0F8FF;
+    /* Very light blue */
+    border: 1px solid rgba(0, 113, 227, 0.1);
+}
+
+.success {
+    background-color: #F2FBF4;
+    /* Very light green */
+    border: 1px solid rgba(52, 199, 89, 0.1);
+}
+
+.warning {
+    background-color: #FFF8EB;
+    /* Very light orange/yellow */
+    border: 1px solid rgba(255, 149, 0, 0.1);
+}
+
+.danger {
+    background-color: #FFF2F1;
+    /* Very light red */
+    border: 1px solid rgba(255, 59, 48, 0.1);
+}
+
+/* Padding */
+.padding-none {
+    padding: 0;
+}
+
+.padding-sm {
+    padding: var(--space-sm);
+}
+
+.padding-md {
+    padding: var(--space-md);
+}
+
+.padding-lg {
+    padding: var(--space-lg);
+}
+
+.padding-xl {
+    padding: var(--space-xl);
+}
+
+/* Header/Content/Footer Layout */
+.header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: var(--space-md);
+    padding-bottom: var(--space-sm);
+    border-bottom: 1px solid var(--border-light);
+}
+
+.header:last-child {
+    margin-bottom: 0;
+    padding-bottom: 0;
+    border-bottom: none;
+}
+
+.title {
+    font-size: 17px;
+    font-weight: 600;
+    color: var(--text-primary);
+    display: flex;
+    align-items: center;
+    gap: var(--space-xs);
+    letter-spacing: -0.01em;
+    margin: 0;
+}
+
+.titleIcon {
+    color: var(--primary);
+    opacity: 0.9;
+}
+
+.content {
+    /* Default content area */
+}
+
+.footer {
+    margin-top: var(--space-md);
+    padding-top: var(--space-sm);
+    border-top: 1px solid var(--border-light);
+    display: flex;
+    justify-content: flex-end;
+    gap: var(--space-sm);
+}

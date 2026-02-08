@@ -1,0 +1,120 @@
+.taskItem {
+    display: flex;
+    align-items: center;
+    gap: var(--space-md);
+    padding: var(--space-md) var(--space-lg);
+    background: var(--surface-solid);
+    border-radius: var(--radius-xl);
+    transition: all var(--transition-base);
+    box-shadow: var(--shadow-sm);
+}
+
+.taskItem:hover {
+    box-shadow: var(--shadow-md);
+    transform: translateX(4px);
+}
+
+.taskItem.completed {
+    background: linear-gradient(135deg, var(--success-light) 0%, var(--surface-solid) 100%);
+}
+
+.taskItem.completed .title {
+    text-decoration: line-through;
+    color: var(--text-muted);
+}
+
+.checkbox {
+    flex-shrink: 0;
+    width: 32px;
+    height: 32px;
+    border-radius: var(--radius-md);
+    border: 2px solid var(--border);
+    background: var(--surface-solid);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all var(--transition-bounce);
+    color: transparent;
+}
+
+.checkbox:hover {
+    border-color: var(--primary);
+    background: var(--accent-light);
+    transform: scale(1.1);
+}
+
+.completed .checkbox {
+    background: var(--gradient-success);
+    border-color: var(--success);
+    color: white;
+    box-shadow: 0 2px 10px rgba(16, 185, 129, 0.3);
+}
+
+.content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+}
+
+.title {
+    font-weight: 600;
+    color: var(--text-primary);
+    font-size: 0.95rem;
+}
+
+.time {
+    font-size: 0.75rem;
+    color: var(--primary);
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    background: var(--accent-light);
+    padding: 2px 8px;
+    border-radius: var(--radius-full);
+    width: fit-content;
+}
+
+.description {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+}
+
+.actions {
+    flex-shrink: 0;
+}
+
+.photoButton {
+    width: 40px;
+    height: 40px;
+    border-radius: var(--radius-lg);
+    border: 2px dashed var(--border);
+    background: transparent;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-muted);
+    transition: all var(--transition-bounce);
+}
+
+.photoButton:hover {
+    border-color: var(--primary);
+    color: var(--primary);
+    background: var(--accent-light);
+    transform: scale(1.1);
+}
+
+.photoIndicator {
+    width: 40px;
+    height: 40px;
+    border-radius: var(--radius-lg);
+    background: var(--success-light);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--success);
+}

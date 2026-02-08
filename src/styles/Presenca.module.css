@@ -1,0 +1,222 @@
+.main {
+    padding-top: 80px;
+    padding-bottom: 100px;
+    min-height: 100vh;
+    background-color: var(--bg-app);
+}
+
+@media (min-width: 768px) {
+    .main {
+        padding-left: 280px;
+    }
+}
+
+.container {
+    max-width: 500px;
+    margin: 0 auto;
+    padding: 0 20px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+/* Clock Section */
+.clockSection {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-bottom: 40px;
+    margin-top: 20px;
+    width: 100%;
+}
+
+.currentTime {
+    font-size: 64px;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin-bottom: 32px;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -2px;
+    line-height: 1;
+}
+
+.bigClockButton {
+    width: 200px;
+    height: 200px;
+    border-radius: 50%;
+    border: none;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    cursor: pointer;
+    transition: transform 0.2s cubic-bezier(0.25, 0.8, 0.25, 1);
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+    /* Soft large shadow */
+    position: relative;
+}
+
+.bigClockButton:active {
+    transform: scale(0.95);
+}
+
+.bigClockButton.in {
+    background: white;
+    /* Clean white background */
+    color: var(--primary);
+    border: 4px solid var(--primary);
+}
+
+.bigClockButton.in .clockLabel {
+    color: var(--primary);
+}
+
+.bigClockButton.out {
+    background: var(--primary);
+    color: white;
+    box-shadow: 0 10px 40px rgba(0, 113, 227, 0.3);
+}
+
+.clockIcon {
+    width: 48px;
+    height: 48px;
+}
+
+.clockLabel {
+    font-size: 16px;
+    font-weight: 600;
+}
+
+.status {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 32px;
+    padding: 8px 16px;
+    background: #E8F5E9;
+    color: var(--success);
+    border-radius: 20px;
+    font-weight: 600;
+    font-size: 14px;
+}
+
+/* Info Cards - Quick Stats */
+.infoCards {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    width: 100%;
+    margin-bottom: 32px;
+}
+
+.infoCard {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    padding: 20px;
+    background: white;
+    border-radius: 20px;
+    box-shadow: var(--shadow-sm);
+}
+
+.infoCard svg {
+    color: var(--primary);
+    margin-bottom: 8px;
+}
+
+.infoLabel {
+    font-size: 12px;
+    color: var(--text-secondary);
+    margin-bottom: 2px;
+}
+
+.infoValue {
+    font-weight: 600;
+    color: var(--text-primary);
+    font-size: 16px;
+}
+
+/* History List */
+.section {
+    width: 100%;
+    background: white;
+    border-radius: 24px;
+    padding: 24px;
+    box-shadow: var(--shadow-sm);
+}
+
+.sectionTitle {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin-bottom: 20px;
+}
+
+.historyList {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+}
+
+.historyItem {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 0;
+    border-bottom: 1px solid var(--border-light);
+}
+
+.historyItem:last-child {
+    border-bottom: none;
+    padding-bottom: 0;
+}
+
+.historyLeft {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+.historyIcon {
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 10px;
+    background: #F5F5F7;
+}
+
+.historyItem.in .historyIcon {
+    color: var(--success);
+    background: #E8F5E9;
+}
+
+.historyItem.out .historyIcon {
+    color: var(--text-secondary);
+}
+
+.historyInfo {
+    display: flex;
+    flex-direction: column;
+}
+
+.historyType {
+    font-weight: 600;
+    color: var(--text-primary);
+    font-size: 15px;
+}
+
+.historyDate {
+    font-size: 12px;
+    color: var(--text-secondary);
+}
+
+.historyTime {
+    font-weight: 600;
+    font-size: 16px;
+    color: var(--text-primary);
+    font-variant-numeric: tabular-nums;
+}

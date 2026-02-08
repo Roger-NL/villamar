@@ -1,0 +1,64 @@
+/* Shared styles for avatars */
+.avatar {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    font-weight: 600;
+    color: #FFFFFF;
+    /* White text */
+    user-select: none;
+    position: relative;
+    background-color: var(--primary);
+    /* Default base fallback */
+}
+
+/* Sizes */
+.sm {
+    width: 32px;
+    height: 32px;
+    font-size: 12px;
+}
+
+.md {
+    width: 44px;
+    height: 44px;
+    font-size: 16px;
+}
+
+.lg {
+    width: 64px;
+    height: 64px;
+    font-size: 24px;
+}
+
+.xl {
+    width: 96px;
+    height: 96px;
+    font-size: 32px;
+}
+
+/* Status Dot */
+.statusDot {
+    position: absolute;
+    bottom: 0;
+    right: 0;
+    width: 25%;
+    /* Proportional size */
+    height: 25%;
+    border-radius: 50%;
+    border: 2px solid white;
+    box-sizing: content-box;
+}
+
+.online {
+    background-color: var(--success);
+}
+
+.offline {
+    background-color: var(--text-tertiary);
+}
+
+.away {
+    background-color: var(--warning);
+}

@@ -1,0 +1,875 @@
+/* Schedule Generator Styles - Premium Modern */
+
+.controls {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    margin-bottom: 24px;
+    flex-wrap: wrap;
+    background: white;
+    padding: 12px 20px;
+    border-radius: 20px;
+    box-shadow: var(--shadow-sm);
+}
+
+.monthNav {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.navBtn {
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #F5F5F7;
+    border: none;
+    border-radius: 50%;
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.navBtn:hover {
+    background: #E8E8ED;
+    color: var(--text-primary);
+    transform: scale(1.05);
+}
+
+.monthLabel {
+    font-weight: 700;
+    font-size: 16px;
+    color: var(--text-primary);
+    text-transform: capitalize;
+    min-width: 140px;
+    text-align: center;
+    font-variant-numeric: tabular-nums;
+}
+
+.generateBtn {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 20px;
+    background: var(--primary);
+    color: white;
+    border: none;
+    border-radius: 12px;
+    font-weight: 600;
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.2s;
+    box-shadow: 0 4px 12px rgba(0, 113, 227, 0.2);
+}
+
+.generateBtn:hover {
+    background: var(--primary-hover);
+    transform: translateY(-1px);
+    box-shadow: 0 6px 16px rgba(0, 113, 227, 0.3);
+}
+
+.generateBtn:disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+}
+
+/* Schedule Grid Container */
+.scheduleWrapper {
+    background: white;
+    border-radius: 20px;
+    box-shadow: var(--shadow-md);
+    overflow: hidden;
+    /* Important for sticky headers */
+    position: relative;
+    border: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.scheduleGrid {
+    display: grid;
+    overflow-x: auto;
+    /* Enable horizontal scroll */
+    max-width: 100%;
+    padding-bottom: 8px;
+}
+
+/* Header Row */
+.gridHeader {
+    display: flex;
+    border-bottom: 1px solid #E5E5EA;
+    background: #FAFAFA;
+    position: sticky;
+    top: 0;
+    z-index: 20;
+}
+
+/* Employee Rows */
+.gridRow {
+    display: flex;
+    border-bottom: 1px solid #F2F2F7;
+    transition: background 0.1s;
+}
+
+.gridRow:hover {
+    background: #FAFAFC;
+}
+
+.gridRow:last-child {
+    border-bottom: none;
+}
+
+/* Column Styles */
+.nameColumn {
+    width: 160px;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-weight: 600;
+    font-size: 13px;
+    color: var(--text-primary);
+    padding: 10px 16px;
+    background: white;
+
+    /* Sticky Name Column */
+    position: sticky;
+    left: 0;
+    z-index: 10;
+    border-right: 1px solid #E5E5EA;
+    box-shadow: 2px 0 5px rgba(0, 0, 0, 0.02);
+}
+
+.gridHeader .nameColumn {
+    background: #FAFAFA;
+    z-index: 30;
+    /* Higher than header cells and row names */
+    color: var(--text-tertiary);
+    font-weight: 700;
+    text-transform: uppercase;
+    font-size: 11px;
+    letter-spacing: 0.5px;
+}
+
+.dayColumn {
+    flex: 1;
+    min-width: 36px;
+    max-width: 36px;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 8px 0;
+    border-right: 1px dashed transparent;
+}
+
+.dayColumn.weekend {
+    background: rgba(0, 0, 0, 0.02);
+}
+
+.gridHeader .dayColumn {
+    gap: 2px;
+}
+
+.dayName {
+    font-size: 10px;
+    font-weight: 600;
+    color: var(--text-tertiary);
+    text-transform: uppercase;
+}
+
+.dayNum {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.dayColumn.weekend .dayNum {
+    color: var(--primary);
+}
+
+/* Shift Cells */
+.shiftCell {
+    flex: 1;
+    min-width: 36px;
+    max-width: 36px;
+    height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    cursor: default;
+    border-radius: 10px;
+    transition: all 0.2s;
+}
+
+.shiftCell:hover {
+    transform: scale(1.1);
+    z-index: 5;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+}
+
+.shiftCell.M {
+    background: rgba(255, 204, 0, 0.15);
+    color: #F59E0B;
+}
+
+.shiftCell.T {
+    background: rgba(88, 86, 214, 0.15);
+    color: #5856D6;
+}
+
+.shiftCell.F {
+    background: rgba(52, 199, 89, 0.15);
+    color: #34C759;
+}
+
+/* Legend in Controls */
+.shiftBadge {
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 8px;
+    font-size: 10px;
+}
+
+.shiftBadge.M {
+    background: rgba(255, 204, 0, 0.15);
+    color: #F59E0B;
+}
+
+.shiftBadge.T {
+    background: rgba(88, 86, 214, 0.15);
+    color: #5856D6;
+}
+
+.shiftBadge.F {
+    background: rgba(52, 199, 89, 0.15);
+    color: #34C759;
+}
+
+/* Empty State */
+.emptyState {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 60px 20px;
+    background: white;
+    border-radius: 20px;
+    text-align: center;
+    color: var(--text-tertiary);
+    border: 1px dashed #E5E5EA;
+}
+
+.emptyState svg {
+    margin-bottom: 16px;
+    opacity: 0.3;
+    color: var(--primary);
+}
+
+.emptyState h3 {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin: 0 0 6px 0;
+}
+
+.emptyState p {
+    font-size: 13px;
+    color: var(--text-secondary);
+    margin: 0;
+    max-width: 260px;
+}
+
+.monthNav {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    background: white;
+    padding: 8px 16px;
+    border-radius: 16px;
+    box-shadow: var(--shadow-sm);
+}
+
+.navBtn {
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: transparent;
+    border: none;
+    border-radius: 10px;
+    color: var(--primary);
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.navBtn:hover {
+    background: #F5F5F7;
+}
+
+.monthLabel {
+    font-weight: 700;
+    font-size: 16px;
+    color: var(--text-primary);
+    text-transform: capitalize;
+    min-width: 140px;
+    text-align: center;
+}
+
+.generateBtn {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 14px 28px;
+    background: var(--primary);
+    color: white;
+    border: none;
+    border-radius: 20px;
+    font-weight: 600;
+    font-size: 15px;
+    cursor: pointer;
+    transition: all 0.2s;
+    box-shadow: 0 4px 12px rgba(0, 113, 227, 0.3);
+}
+
+.generateBtn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(0, 113, 227, 0.4);
+}
+
+.generateBtn:disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
+    transform: none;
+}
+
+/* Schedule Grid */
+.scheduleWrapper {
+    background: white;
+    border-radius: 24px;
+    padding: 20px;
+    box-shadow: var(--shadow-sm);
+    overflow-x: auto;
+}
+
+.scheduleGrid {
+    min-width: 900px;
+}
+
+.gridHeader {
+    display: flex;
+    gap: 4px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--border-light);
+    margin-bottom: 8px;
+}
+
+.gridRow {
+    display: flex;
+    gap: 4px;
+    padding: 8px 0;
+    border-bottom: 1px solid #F5F5F7;
+}
+
+.gridRow:last-child {
+    border-bottom: none;
+}
+
+.nameColumn {
+    width: 140px;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-weight: 600;
+    font-size: 13px;
+    color: var(--text-primary);
+}
+
+/* Border for Week Separation (End of Week - Sunday) */
+.weekEnd {
+    border-right: 2px solid #E5E5EA !important;
+    margin-right: 4px;
+    /* Visual gap */
+}
+
+/* Current Day Highlight */
+.currentDay {
+    background-color: #F0F9FF !important;
+    /* Light blue tint */
+    border-radius: 8px;
+}
+
+.gridHeader .currentDay .dayNum {
+    color: var(--primary);
+    background: #E3F2FD;
+    border-radius: 50%;
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.dayColumn {
+    flex: 1;
+    min-width: 36px;
+    max-width: 36px;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 8px 0;
+}
+
+.dayColumn.weekend {
+    background: #FFFBEB;
+    border-radius: 8px;
+}
+
+.dayName {
+    font-size: 10px;
+    font-weight: 600;
+    color: var(--text-tertiary);
+    text-transform: uppercase;
+}
+
+.dayNum {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--text-primary);
+}
+
+.shiftCell {
+    flex: 1;
+    min-width: 36px;
+    max-width: 36px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    cursor: default;
+    border-radius: 8px;
+    transition: all 0.2s;
+    margin: 1px;
+}
+
+.shiftCell:hover {
+    transform: scale(1.1);
+    z-index: 5;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+}
+
+.shiftCell.M {
+    background: rgba(255, 204, 0, 0.15);
+    color: #F59E0B;
+}
+
+.shiftCell.T {
+    background: rgba(88, 86, 214, 0.15);
+    color: #5856D6;
+}
+
+.shiftCell.F {
+    background: rgba(52, 199, 89, 0.15);
+    color: #34C759;
+}
+
+.shiftBadge {
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 8px;
+    font-size: 10px;
+}
+
+.shiftBadge.M {
+    background: rgba(255, 204, 0, 0.15);
+    color: #F59E0B;
+}
+
+.shiftBadge.T {
+    background: rgba(88, 86, 214, 0.15);
+    color: #5856D6;
+}
+
+.shiftBadge.F {
+    background: rgba(52, 199, 89, 0.15);
+    color: #34C759;
+}
+
+/* Empty State */
+.emptyState {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 80px 20px;
+    background: white;
+    border-radius: 24px;
+    text-align: center;
+    color: var(--text-tertiary);
+}
+
+.emptyState svg {
+    margin-bottom: 16px;
+    opacity: 0.5;
+}
+
+.emptyState h3 {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin: 0 0 8px 0;
+}
+
+.emptyState p {
+    font-size: 14px;
+    color: var(--text-secondary);
+    margin: 0;
+    max-width: 300px;
+}
+
+/* Save Button */
+.saveBtn {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 20px;
+    background: #34C759;
+    color: white;
+    border: none;
+    border-radius: 14px;
+    font-weight: 600;
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.2s;
+    box-shadow: 0 4px 12px rgba(52, 199, 89, 0.3);
+}
+
+.saveBtn:hover:not(:disabled) {
+    transform: translateY(-1px);
+    box-shadow: 0 6px 16px rgba(52, 199, 89, 0.4);
+}
+
+.saveBtn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
+}
+
+/* Editable Cells */
+.editable {
+    cursor: pointer !important;
+}
+
+.editable:hover {
+    outline: 2px solid var(--primary);
+    outline-offset: -2px;
+}
+
+/* Unsaved Badge */
+.unsavedBadge {
+    background: #FF9500;
+    color: white;
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 600;
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+
+    0%,
+    100% {
+        opacity: 1;
+    }
+
+    50% {
+        opacity: 0.7;
+    }
+}
+
+/* Edit Modal */
+.modalOverlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    backdrop-filter: blur(4px);
+}
+
+.editModal {
+    background: white;
+    border-radius: 20px;
+    padding: 24px;
+    min-width: 320px;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    animation: modalSlideIn 0.2s ease-out;
+}
+
+@keyframes modalSlideIn {
+    from {
+        opacity: 0;
+        transform: scale(0.95) translateY(10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+    }
+}
+
+.modalHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.modalHeader h3 {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin: 0;
+}
+
+.closeBtn {
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #F5F5F7;
+    border: none;
+    border-radius: 50%;
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.closeBtn:hover {
+    background: #E8E8ED;
+}
+
+.shiftOptions {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.shiftOption {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 16px;
+    border: 2px solid transparent;
+    border-radius: 14px;
+    background: #F9F9FB;
+    cursor: pointer;
+    transition: all 0.2s;
+    text-align: left;
+}
+
+.shiftOption span {
+    font-weight: 600;
+    font-size: 15px;
+    flex: 1;
+}
+
+.shiftOption small {
+    font-size: 12px;
+    color: var(--text-tertiary);
+}
+
+.shiftOption.M {
+    background: rgba(255, 204, 0, 0.1);
+    color: #F59E0B;
+}
+
+.shiftOption.M:hover,
+.shiftOption.M.active {
+    border-color: #F59E0B;
+    background: rgba(255, 204, 0, 0.2);
+}
+
+.shiftOption.T {
+    background: rgba(88, 86, 214, 0.1);
+    color: #5856D6;
+}
+
+.shiftOption.T:hover,
+.shiftOption.T.active {
+    border-color: #5856D6;
+    background: rgba(88, 86, 214, 0.2);
+}
+
+.shiftOption.F {
+    background: rgba(52, 199, 89, 0.1);
+    color: #34C759;
+}
+
+.shiftOption.F:hover,
+.shiftOption.F.active {
+    border-color: #34C759;
+    background: rgba(52, 199, 89, 0.2);
+}
+
+/* ===== MOBILE RESPONSIVE ===== */
+
+@media (max-width: 768px) {
+
+    /* Controls - Stack vertically on mobile */
+    .controls {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 12px;
+        padding: 12px 16px;
+    }
+
+    .monthNav {
+        justify-content: center;
+        width: 100%;
+    }
+
+    .monthLabel {
+        font-size: 14px;
+        min-width: 120px;
+    }
+
+    /* Buttons - Full width on mobile */
+    .generateBtn,
+    .saveBtn {
+        width: 100%;
+        justify-content: center;
+        padding: 12px 16px;
+        font-size: 14px;
+    }
+
+    /* Schedule Grid - Optimize for horizontal scroll */
+    .scheduleWrapper {
+        border-radius: 16px;
+        margin: 0 -16px;
+        width: calc(100% + 32px);
+    }
+
+    .nameColumn {
+        width: 100px;
+        padding: 8px 10px;
+        font-size: 11px;
+        gap: 6px;
+    }
+
+    .dayColumn {
+        min-width: 32px;
+        max-width: 32px;
+        padding: 6px 0;
+    }
+
+    .dayName {
+        font-size: 9px;
+    }
+
+    .dayNum {
+        font-size: 11px;
+    }
+
+    .shiftCell {
+        min-width: 32px;
+        max-width: 32px;
+        height: 36px;
+        border-radius: 6px;
+    }
+
+    .shiftCell svg {
+        width: 12px;
+        height: 12px;
+    }
+
+    /* Legend - Compact on mobile */
+    .shiftBadge {
+        width: 20px;
+        height: 20px;
+    }
+
+    /* Empty State */
+    .emptyState {
+        padding: 40px 20px;
+        border-radius: 16px;
+    }
+
+    .emptyState h3 {
+        font-size: 16px;
+    }
+
+    .emptyState p {
+        font-size: 13px;
+    }
+
+    /* Modal - Full width on mobile */
+    .editModal {
+        min-width: 90vw;
+        max-width: 90vw;
+        padding: 20px;
+        margin: 16px;
+        border-radius: 16px;
+    }
+
+    .modalHeader h3 {
+        font-size: 16px;
+    }
+
+    .shiftOption {
+        padding: 14px;
+        border-radius: 12px;
+    }
+
+    .shiftOption span {
+        font-size: 14px;
+    }
+
+    /* Unsaved badge */
+    .unsavedBadge {
+        font-size: 11px;
+        padding: 3px 10px;
+    }
+}
+
+/* Very small screens */
+@media (max-width: 380px) {
+    .nameColumn {
+        width: 80px;
+        font-size: 10px;
+    }
+
+    .dayColumn,
+    .shiftCell {
+        min-width: 28px;
+        max-width: 28px;
+    }
+
+    .shiftCell {
+        height: 32px;
+    }
+
+    .editModal {
+        padding: 16px;
+    }
+}

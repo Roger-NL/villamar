@@ -1,0 +1,433 @@
+.main {
+    padding-top: 80px;
+    padding-bottom: 100px;
+    min-height: 100vh;
+    background-color: var(--bg-app);
+}
+
+@media (min-width: 768px) {
+    .main {
+        padding-left: 280px;
+    }
+}
+
+.container {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 0 20px;
+}
+
+.pageHeader {
+    margin-bottom: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.pageHeader h1 {
+    font-size: 28px;
+    font-weight: 700;
+    color: var(--text-primary);
+}
+
+/* Week Navigator */
+.weekNav {
+    background: white;
+    border-radius: 16px;
+    padding: 8px 16px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    box-shadow: var(--shadow-sm);
+    margin-bottom: 24px;
+}
+
+.navBtn {
+    background: transparent;
+    border: none;
+    padding: 8px;
+    cursor: pointer;
+    color: var(--primary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.currentWeek {
+    font-weight: 600;
+    font-size: 15px;
+}
+
+/* Legend */
+.legend {
+    display: flex;
+    justify-content: center;
+    gap: 16px;
+    margin-bottom: 24px;
+}
+
+.legendItem {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 13px;
+    color: var(--text-secondary);
+}
+
+.legendDot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+}
+
+.dotMorning {
+    background: #FFD60A;
+}
+
+.dotAfternoon {
+    background: #5E5CE6;
+}
+
+.dotOff {
+    background: #32D74B;
+}
+
+/* Grid */
+.scheduleGrid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: 12px;
+    margin-bottom: 32px;
+}
+
+.dayCard {
+    background: white;
+    border-radius: 16px;
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    box-shadow: var(--shadow-sm);
+    aspect-ratio: 1;
+    /* Square cards */
+    position: relative;
+    overflow: hidden;
+}
+
+.today {
+    border: 2px solid var(--primary);
+}
+
+.dayLabel {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    margin-bottom: 4px;
+}
+
+.dateLabel {
+    font-size: 12px;
+    color: var(--text-tertiary);
+    margin-bottom: 12px;
+}
+
+.shiftBadge {
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-size: 13px;
+    font-weight: 600;
+    width: 100%;
+}
+
+.morning {
+    background: rgba(255, 204, 0, 0.15);
+    color: #F59E0B;
+}
+
+.afternoon {
+    background: rgba(88, 86, 214, 0.15);
+    color: #5856D6;
+}
+
+.off {
+    background: rgba(52, 199, 89, 0.15);
+    color: #34C759;
+}
+
+/* Swap Request Form */
+.swapSection {
+    background: white;
+    border-radius: 20px;
+    padding: 24px;
+    box-shadow: var(--shadow-sm);
+}
+
+.swapSection h2 {
+    font-size: 18px;
+    margin-bottom: 16px;
+}
+
+.formGroup {
+    margin-bottom: 16px;
+}
+
+.label {
+    display: block;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    margin-bottom: 8px;
+}
+
+.select,
+.textarea {
+    width: 100%;
+    padding: 12px;
+    background: #F5F5F7;
+    border: none;
+    border-radius: 12px;
+    font-size: 15px;
+    font-family: inherit;
+    color: var(--text-primary);
+}
+
+.select:focus,
+.textarea:focus {
+    outline: 2px solid var(--primary);
+    background: white;
+}
+
+.submitBtn {
+    width: 100%;
+    padding: 14px;
+    background: var(--primary);
+    color: white;
+    border: none;
+    border-radius: 14px;
+    font-weight: 600;
+    font-size: 16px;
+    cursor: pointer;
+    transition: opacity 0.2s;
+}
+
+.submitBtn:active {
+    opacity: 0.8;
+}
+
+/* Employee Schedule - My Row Highlight */
+.myRow {
+    background: rgba(0, 113, 227, 0.05) !important;
+}
+
+.meTag {
+    background: var(--primary);
+    color: white;
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-size: 10px;
+    font-weight: 700;
+    margin-left: 6px;
+}
+
+.myScheduleCard {
+    background: linear-gradient(135deg, rgba(0, 113, 227, 0.05), rgba(0, 113, 227, 0.1));
+    border: 1px solid rgba(0, 113, 227, 0.1);
+    margin-bottom: 20px;
+}
+
+.todayCell {
+    outline: 2px solid var(--primary);
+    outline-offset: -2px;
+}
+
+/* Swappable Cells */
+.swappable {
+    cursor: pointer !important;
+}
+
+.swappable:hover {
+    outline: 2px dashed var(--primary);
+    outline-offset: -2px;
+    opacity: 0.9;
+}
+
+/* Swap Modal Content */
+.swapModalContent {
+    padding-top: 8px;
+}
+
+.swapSummary {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    margin-bottom: 20px;
+}
+
+.swapParty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: 8px;
+}
+
+.swapParty strong {
+    font-size: 14px;
+}
+
+.shiftTag {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 10px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.shiftTag.M {
+    background: rgba(255, 204, 0, 0.15);
+    color: #F59E0B;
+}
+
+.shiftTag.T {
+    background: rgba(88, 86, 214, 0.15);
+    color: #5856D6;
+}
+
+.shiftTag.F {
+    background: rgba(52, 199, 89, 0.15);
+    color: #34C759;
+}
+
+.swapArrow {
+    font-size: 24px;
+    color: var(--text-tertiary);
+}
+
+.swapDate {
+    background: #F5F5F7;
+    padding: 12px 16px;
+    border-radius: 12px;
+    text-align: center;
+    font-weight: 500;
+    margin-bottom: 16px;
+}
+
+.swapWarning {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: #FFF3CD;
+    color: #856404;
+    padding: 12px 16px;
+    border-radius: 12px;
+    font-size: 13px;
+    margin-bottom: 16px;
+}
+
+.sendSwapBtn {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 14px;
+    background: var(--primary);
+    color: white;
+    border: none;
+    border-radius: 14px;
+    font-weight: 600;
+    font-size: 15px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.sendSwapBtn:hover:not(:disabled) {
+    background: var(--primary-hover);
+    transform: translateY(-1px);
+}
+
+.sendSwapBtn:disabled {
+    background: #ccc;
+    cursor: not-allowed;
+}
+
+.weekLabel {
+    font-weight: 600;
+    font-size: 14px;
+    color: var(--text-primary);
+}
+
+/* ===== MOBILE RESPONSIVE ===== */
+
+@media (max-width: 768px) {
+
+    /* Swap Modal Content */
+    .swapModalContent {
+        padding-top: 4px;
+    }
+
+    .swapSummary {
+        gap: 10px;
+        flex-wrap: nowrap;
+    }
+
+    .swapParty {
+        gap: 6px;
+    }
+
+    .swapParty strong {
+        font-size: 12px;
+    }
+
+    .shiftTag {
+        padding: 3px 8px;
+        font-size: 11px;
+    }
+
+    .swapArrow {
+        font-size: 18px;
+    }
+
+    .swapDate {
+        padding: 10px 12px;
+        font-size: 13px;
+    }
+
+    .swapWarning {
+        padding: 10px 12px;
+        font-size: 12px;
+    }
+
+    .sendSwapBtn {
+        padding: 12px;
+        font-size: 14px;
+    }
+
+    .meTag {
+        font-size: 9px;
+        padding: 2px 6px;
+    }
+
+    .myScheduleCard {
+        margin-bottom: 16px;
+    }
+
+    .myScheduleCard h4 {
+        font-size: 13px;
+    }
+}
+
+@media (max-width: 380px) {
+    .swapParty strong {
+        font-size: 11px;
+    }
+
+    .swapArrow {
+        font-size: 16px;
+    }
+}

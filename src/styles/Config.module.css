@@ -1,0 +1,206 @@
+/* Configuration Page Styles - Premium Clean */
+
+.main {
+    padding-top: 80px;
+    padding-bottom: 100px;
+    min-height: 100vh;
+    background-color: var(--bg-app);
+}
+
+@media (min-width: 768px) {
+    .main {
+        padding-left: 280px;
+    }
+}
+
+.container {
+    max-width: 600px;
+    margin: 0 auto;
+    padding: 0 20px;
+}
+
+/* Profile Card */
+.profileCard {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    padding: 40px 20px;
+    background: transparent;
+    /* No card background for profile header in clean layout */
+    margin-bottom: 24px;
+}
+
+.profileInfo {
+    margin-top: 16px;
+}
+
+.profileInfo h2 {
+    font-size: 24px;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin: 0 0 4px;
+}
+
+.profileInfo span {
+    color: var(--text-secondary);
+    font-size: 15px;
+}
+
+/* Sections */
+.section {
+    margin-bottom: 32px;
+}
+
+.sectionTitle {
+    font-size: 13px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--text-secondary);
+    margin-bottom: 8px;
+    padding-left: 16px;
+    /* Align with list content */
+}
+
+/* iOS List Style */
+.optionsList {
+    background: white;
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow: var(--shadow-sm);
+}
+
+.option {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 20px;
+    border: none;
+    background: white;
+    width: 100%;
+    cursor: pointer;
+    transition: background 0.2s;
+    position: relative;
+}
+
+.option:not(:last-child)::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 60px;
+    /* Indent separator */
+    right: 0;
+    height: 1px;
+    background: #F5F5F7;
+}
+
+.option:hover {
+    background: #F9F9F9;
+}
+
+.optionLeft {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+.optionIcon {
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--primary);
+    border-radius: 8px;
+    color: white;
+}
+
+/* Different colors for icons */
+.option:nth-child(1) .optionIcon {
+    background: #0071E3;
+}
+
+.option:nth-child(2) .optionIcon {
+    background: #5E5CE6;
+}
+
+.option:nth-child(3) .optionIcon {
+    background: #FB9D3B;
+}
+
+.option:nth-child(4) .optionIcon {
+    background: #34C759;
+}
+
+.option span {
+    font-weight: 500;
+    font-size: 15px;
+    color: var(--text-primary);
+}
+
+.arrow {
+    color: #C7C7CC;
+}
+
+/* Toggle Switch (iOS style) */
+.toggle {
+    width: 51px;
+    height: 31px;
+    background: #E9E9EA;
+    border-radius: 99px;
+    border: none;
+    cursor: pointer;
+    position: relative;
+    transition: background 0.3s;
+}
+
+.toggle.on {
+    background: #34C759;
+}
+
+.toggleDot {
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 27px;
+    height: 27px;
+    background: white;
+    border-radius: 50%;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    transition: transform 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+}
+
+.toggle.on .toggleDot {
+    transform: translateX(20px);
+}
+
+/* Logout */
+.logoutButton {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    width: 100%;
+    padding: 16px;
+    background: white;
+    color: #FF3B30;
+    border: none;
+    border-radius: 16px;
+    font-weight: 600;
+    font-size: 15px;
+    cursor: pointer;
+    box-shadow: var(--shadow-sm);
+    margin-bottom: 32px;
+}
+
+.logoutButton:active {
+    background: #FFF2F2;
+}
+
+.version {
+    text-align: center;
+    font-size: 12px;
+    color: var(--text-tertiary);
+    padding-bottom: 20px;
+}

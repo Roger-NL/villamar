@@ -1,0 +1,239 @@
+.main {
+    padding-top: 80px;
+    padding-bottom: 40px;
+    min-height: 100vh;
+    background-color: var(--bg-app);
+}
+
+@media (min-width: 768px) {
+    .main {
+        padding-left: 280px;
+    }
+}
+
+.container {
+    max-width: 1000px;
+    margin: 0 auto;
+    padding: 0 20px;
+}
+
+.header {
+    margin-bottom: 32px;
+}
+
+.header h1 {
+    font-size: 28px;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin-bottom: 4px;
+}
+
+.date {
+    color: var(--text-secondary);
+    font-size: 15px;
+    text-transform: capitalize;
+}
+
+/* Bento Grid */
+.bentoGrid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 20px;
+}
+
+@media (min-width: 768px) {
+    .bentoGrid {
+        grid-template-columns: repeat(4, 1fr);
+    }
+}
+
+/* Stat Cards */
+.statCard {
+    background: white;
+    border-radius: 20px;
+    padding: 24px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    box-shadow: var(--shadow-sm);
+    transition: transform 0.2s;
+    height: 160px;
+}
+
+.statCard:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+}
+
+.statIconContainer {
+    width: 48px;
+    height: 48px;
+    border-radius: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 16px;
+}
+
+.statValue {
+    font-size: 32px;
+    font-weight: 700;
+    color: var(--text-primary);
+    line-height: 1;
+    margin-bottom: 4px;
+}
+
+.statLabel {
+    font-size: 14px;
+    color: var(--text-secondary);
+    font-weight: 500;
+}
+
+/* Content Cards */
+.card {
+    background: white;
+    border-radius: 24px;
+    padding: 24px;
+    box-shadow: var(--shadow-sm);
+}
+
+.cardHeader {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 24px;
+}
+
+.cardHeader h2 {
+    font-size: 18px;
+    font-weight: 600;
+    margin: 0;
+}
+
+.teamSection {
+    grid-column: span 2;
+
+    @media (min-width: 768px) {
+        grid-column: span 3;
+    }
+}
+
+.swapsSection {
+    grid-column: span 2;
+
+    @media (min-width: 768px) {
+        grid-column: span 1;
+    }
+}
+
+/* Team Grid */
+.teamGrid {
+    display: flex;
+    gap: 24px;
+    overflow-x: auto;
+    padding-bottom: 8px;
+    /* For scrollbar space */
+}
+
+.teamMember {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-width: 80px;
+}
+
+.avatarWrapper {
+    margin-bottom: 8px;
+    transition: transform 0.2s;
+}
+
+.teamMember:hover .avatarWrapper {
+    transform: scale(1.05);
+}
+
+.memberName {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.memberTime {
+    font-size: 12px;
+    color: var(--text-tertiary);
+}
+
+/* Swap List */
+.swapList {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.swapItem {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid var(--border-light);
+}
+
+.swapItem:last-child {
+    border-bottom: none;
+    padding-bottom: 0;
+}
+
+.swapInfo {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+}
+
+.swapName {
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.swapDate {
+    font-size: 12px;
+    color: var(--text-secondary);
+}
+
+.swapArrow {
+    color: var(--text-tertiary);
+}
+
+/* Timer e estado ativo */
+.teamMember.active .memberName {
+    color: var(--primary);
+}
+
+.memberTimer {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 12px;
+    color: #34C759;
+    font-weight: 600;
+    font-family: 'SF Mono', 'Monaco', 'Consolas', monospace;
+}
+
+.memberHours {
+    font-size: 11px;
+    color: var(--text-tertiary);
+}
+
+.emptySwaps {
+    color: var(--text-secondary);
+    font-size: 14px;
+    text-align: center;
+    padding: 20px;
+}
+
+.loading {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    font-size: 18px;
+    color: var(--text-secondary);
+}
