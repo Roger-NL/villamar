@@ -55,11 +55,25 @@ export default function AdminDashboard() {
     const totalTasks = tasks.length;
     const progress = totalTasks > 0 ? (completedTasks / totalTasks) * 100 : 0;
 
-    // Funcionários ordenados: em serviço primeiro
+    // Funcionários ordenados: Marta, Vera, Joao no topo, depois em serviço
     const sortedEmployees = [...employees].sort((a, b) => {
+        const priorityList = ['marta', 'vera', 'joao', 'joão'];
+
+        const getPriority = (name) => {
+            const lower = name.toLowerCase();
+            const idx = priorityList.findIndex(p => lower.includes(p));
+            return idx !== -1 ? idx : Infinity;
+        };
+
+        const pA = getPriority(a.name);
+        const pB = getPriority(b.name);
+
+        if (pA !== pB) return pA - pB;
+
+        // Se não forem prioritários (ou tiverem mesma prioridade - improvável para nomes únicos), ordenar por status
         const aActive = !!activeSessions[a.id];
         const bActive = !!activeSessions[b.id];
-        return bActive - aActive;
+        return (bActive ? 1 : 0) - (aActive ? 1 : 0);
     });
 
     // Calcular tempo decorrido para um funcionário

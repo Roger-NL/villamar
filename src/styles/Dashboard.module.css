@@ -156,40 +156,62 @@
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 8px;
+    gap: 4px;
+    flex: 1;
+    /* Distribute space evenly */
 }
 
 .dayName {
-    font-size: 13px;
+    font-size: 11px;
     color: var(--text-tertiary);
     font-weight: 600;
+    text-transform: uppercase;
 }
 
-.today .dayName {
+.dayDate {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin-bottom: 4px;
+}
+
+.today .dayName,
+.today .dayDate {
     color: var(--primary);
 }
 
-.dayShift {
-    width: 10px;
-    height: 10px;
-    border-radius: 50%;
-    background-color: #E5E5EA;
+.shiftBadge {
+    padding: 4px 8px;
+    border-radius: 8px;
+    font-size: 11px;
+    font-weight: 600;
+    white-space: nowrap;
+    min-width: 50px;
+    text-align: center;
     /* Default gray for unknown */
+    background-color: #F2F2F7;
+    color: var(--text-secondary);
 }
 
 .shiftDay {
-    background-color: #FFD60A;
-    /* Yellow */
+    background-color: #FFF8D4;
+    /* Light Yellow */
+    color: #B45309;
+    /* Dark Orange/Brown */
 }
 
 .shiftNight {
-    background-color: #5E5CE6;
-    /* Purple/Blue */
+    background-color: #E0E7FF;
+    /* Light Indigo */
+    color: #4338CA;
+    /* Dark Indigo */
 }
 
 .shiftOff {
-    background-color: #32D74B;
-    /* Green */
+    background-color: #DCFCE7;
+    /* Light Green */
+    color: #15803D;
+    /* Dark Green */
 }
 
 /* Timer Display */

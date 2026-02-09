@@ -173,17 +173,23 @@ export default function FuncionarioDashboard() {
                                 <span>Esta Semana</span>
                             </div>
                             <div className={styles.scheduleStrip}>
-                                {mockSchedule.currentWeek.map((day, i) => (
-                                    <div key={i} className={`${styles.dayItem} ${day.isToday ? styles.today : ''}`}>
-                                        <span className={styles.dayName}>{day.day.charAt(0)}</span>
-                                        <span className={`
-                      ${styles.dayShift} 
-                      ${day.shift === 'Folga' ? styles.shiftOff : ''}
-                      ${day.shift === 'Manhã' ? styles.shiftDay : ''}
-                      ${day.shift === 'Tarde' ? styles.shiftNight : ''}
-                    `}></span>
-                                    </div>
-                                ))}
+                                {mockSchedule.currentWeek.map((day, i) => {
+                                    const dateNum = day.date.split('-')[2];
+                                    return (
+                                        <div key={i} className={`${styles.dayItem} ${day.isToday ? styles.today : ''}`}>
+                                            <span className={styles.dayName}>{day.day}</span>
+                                            <span className={styles.dayDate}>{dateNum}</span>
+                                            <div className={`
+                                                ${styles.shiftBadge} 
+                                                ${day.shift === 'Folga' ? styles.shiftOff : ''}
+                                                ${day.shift === 'Manhã' ? styles.shiftDay : ''}
+                                                ${day.shift === 'Tarde' ? styles.shiftNight : ''}
+                                            `}>
+                                                {day.shift === 'Folga' ? 'Folga' : day.shift}
+                                            </div>
+                                        </div>
+                                    );
+                                })}
                             </div>
                         </div>
 

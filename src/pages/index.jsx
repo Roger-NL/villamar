@@ -125,20 +125,42 @@ export default function Home() {
                         </div>
 
                         <div className={styles.userList}>
-                            {employees.map(emp => (
-                                <button
-                                    key={emp.id}
-                                    className={styles.userOption}
-                                    onClick={() => handleSelectUser(emp)}
-                                >
-                                    <Avatar name={emp.name} size="md" />
-                                    <div className={styles.userInfo}>
-                                        <span className={styles.userName}>{emp.name}</span>
-                                        <span className={styles.userRole}>{emp.role}</span>
-                                    </div>
-                                    <ChevronRight size={20} className={styles.userArrow} />
-                                </button>
-                            ))}
+                            {employees
+                                .filter(emp => {
+                                    if (selectedMode === 'admin') {
+                                        const allowed = ['marta', 'vera', 'joao', 'joão'];
+                                        return allowed.some(n => emp.name.toLowerCase().includes(n));
+                                    }
+                                    return true;
+                                })
+                                .sort((a, b) => {
+                                    if (selectedMode === 'admin') {
+                                        const priorityList = ['marta', 'vera', 'joao', 'joão'];
+                                        const getPriority = (name) => {
+                                            const lower = name.toLowerCase();
+                                            const idx = priorityList.findIndex(p => lower.includes(p));
+                                            return idx !== -1 ? idx : Infinity;
+                                        };
+                                        const pA = getPriority(a.name);
+                                        const pB = getPriority(b.name);
+                                        return pA - pB;
+                                    }
+                                    return a.name.localeCompare(b.name);
+                                })
+                                .map(emp => (
+                                    <button
+                                        key={emp.id}
+                                        className={styles.userOption}
+                                        onClick={() => handleSelectUser(emp)}
+                                    >
+                                        <Avatar name={emp.name} size="md" />
+                                        <div className={styles.userInfo}>
+                                            <span className={styles.userName}>{emp.name}</span>
+                                            <span className={styles.userRole}>{emp.role}</span>
+                                        </div>
+                                        <ChevronRight size={20} className={styles.userArrow} />
+                                    </button>
+                                ))}
                         </div>
 
                         {employees.length === 0 && (

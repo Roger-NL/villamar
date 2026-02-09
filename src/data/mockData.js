@@ -9,13 +9,17 @@ export const mockEmployees = [
     { id: 4, name: 'Marlene', role: 'Cuidadora', avatar: null, status: 'dayoff', clockIn: null, clockOut: null },
     { id: 5, name: 'Camilla', role: 'Auxiliar', avatar: null, status: 'present', clockIn: '11:28', clockOut: null },
     { id: 6, name: 'Teresa', role: 'Cuidadora', avatar: null, status: 'absent', clockIn: null, clockOut: null },
-    { id: 7, name: 'Babita', role: 'Cuidadora', avatar: null, status: 'present', clockIn: '08:00', clockOut: null },
-    { id: 8, name: 'Ventura', role: 'Auxiliar', avatar: null, status: 'dayoff', clockIn: null, clockOut: null },
     { id: 9, name: 'Judite', role: 'Cuidadora', avatar: null, status: 'present', clockIn: '11:32', clockOut: null },
-    { id: 10, name: 'José Carlos', role: 'Cuidador', avatar: null, status: 'present', clockIn: '08:01', clockOut: null },
     { id: 11, name: 'M. Rodrigues', role: 'Enfermeira', avatar: null, status: 'present', clockIn: '08:00', clockOut: null },
-    { id: 12, name: 'Carlos A.', role: 'Auxiliar', avatar: null, status: 'dayoff', clockIn: null, clockOut: null },
+    { id: 13, name: 'Marta', role: 'CEO', avatar: null, status: 'present', clockIn: '08:00', clockOut: null },
+    { id: 14, name: 'Vera', role: 'Gerente', avatar: null, status: 'present', clockIn: '08:00', clockOut: null },
+    { id: 15, name: 'Joao', role: 'Gerente', avatar: null, status: 'present', clockIn: '08:00', clockOut: null },
 ];
+
+// ... (other exports remain the same but omitted here for brevity if they are not changed, but replace_file_content needs context)
+// Wait, I can't skip content. I will target the mockEmployees specifically.
+
+// ... skipping to swap requests ...
 
 // Funcionário atual (para demo da área de membro)
 export const mockCurrentUser = {
@@ -209,22 +213,7 @@ export const mockSwapRequests = [
         status: 'pending',
         createdAt: '2026-02-06',
     },
-    {
-        id: 2,
-        requestor: 'Babita',
-        requestorId: 7,
-        targetDate: '2026-02-14',
-        targetShift: 'Manhã',
-        targetHours: '8h-16:30',
-        swapWith: 'Roger',
-        swapWithId: 2,
-        swapDate: '2026-02-16',
-        swapShift: 'Tarde',
-        swapHours: '11:30-20h',
-        reason: 'Evento familiar',
-        status: 'approved',
-        createdAt: '2026-02-05',
-    },
+
     {
         id: 3,
         requestor: 'Deisy',

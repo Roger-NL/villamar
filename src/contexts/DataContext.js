@@ -3,7 +3,7 @@
  * Gere: Funcionários, Tarefas, Escalas, Pedidos de Troca, Notificações, Banco de Horas
  */
 import { createContext, useContext, useState, useEffect, useCallback } from 'react';
-import { mockEmployees as initialEmployees, mockTasks as initialTasks, mockSwapRequests as initialSwaps } from '@/data/mockData';
+import { mockEmployees as initialEmployees, mockTasks as initialTasks, mockSwapRequests as initialSwaps, taskCategories as initialTaskCategories } from '@/data/mockData';
 
 const DataContext = createContext();
 
@@ -39,7 +39,36 @@ export function DataProvider({ children }) {
             const savedTimeRecords = localStorage.getItem(STORAGE_KEYS.TIME_RECORDS);
             const savedActiveSessions = localStorage.getItem(STORAGE_KEYS.ACTIVE_SESSIONS);
 
-            setEmployees(savedEmployees ? JSON.parse(savedEmployees) : initialEmployees);
+            let loadedEmployees = savedEmployees ? JSON.parse(savedEmployees) : initialEmployees;
+
+            // Merge new employees from mockData if they don't exist in localStorage
+            // AND force update specific roles for admins (Marta, Vera, Joao)
+            if (savedEmployees) {
+                const existingIds = new Set(loadedEmployees.map(e => e.id));
+                const newEmployees = initialEmployees.filter(e => !existingIds.has(e.id));
+
+                if (newEmployees.length > 0) {
+                    loadedEmployees = [...loadedEmployees, ...newEmployees];
+                }
+
+                // Force update roles for specific IDs (13, 14, 15) to ensure "CEO" & "Gerente" are applied
+                const adminsToUpdate = [13, 14, 15];
+                loadedEmployees = loadedEmployees.map(emp => {
+                    if (adminsToUpdate.includes(emp.id)) {
+                        const original = initialEmployees.find(e => e.id === emp.id);
+                        if (original) {
+                            return { ...emp, role: original.role, name: original.name };
+                        }
+                    }
+                    return emp;
+                });
+
+                // Remove legacy employees that should no longer exist (Babita, Ventura, Carlos)
+                const employeesToRemove = [7, 8, 10, 12];
+                loadedEmployees = loadedEmployees.filter(emp => !employeesToRemove.includes(emp.id));
+            }
+
+            setEmployees(loadedEmployees);
             setTasks(savedTasks ? JSON.parse(savedTasks) : initialTasks);
             setSwapRequests(savedSwaps ? JSON.parse(savedSwaps) : initialSwaps);
             setNotifications(savedNotifications ? JSON.parse(savedNotifications) : []);
@@ -575,6 +604,7 @@ export function DataProvider({ children }) {
 
         // Utils
         resetAllData,
+        taskCategories: initialTaskCategories, // Export static categories
     };
 
     return (
