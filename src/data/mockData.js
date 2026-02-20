@@ -2,19 +2,7 @@
 // Dados realistas baseados no plano de trabalho diário real
 
 // Funcionários reais
-export const mockEmployees = [
-    { id: 1, name: 'Deisy', role: 'Cuidadora', avatar: null, status: 'present', clockIn: '08:02', clockOut: null },
-    { id: 2, name: 'Roger', role: 'Cuidador', avatar: null, status: 'present', clockIn: '07:58', clockOut: null },
-    { id: 3, name: 'Fábio', role: 'Cuidador', avatar: null, status: 'present', clockIn: '08:05', clockOut: null },
-    { id: 4, name: 'Marlene', role: 'Cuidadora', avatar: null, status: 'dayoff', clockIn: null, clockOut: null },
-    { id: 5, name: 'Camilla', role: 'Auxiliar', avatar: null, status: 'present', clockIn: '11:28', clockOut: null },
-    { id: 6, name: 'Teresa', role: 'Cuidadora', avatar: null, status: 'absent', clockIn: null, clockOut: null },
-    { id: 9, name: 'Judite', role: 'Cuidadora', avatar: null, status: 'present', clockIn: '11:32', clockOut: null },
-    { id: 11, name: 'M. Rodrigues', role: 'Enfermeira', avatar: null, status: 'present', clockIn: '08:00', clockOut: null },
-    { id: 13, name: 'Marta', role: 'CEO', avatar: null, status: 'present', clockIn: '08:00', clockOut: null },
-    { id: 14, name: 'Vera', role: 'Gerente', avatar: null, status: 'present', clockIn: '08:00', clockOut: null },
-    { id: 15, name: 'Joao', role: 'Gerente', avatar: null, status: 'present', clockIn: '08:00', clockOut: null },
-];
+export const mockEmployees = [];
 
 // ... (other exports remain the same but omitted here for brevity if they are not changed, but replace_file_content needs context)
 // Wait, I can't skip content. I will target the mockEmployees specifically.

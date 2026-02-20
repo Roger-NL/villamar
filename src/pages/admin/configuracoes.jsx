@@ -8,8 +8,10 @@ import { mockCurrentUser } from '@/data/mockData';
 import Avatar from '@/components/ui/Avatar';
 import { Settings, Bell, Shield, Users, Database, LogOut, ChevronRight } from 'lucide-react';
 import { useState } from 'react';
+import { useRouter } from 'next/router';
 
 export default function AdminConfiguracoesPage() {
+    const router = useRouter();
     const { isAdmin, toggleMode } = useApp();
     const [notifications, setNotifications] = useState(true);
 
@@ -55,12 +57,12 @@ export default function AdminConfiguracoesPage() {
                                 </button>
                             </div>
 
-                            <button className={styles.option}>
+                            <button className={styles.option} onClick={() => router.push('/admin/novo-admin')}>
                                 <div className={styles.optionLeft}>
                                     <div className={styles.optionIcon}>
                                         <Users size={20} />
                                     </div>
-                                    <span>Gestão de Utilizadores</span>
+                                    <span>Gestão de Administradores</span>
                                 </div>
                                 <ChevronRight size={20} className={styles.arrow} />
                             </button>
@@ -87,7 +89,7 @@ export default function AdminConfiguracoesPage() {
                         </div>
                     </section>
 
-                    <button className={styles.logoutButton}>
+                    <button className={styles.logoutButton} onClick={() => { import('firebase/auth').then(({ getAuth, signOut }) => signOut(getAuth())).then(() => window.location.href = '/') }}>
                         <LogOut size={20} />
                         <span>Terminar Sessão</span>
                     </button>

@@ -100,7 +100,7 @@ export default function ConfiguracoesPage() {
                         </div>
                     </section>
 
-                    <button className={styles.logoutButton}>
+                    <button className={styles.logoutButton} onClick={() => { localStorage.removeItem('villamar_employee_session'); window.location.href = '/'; }}>
                         <LogOut size={20} />
                         <span>Terminar Sessão</span>
                     </button>

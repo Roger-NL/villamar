@@ -147,6 +147,9 @@ export default function AdminFuncionariosPage() {
                                 <Avatar name={emp.name} size="xl" />
                                 <h3>{emp.name}</h3>
                                 <span className={styles.role}>{emp.role}</span>
+                                <div style={{ background: '#F3F4F6', padding: '4px 12px', borderRadius: '12px', fontSize: '0.85rem', fontWeight: 'bold', color: '#4B5563', margin: '4px 0' }}>
+                                    PIN: {emp.pin || '1234'}
+                                </div>
                                 <div className={styles.employeeActions}>
                                     <button
                                         className={`${styles.actionIcon} ${styles.danger}`}
