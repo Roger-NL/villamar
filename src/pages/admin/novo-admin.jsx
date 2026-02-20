@@ -164,7 +164,10 @@ export default function NovoAdminPage() {
                                     onChange={(e) => setRole(e.target.value)}
                                 >
                                     <option value="Gerente">Gerente</option>
+                                    <option value="Diretor">Diretor(a)</option>
                                     <option value="Coordenador">Coordenador/a</option>
+                                    <option value="Médico">Médico(a)</option>
+                                    <option value="Enfermeiro">Enfermeiro(a)</option>
                                     <option value="Admin Temporário">Admin Temporário</option>
                                     <option value="CEO">CEO / Fundador</option>
                                 </select>
