@@ -84,17 +84,25 @@ function generateEmployeeSchedule(employee, days, assignedWeekends, allSchedules
             const morningCount = daySchedules.filter(s => s.shift === 'Manhã').length;
             const afternoonCount = daySchedules.filter(s => s.shift === 'Tarde').length;
 
-            // Ajustar se necessário para balancear
+            // Ajustar se necessário para balancear ou para papel especifico
             let finalShift = shift;
-            if (morningCount < 2 && afternoonCount >= 2) {
+            let finalHours = '';
+
+            if (employee.role === 'Auxiliar') {
                 finalShift = 'Manhã';
-            } else if (afternoonCount < 2 && morningCount >= 2) {
-                finalShift = 'Tarde';
+                finalHours = '7h-14h';
+            } else {
+                if (morningCount < 2 && afternoonCount >= 2) {
+                    finalShift = 'Manhã';
+                } else if (afternoonCount < 2 && morningCount >= 2) {
+                    finalShift = 'Tarde';
+                }
+                finalHours = finalShift === 'Manhã' ? '8h-16:30' : '11:30-20h';
             }
 
             schedule[day.dateStr] = {
                 shift: finalShift,
-                hours: finalShift === 'Manhã' ? '8h-16:30' : '11:30-20h',
+                hours: finalHours,
                 isOff: false
             };
             lastShift = finalShift;

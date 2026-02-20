@@ -76,6 +76,17 @@ export default function AdminEscalasPage() {
         if (!editModal || !currentSchedule) return;
 
         const { employeeId, date } = editModal;
+        const employee = employees.find(e => e.id === employeeId);
+        const isAuxiliar = employee?.role === 'Auxiliar';
+
+        let finalHours = '';
+        if (newShift !== 'Folga') {
+            if (isAuxiliar) {
+                finalHours = '7h-14h';
+            } else {
+                finalHours = newShift === 'Manhã' ? '8h-16:30' : '11:30-20h';
+            }
+        }
 
         // Atualizar localmente
         setCurrentSchedule(prev => {
@@ -85,7 +96,7 @@ export default function AdminEscalasPage() {
                     ...prev.schedules[employeeId],
                     [date]: {
                         shift: newShift,
-                        hours: newShift === 'Manhã' ? '8h-16:30' : newShift === 'Tarde' ? '11:30-20h' : '',
+                        hours: finalHours,
                         isOff: newShift === 'Folga',
                     }
                 }
