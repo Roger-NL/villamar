@@ -28,9 +28,13 @@ export default function AdminEscalasPage() {
     // Modal de edição de célula
     const [editModal, setEditModal] = useState(null); // { employeeId, date, currentShift }
 
-    // Funcionários para a escala (filtrar apenas cuidadores/auxiliares ativos)
+    // Funcionários para a escala (filtrar cuidadores/auxiliares ativos apenas)
     const scheduleEmployees = employees.filter(e =>
-        e.role !== 'Enfermeira' // Enfermeira tem horário fixo
+        e.role !== 'Enfermeira' &&
+        e.role !== 'Enfermeiro' &&
+        e.role !== 'Médico' &&
+        e.role !== 'Médica' &&
+        (!e.isAdmin || e.name.toLowerCase() === 'roger') // Esconde Admins das escalas mas mantém o Roger se ele se colocar como Admin
     );
 
     // Carregar escala salva ao mudar de mês
