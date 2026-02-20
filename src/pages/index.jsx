@@ -5,8 +5,8 @@ import styles from '@/styles/Home.module.css';
 import formStyles from '@/styles/Forms.module.css';
 import { useApp } from './_app';
 import { useData } from '@/contexts/DataContext';
-import { db } from '@/config/firebase';
-import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged } from 'firebase/auth';
+import { db, auth } from '@/config/firebase';
+import { signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged } from 'firebase/auth';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import Avatar from '@/components/ui/Avatar';
 import { User, Shield, ChevronRight, X, Lock, Mail, LogIn, Bell, ArrowLeft, UserPlus } from 'lucide-react';
@@ -32,11 +32,12 @@ export default function Home() {
     const [enteredPin, setEnteredPin] = useState('');
     const [pinError, setPinError] = useState('');
 
-    const auth = getAuth();
     const unreadNotifications = notifications.filter(n => !n.read);
 
     // Verificar silenciosamente sessão do Firebase (Admin) ou LocalStorage (Equipa)
     useEffect(() => {
+        if (!auth) return;
+
         const unsubscribe = onAuthStateChanged(auth, async (user) => {
             if (user) {
                 const docRef = doc(db, 'employees', user.uid);
@@ -129,6 +130,12 @@ export default function Home() {
         e.preventDefault();
         setLoading(true);
         setError('');
+
+        if (!auth) {
+            setError('Ocorreu um erro: A ligação ao painel Firebase está falhando.');
+            setLoading(false);
+            return;
+        }
 
         try {
             if (isRegisteringAdmin) {
