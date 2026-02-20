@@ -259,7 +259,21 @@ export default function EscalaPage() {
                                             {row.cells.map((cell, j) => {
                                                 const isToday = new Date().toISOString().split('T')[0] === cell.date;
                                                 const isSunday = cell.dayOfWeek === 0;
-                                                const canSwap = !isMe; // Não pode trocar consigo mesmo
+
+                                                // Regra Cuidadores/Auxiliares
+                                                const isCurrentUserAuxiliar = currentUser?.role === 'Auxiliar';
+                                                const isTargetAuxiliar = row.employee.role === 'Auxiliar';
+                                                const sameRoleGroup = isCurrentUserAuxiliar === isTargetAuxiliar;
+                                                const canSwap = !isMe && sameRoleGroup;
+
+                                                let titleMsg = cell.shift;
+                                                if (!sameRoleGroup && !isMe) {
+                                                    titleMsg = isCurrentUserAuxiliar
+                                                        ? `Apenas pode trocar com outros Auxiliares`
+                                                        : `Não pode trocar horas com Auxiliares`;
+                                                } else if (canSwap) {
+                                                    titleMsg = `Clique para pedir troca com ${row.employee.name.split(' ')[0]}`;
+                                                }
 
                                                 return (
                                                     <div
@@ -271,7 +285,8 @@ export default function EscalaPage() {
                                                             ${isToday ? genStyles.currentDay : ''}
                                                             ${isSunday ? genStyles.weekEnd : ''}
                                                         `}
-                                                        title={canSwap ? `Clique para pedir troca com ${row.employee.name.split(' ')[0]}` : cell.shift}
+                                                        style={(!canSwap && !isMe) ? { opacity: 0.6, cursor: 'not-allowed' } : {}}
+                                                        title={titleMsg}
                                                         onClick={() => canSwap && handleCellClick(row.employee, cell.date, cell.shift)}
                                                     >
                                                         {getShiftIcon(cell.shift)}
