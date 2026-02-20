@@ -71,19 +71,15 @@ export function DataProvider({ children }) {
             // WITH FIREBASE
             const unsubEmployees = onSnapshot(collection(db, 'employees'), (snapshot) => {
                 const items = snapshot.docs.map(doc => doc.data());
-                // Seed if empty
-                if (items.length === 0) { seedCollection('employees', initialEmployees); }
-                else setEmployees(items);
+                setEmployees(items);
             });
             const unsubTasks = onSnapshot(collection(db, 'tasks'), (snapshot) => {
                 const items = snapshot.docs.map(doc => doc.data());
-                if (items.length === 0) seedCollection('tasks', initialTasks);
-                else setTasks(items);
+                setTasks(items);
             });
             const unsubSwaps = onSnapshot(collection(db, 'swapRequests'), (snapshot) => {
                 const items = snapshot.docs.map(doc => doc.data());
-                if (items.length === 0 && initialSwaps.length > 0) seedCollection('swapRequests', initialSwaps);
-                else setSwapRequests(items);
+                setSwapRequests(items);
             });
             const unsubNotifications = onSnapshot(collection(db, 'notifications'), (snapshot) => {
                 setNotifications(snapshot.docs.map(doc => doc.data()).sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)));

@@ -29,128 +29,7 @@ export const patients = [
 ];
 
 // Tarefas reais do dia - Turno Manhã (8h - 16:30)
-export const mockTasks = [
-    {
-        id: 1,
-        title: 'Levante - Lourdes C.',
-        time: '08:00',
-        description: 'Auxiliar no levante e higiene',
-        completed: true,
-        photo: 'uploaded',
-        priority: 'high',
-        category: 'levante'
-    },
-    {
-        id: 2,
-        title: 'Levante - Tina',
-        time: '08:15',
-        description: 'Auxiliar no levante e higiene',
-        completed: true,
-        photo: null,
-        priority: 'high',
-        category: 'levante'
-    },
-    {
-        id: 3,
-        title: 'Reforço Hídrico - Sala Comum',
-        time: '10:00',
-        description: 'Oferecer água/chá a todos os residentes',
-        completed: false,
-        photo: null,
-        priority: 'high',
-        category: 'hidratacao'
-    },
-    {
-        id: 4,
-        title: 'Hidratação Pele - Lourdes N.',
-        time: '10:30',
-        description: 'Aplicar creme hidratante',
-        completed: false,
-        photo: null,
-        priority: 'normal',
-        category: 'hidratacao'
-    },
-    {
-        id: 5,
-        title: 'Hidratação Pele - Fernanda',
-        time: '10:45',
-        description: 'Aplicar creme hidratante',
-        completed: false,
-        photo: null,
-        priority: 'normal',
-        category: 'hidratacao'
-    },
-    {
-        id: 6,
-        title: 'Trocas 11h - Simão',
-        time: '11:00',
-        description: 'Troca de fralda e posicionamento',
-        completed: false,
-        photo: null,
-        priority: 'high',
-        category: 'trocas'
-    },
-    {
-        id: 7,
-        title: 'Trocas 11h - Sofia',
-        time: '11:15',
-        description: 'Troca de fralda e posicionamento',
-        completed: false,
-        photo: null,
-        priority: 'high',
-        category: 'trocas'
-    },
-    {
-        id: 8,
-        title: 'Almoço - Refeitório',
-        time: '12:30',
-        description: 'Auxiliar residentes durante almoço',
-        completed: false,
-        photo: null,
-        priority: 'normal',
-        category: 'refeicao'
-    },
-    {
-        id: 9,
-        title: 'Reforço Hídrico Tarde',
-        time: '15:00',
-        description: 'Oferecer água/chá a todos',
-        completed: false,
-        photo: null,
-        priority: 'high',
-        category: 'hidratacao'
-    },
-    {
-        id: 10,
-        title: 'Unhas - António',
-        time: '14:00',
-        description: 'Cortar e limar unhas',
-        completed: false,
-        photo: null,
-        priority: 'low',
-        category: 'cuidados'
-    },
-    {
-        id: 11,
-        title: 'Barba - Otílio',
-        time: '14:30',
-        description: 'Fazer a barba',
-        completed: false,
-        photo: null,
-        priority: 'low',
-        category: 'cuidados'
-    },
-    {
-        id: 12,
-        title: 'Trocas 15h - Perpétua',
-        time: '15:00',
-        description: 'Troca de fralda e posicionamento',
-        completed: false,
-        photo: null,
-        priority: 'high',
-        category: 'trocas'
-    },
-];
+export const mockTasks = [];
 
 // Turnos reais
 export const shifts = {
@@ -160,75 +39,22 @@ export const shifts = {
 
 // Escala semanal
 export const mockSchedule = {
-    currentWeek: [
-        { date: '2026-02-02', day: 'Seg', shift: 'Manhã', isToday: false, hours: '8h-16:30' },
-        { date: '2026-02-03', day: 'Ter', shift: 'Manhã', isToday: false, hours: '8h-16:30' },
-        { date: '2026-02-04', day: 'Qua', shift: 'Tarde', isToday: false, hours: '11:30-20h' },
-        { date: '2026-02-05', day: 'Qui', shift: 'Folga', isToday: false, isDayOff: true },
-        { date: '2026-02-06', day: 'Sex', shift: 'Manhã', isToday: false, hours: '8h-16:30' },
-        { date: '2026-02-07', day: 'Sáb', shift: 'Manhã', isToday: true, hours: '8h-16:30' },
-        { date: '2026-02-08', day: 'Dom', shift: 'Tarde', isToday: false, hours: '11:30-20h' },
-    ],
-    nextWeek: [
-        { date: '2026-02-09', day: 'Seg', shift: 'Folga', isDayOff: true },
-        { date: '2026-02-10', day: 'Ter', shift: 'Manhã', hours: '8h-16:30' },
-        { date: '2026-02-11', day: 'Qua', shift: 'Manhã', hours: '8h-16:30' },
-        { date: '2026-02-12', day: 'Qui', shift: 'Tarde', hours: '11:30-20h' },
-        { date: '2026-02-13', day: 'Sex', shift: 'Manhã', hours: '8h-16:30' },
-        { date: '2026-02-14', day: 'Sáb', shift: 'Folga', isDayOff: true },
-        { date: '2026-02-15', day: 'Dom', shift: 'Tarde', hours: '11:30-20h' },
-    ],
+    currentWeek: [],
+    nextWeek: [],
 };
 
 // Pedidos de troca - COM DETALHES COMPLETOS
-export const mockSwapRequests = [
-    {
-        id: 1,
-        requestor: 'Camilla',
-        requestorId: 5,
-        // Dia que quer trocar
-        targetDate: '2026-02-10',
-        targetShift: 'Tarde', // Turno original dela nesse dia
-        targetHours: '11:30-20h',
-        // Com quem quer trocar
-        swapWith: 'Marlene',
-        swapWithId: 4,
-        // Dia/turno que vai fazer em troca
-        swapDate: '2026-02-12',
-        swapShift: 'Manhã', // Turno que vai assumir
-        swapHours: '8h-16:30',
-        reason: 'Consulta médica',
-        status: 'pending',
-        createdAt: '2026-02-06',
-    },
-
-    {
-        id: 3,
-        requestor: 'Deisy',
-        requestorId: 1,
-        targetDate: '2026-02-15',
-        targetShift: 'Tarde',
-        targetHours: '11:30-20h',
-        swapWith: 'Fábio',
-        swapWithId: 3,
-        swapDate: '2026-02-17',
-        swapShift: 'Manhã',
-        swapHours: '8h-16:30',
-        reason: 'Preciso do dia livre',
-        status: 'pending',
-        createdAt: '2026-02-07',
-    },
-];
+export const mockSwapRequests = [];
 
 // Estatísticas
 export const mockStats = {
-    totalEmployees: 12,
-    presentToday: 8,
-    onDayOff: 3,
-    absent: 1,
-    pendingSwaps: 1,
-    tasksCompleted: 5,
-    totalTasks: 12,
+    totalEmployees: 0,
+    presentToday: 0,
+    onDayOff: 0,
+    absent: 0,
+    pendingSwaps: 0,
+    tasksCompleted: 0,
+    totalTasks: 0,
 };
 
 // Categorias de tarefas com ícones
