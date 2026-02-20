@@ -19,7 +19,7 @@ export default function AdminFuncionariosPage() {
     const [formData, setFormData] = useState({ name: '', role: 'Cuidador' });
     const [confirmDelete, setConfirmDelete] = useState(null);
 
-    const roles = ['Cuidador', 'Cuidadora', 'Auxiliar', 'Enfermeira', 'Enfermeiro'];
+    const roles = ['Cuidador', 'Cuidadora', 'Auxiliar', 'Enfermeira', 'Enfermeiro', 'Médico', 'Médica'];
 
     const handleSubmit = (e) => {
         e.preventDefault();

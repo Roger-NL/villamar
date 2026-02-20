@@ -32,8 +32,6 @@ export default function Home() {
     const [enteredPin, setEnteredPin] = useState('');
     const [pinError, setPinError] = useState('');
 
-    const unreadNotifications = notifications.filter(n => !n.read);
-
     // Verificar silenciosamente sessão do Firebase (Admin) ou LocalStorage (Equipa)
     useEffect(() => {
         if (!auth) return;
@@ -193,13 +191,6 @@ export default function Home() {
             <main className={styles.main}>
                 <div className={styles.content}>
 
-                    {unreadNotifications.length > 0 && (
-                        <div className={styles.notifBanner}>
-                            <Bell size={18} />
-                            <span>{unreadNotifications.length} notificação(ões) nova(s)</span>
-                        </div>
-                    )}
-
                     <div className={styles.header}>
                         <div className={styles.logoIcon}>🌊</div>
                         <h1>Villa Mar</h1>
@@ -355,6 +346,7 @@ export default function Home() {
 
                                 <div className={styles.userList}>
                                     {employees
+                                        .filter(emp => emp.name.toLowerCase() !== 'roger' && !emp.isAdmin)
                                         .sort((a, b) => a.name.localeCompare(b.name))
                                         .map(emp => (
                                             <button

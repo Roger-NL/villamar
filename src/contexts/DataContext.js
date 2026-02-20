@@ -221,22 +221,37 @@ export function DataProvider({ children }) {
 
     // === NOTIFICATIONS ===
     const addNotification = useCallback(async (notification) => {
-        const newNotif = { id: Date.now(), ...notification, read: false, createdAt: new Date().toISOString() };
+        const newNotif = { id: Date.now(), ...notification, readBy: [], createdAt: new Date().toISOString() };
         if (!db) setNotifications(prev => [newNotif, ...prev]);
         else await writeDB('notifications', newNotif.id, newNotif);
         return newNotif;
     }, []);
 
-    const markNotificationRead = async (id) => {
-        if (!db) setNotifications(prev => prev.map(n => n.id === id ? { ...n, read: true } : n));
-        else await writeDB('notifications', id, { read: true });
+    const markNotificationRead = async (id, userId) => {
+        if (!userId) return;
+        const notif = notifications.find(n => n.id === id);
+        if (!notif) return;
+        const readBy = notif.readBy || [];
+        if (!readBy.includes(userId)) {
+            const updatedReadBy = [...readBy, userId];
+            if (!db) setNotifications(prev => prev.map(n => n.id === id ? { ...n, readBy: updatedReadBy } : n));
+            else Object.assign(notif, { readBy: updatedReadBy }), await writeDB('notifications', id, { readBy: updatedReadBy });
+        }
     };
 
-    const markAllNotificationsRead = async () => {
-        if (!db) setNotifications(prev => prev.map(n => ({ ...n, read: true })));
-        else {
+    const markAllNotificationsRead = async (userId) => {
+        if (!userId) return;
+        if (!db) {
+            setNotifications(prev => prev.map(n => {
+                const readBy = n.readBy || [];
+                return readBy.includes(userId) ? n : { ...n, readBy: [...readBy, userId] };
+            }));
+        } else {
             notifications.forEach(async n => {
-                if (!n.read) await writeDB('notifications', n.id, { read: true });
+                const readBy = n.readBy || [];
+                if (!readBy.includes(userId)) {
+                    await writeDB('notifications', n.id, { readBy: [...readBy, userId] }, true);
+                }
             });
         }
     };
@@ -248,7 +263,10 @@ export function DataProvider({ children }) {
         }
     };
 
-    const getUnreadCount = () => notifications.filter(n => !n.read).length;
+    const getUnreadCount = (userId) => {
+        if (!userId) return 0;
+        return notifications.filter(n => !(n.readBy || []).includes(userId)).length;
+    };
 
     // === EMPLOYEES CRUD ===
     const addEmployee = async (employee) => {
