@@ -8,7 +8,7 @@ import Avatar from '@/components/ui/Avatar';
 import { useApp } from '../_app';
 import { useData } from '@/contexts/DataContext';
 import { generateMonthlySchedule, formatScheduleForGrid } from '@/utils/scheduleGenerator';
-import { Calendar, Sun, Moon, Coffee, ChevronLeft, ChevronRight, Sparkles, Save, X, Plane, HeartPulse } from 'lucide-react';
+import { Calendar, Sun, Sunset, Moon, Coffee, ChevronLeft, ChevronRight, Sparkles, Save, X, Plane, HeartPulse } from 'lucide-react';
 import { useState, useMemo, useEffect } from 'react';
 
 export default function AdminEscalasPage() {
@@ -84,6 +84,8 @@ export default function AdminEscalasPage() {
                 finalHours = '7h-14h';
             } else if (isEnfermeiro) {
                 finalHours = '7h-15h';
+            } else if (newShift === 'Noite') {
+                finalHours = '20h-07h';
             } else {
                 finalHours = newShift === 'Manhã' ? '8h-16:30' : '11:30-20h';
             }
@@ -140,6 +142,7 @@ export default function AdminEscalasPage() {
     const getShiftClass = (shift) => {
         if (shift === 'Manhã') return 'M';
         if (shift === 'Tarde') return 'T';
+        if (shift === 'Noite') return 'N';
         if (shift === 'Folga') return 'F';
         if (shift === 'Férias' || shift === 'Licença') return 'F'; // Usa a cor de folga para holidays
         return '';
@@ -147,7 +150,8 @@ export default function AdminEscalasPage() {
 
     const getShiftIcon = (shift) => {
         if (shift === 'Manhã') return <Sun size={14} strokeWidth={2.5} />;
-        if (shift === 'Tarde') return <Moon size={14} strokeWidth={2.5} />;
+        if (shift === 'Tarde') return <Sunset size={14} strokeWidth={2.5} />;
+        if (shift === 'Noite') return <Moon size={14} strokeWidth={2.5} />;
         if (shift === 'Folga') return <Coffee size={14} strokeWidth={2.5} />;
         if (shift === 'Férias') return <Plane size={14} strokeWidth={2.5} />;
         if (shift === 'Licença') return <HeartPulse size={14} strokeWidth={2.5} />;
@@ -195,8 +199,12 @@ export default function AdminEscalasPage() {
                                 <span style={{ fontSize: '13px', fontWeight: 500 }}>Manhã</span>
                             </div>
                             <div className={styles.legendItem} style={{ background: 'none', padding: 0 }}>
-                                <div className={`${genStyles.shiftBadge} ${genStyles.T}`}><Moon size={12} strokeWidth={2.5} /></div>
+                                <div className={`${genStyles.shiftBadge} ${genStyles.T}`}><Sunset size={12} strokeWidth={2.5} /></div>
                                 <span style={{ fontSize: '13px', fontWeight: 500 }}>Tarde</span>
+                            </div>
+                            <div className={styles.legendItem} style={{ background: 'none', padding: 0 }}>
+                                <div className={`${genStyles.shiftBadge} ${genStyles.N}`}><Moon size={12} strokeWidth={2.5} /></div>
+                                <span style={{ fontSize: '13px', fontWeight: 500 }}>Noite</span>
                             </div>
                             <div className={styles.legendItem} style={{ background: 'none', padding: 0 }}>
                                 <div className={`${genStyles.shiftBadge} ${genStyles.F}`}><Coffee size={12} strokeWidth={2.5} /></div>
@@ -324,9 +332,17 @@ export default function AdminEscalasPage() {
                                 className={`${genStyles.shiftOption} ${genStyles.T} ${editModal.currentShift === 'Tarde' ? genStyles.active : ''}`}
                                 onClick={() => handleShiftChange('Tarde')}
                             >
-                                <Moon size={20} />
+                                <Sunset size={20} />
                                 <span>Tarde</span>
                                 <small>11:30 - 20h</small>
+                            </button>
+                            <button
+                                className={`${genStyles.shiftOption} ${genStyles.N} ${editModal.currentShift === 'Noite' ? genStyles.active : ''}`}
+                                onClick={() => handleShiftChange('Noite')}
+                            >
+                                <Moon size={20} />
+                                <span>Noite</span>
+                                <small>20h - 07h</small>
                             </button>
                             <button
                                 className={`${genStyles.shiftOption} ${genStyles.F} ${editModal.currentShift === 'Folga' ? genStyles.active : ''}`}

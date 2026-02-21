@@ -14,10 +14,10 @@ const STORAGE_KEYS = {
     EMPLOYEES: 'villamar_employees',
     TASKS: 'villamar_tasks',
     SWAPS: 'villamar_swaps',
-    NOTIFICATIONS: 'villamar_notifications',
     TIME_RECORDS: 'villamar_time_records',
     ACTIVE_SESSIONS: 'villamar_active_sessions',
     SCHEDULES: 'villamar_schedules',
+    INVENTORY: 'villamar_inventory',
 };
 
 export function DataProvider({ children }) {
@@ -30,6 +30,9 @@ export function DataProvider({ children }) {
     const [activeSessions, setActiveSessions] = useState({});
     const [savedSchedules, setSavedSchedules] = useState({});
     const [leaves, setLeaves] = useState([]); // Férias e Licenças
+    const [inventoryItems, setInventoryItems] = useState([]); // Estoque
+    const [diaperPatients, setDiaperPatients] = useState([]); // Utentes e as suas fraldas
+    const [diaperLogs, setDiaperLogs] = useState([]); // Histórico de reposições
     const [isHydrated, setIsHydrated] = useState(false);
 
     // Initial Sync from LocalStorage or Firebase
@@ -104,6 +107,15 @@ export function DataProvider({ children }) {
             const unsubLeaves = onSnapshot(collection(db, 'leaves'), (snapshot) => {
                 setLeaves(snapshot.docs.map(doc => doc.data()));
             });
+            const unsubInventory = onSnapshot(collection(db, 'inventoryItems'), (snapshot) => {
+                setInventoryItems(snapshot.docs.map(doc => doc.data()));
+            });
+            const unsubDiaperPatients = onSnapshot(collection(db, 'diaperPatients'), (snapshot) => {
+                setDiaperPatients(snapshot.docs.map(doc => doc.data()));
+            });
+            const unsubDiaperLogs = onSnapshot(collection(db, 'diaperLogs'), (snapshot) => {
+                setDiaperLogs(snapshot.docs.map(doc => doc.data()));
+            });
 
             setIsHydrated(true);
 
@@ -112,10 +124,12 @@ export function DataProvider({ children }) {
                 unsubTasks();
                 unsubSwaps();
                 unsubNotifications();
-                unsubTimeRecords();
                 unsubActiveSessions();
                 unsubSchedules();
                 unsubLeaves();
+                unsubInventory();
+                unsubDiaperPatients();
+                unsubDiaperLogs();
             };
         }
     }, []);
@@ -479,8 +493,60 @@ export function DataProvider({ children }) {
         else await deleteDB('leaves', id);
     }, [db]);
 
+    // === ESTOQUE ===
+    const addInventoryItem = useCallback(async (item) => {
+        const newItem = { id: Date.now().toString(), ...item, createdAt: new Date().toISOString() };
+        if (!db) setInventoryItems(prev => [...prev, newItem]);
+        else await writeDB('inventoryItems', newItem.id, newItem);
+    }, [db]);
+
+    const updateInventoryItem = useCallback(async (id, updates) => {
+        if (!db) {
+            setInventoryItems(prev => prev.map(item => item.id === id ? { ...item, ...updates } : item));
+        } else {
+            await writeDB('inventoryItems', id, updates, true);
+        }
+    }, [db]);
+
+    const deleteInventoryItem = useCallback(async (id) => {
+        if (!db) setInventoryItems(prev => prev.filter(i => i.id !== id));
+        else await deleteDB('inventoryItems', id);
+    }, [db]);
+
+    // === FRALDAS (Pacientes e Logs) ===
+    const addDiaperPatient = useCallback(async (patient) => {
+        const newPatient = { id: Date.now().toString(), ...patient, createdAt: new Date().toISOString() };
+        if (!db) setDiaperPatients(prev => [...prev, newPatient]);
+        else await writeDB('diaperPatients', newPatient.id, newPatient);
+    }, [db]);
+
+    const updateDiaperPatient = useCallback(async (id, updates) => {
+        if (!db) {
+            setDiaperPatients(prev => prev.map(p => p.id === id ? { ...p, ...updates } : p));
+        } else {
+            await writeDB('diaperPatients', id, updates, true);
+        }
+    }, [db]);
+
+    const deleteDiaperPatient = useCallback(async (id) => {
+        if (!db) setDiaperPatients(prev => prev.filter(p => p.id !== id));
+        else await deleteDB('diaperPatients', id);
+    }, [db]);
+
+    const addDiaperLog = useCallback(async (log) => {
+        const newLog = { id: Date.now().toString(), ...log, timestamp: new Date().toISOString() };
+        if (!db) setDiaperLogs(prev => [...prev, newLog]);
+        else await writeDB('diaperLogs', newLog.id, newLog);
+    }, [db]);
+
+    const deleteDiaperLog = useCallback(async (id) => {
+        if (!db) setDiaperLogs(prev => prev.filter(l => l.id !== id));
+        else await deleteDB('diaperLogs', id);
+    }, [db]);
+
     const value = {
-        employees, tasks, swapRequests, notifications, timeRecords, activeSessions, savedSchedules, isHydrated, leaves,
+        employees, tasks, swapRequests, notifications, timeRecords, activeSessions, savedSchedules, isHydrated, leaves, inventoryItems,
+        diaperPatients, diaperLogs,
         addEmployee, updateEmployee, removeEmployee, getEmployeeById,
         addTask, updateTask, removeTask, toggleTaskComplete, getTasksByEmployee, getTasksByDate,
         addSwapRequest, approveSwapRequest, rejectSwapRequest, getPendingSwaps,
@@ -488,7 +554,10 @@ export function DataProvider({ children }) {
         clockIn, clockOut, isEmployeeClockedIn, getActiveSession, getAllActiveSessions, getTotalHours, getTimeRecords,
         saveSchedule, getScheduleForMonth, updateShift, removeFromSchedule,
         resetAllData, taskCategories: initialTaskCategories,
-        addLeave, deleteLeave
+        addLeave, deleteLeave,
+        addInventoryItem, updateInventoryItem, deleteInventoryItem,
+        addDiaperPatient, updateDiaperPatient, deleteDiaperPatient,
+        addDiaperLog, deleteDiaperLog
     };
 
     return <DataContext.Provider value={value}>{children}</DataContext.Provider>;

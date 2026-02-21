@@ -16,7 +16,7 @@ export default function AdminFuncionariosPage() {
     const { employees, addEmployee, removeEmployee, isHydrated } = useData();
 
     const [showForm, setShowForm] = useState(false);
-    const [formData, setFormData] = useState({ name: '', role: 'Cuidador' });
+    const [formData, setFormData] = useState({ name: '', role: 'Cuidador', shiftPreference: 'Dia' });
     const [confirmDelete, setConfirmDelete] = useState(null);
 
     const roles = ['Cuidador', 'Cuidadora', 'Auxiliar', 'Enfermeira', 'Enfermeiro', 'Médico', 'Médica'];
@@ -27,9 +27,10 @@ export default function AdminFuncionariosPage() {
             addEmployee({
                 name: formData.name.trim(),
                 role: formData.role,
+                shiftPreference: formData.shiftPreference,
                 avatar: null,
             });
-            setFormData({ name: '', role: 'Cuidador' });
+            setFormData({ name: '', role: 'Cuidador', shiftPreference: 'Dia' });
             setShowForm(false);
         }
     };
@@ -102,6 +103,16 @@ export default function AdminFuncionariosPage() {
                                             ))}
                                         </select>
                                     </div>
+                                    <div className={formStyles.formGroup}>
+                                        <label>Turno Habitual</label>
+                                        <select
+                                            value={formData.shiftPreference}
+                                            onChange={e => setFormData({ ...formData, shiftPreference: e.target.value })}
+                                        >
+                                            <option value="Dia">Diurno (Dia)</option>
+                                            <option value="Noite">Noturno (Noite)</option>
+                                        </select>
+                                    </div>
                                     <div className={formStyles.formActions}>
                                         <button type="button" className={formStyles.cancelBtn} onClick={() => setShowForm(false)}>
                                             Cancelar
@@ -147,6 +158,9 @@ export default function AdminFuncionariosPage() {
                                 <Avatar name={emp.name} size="xl" />
                                 <h3>{emp.name}</h3>
                                 <span className={styles.role}>{emp.role}</span>
+                                <div style={{ background: emp.shiftPreference === 'Noite' ? '#1e293b' : '#F3F4F6', padding: '4px 12px', borderRadius: '12px', fontSize: '0.85rem', fontWeight: 'bold', color: emp.shiftPreference === 'Noite' ? '#f8fafc' : '#4B5563', margin: '4px 0' }}>
+                                    Turno: {emp.shiftPreference === 'Noite' ? 'Noturno' : 'Diurno'}
+                                </div>
                                 <div style={{ background: '#F3F4F6', padding: '4px 12px', borderRadius: '12px', fontSize: '0.85rem', fontWeight: 'bold', color: '#4B5563', margin: '4px 0' }}>
                                     PIN: {emp.pin || '1234'}
                                 </div>

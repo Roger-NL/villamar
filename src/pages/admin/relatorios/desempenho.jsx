@@ -20,12 +20,9 @@ export default function DesempenhoPage() {
 
         // Contar tarefas completadas logadas (se tivessemos log de quem completou)
         // Como o mockTasks não tem 'completedBy' consistente para todos, vamos simular ou usar o que temos.
-        // Vamos assumir que 'completed' conta para quem está atribuído ou se não atribuído, distribuímos aleatoriamente para demo?
-        // Melhor: Vamos criar stats baseados no ID para ser determinístico mas parecer real.
-
-        // Simulação baseada no ID para demo visual consistente
-        const completedCount = emp.id * 5 + (emp.id % 3) * 2;
-        const efficiency = 85 + (emp.id % 15);
+        // O cliente pediu para zerar os pontos até criarmos a lógica real.
+        const completedCount = 0;
+        const efficiency = 0;
 
         return {
             ...emp,

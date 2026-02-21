@@ -223,6 +223,11 @@
     color: #5856D6;
 }
 
+.shiftCell.N {
+    background: rgba(44, 62, 80, 0.15);
+    color: #2C3E50;
+}
+
 .shiftCell.F {
     background: rgba(52, 199, 89, 0.15);
     color: #34C759;
@@ -247,6 +252,11 @@
 .shiftBadge.T {
     background: rgba(88, 86, 214, 0.15);
     color: #5856D6;
+}
+
+.shiftBadge.N {
+    background: rgba(44, 62, 80, 0.15);
+    color: #2C3E50;
 }
 
 .shiftBadge.F {
@@ -481,6 +491,11 @@
     color: #5856D6;
 }
 
+.shiftCell.N {
+    background: rgba(44, 62, 80, 0.15);
+    color: #2C3E50;
+}
+
 .shiftCell.F {
     background: rgba(52, 199, 89, 0.15);
     color: #34C759;
@@ -504,6 +519,11 @@
 .shiftBadge.T {
     background: rgba(88, 86, 214, 0.15);
     color: #5856D6;
+}
+
+.shiftBadge.N {
+    background: rgba(44, 62, 80, 0.15);
+    color: #2C3E50;
 }
 
 .shiftBadge.F {
@@ -719,6 +739,17 @@
 .shiftOption.T.active {
     border-color: #5856D6;
     background: rgba(88, 86, 214, 0.2);
+}
+
+.shiftOption.N {
+    background: rgba(44, 62, 80, 0.1);
+    color: #2C3E50;
+}
+
+.shiftOption.N:hover,
+.shiftOption.N.active {
+    border-color: #2C3E50;
+    background: rgba(44, 62, 80, 0.2);
 }
 
 .shiftOption.F {

@@ -11,7 +11,7 @@ import Card from '@/components/ui/Card';
 import { useApp } from '../_app';
 import { useData } from '@/contexts/DataContext';
 import { formatScheduleForGrid } from '@/utils/scheduleGenerator';
-import { Calendar, Sun, Moon, Coffee, ChevronLeft, ChevronRight, X, AlertCircle, Send } from 'lucide-react';
+import { Calendar, Sun, Sunset, Moon, Coffee, ChevronLeft, ChevronRight, X, AlertCircle, Send, Plane, HeartPulse } from 'lucide-react';
 
 export default function EscalaPage() {
     const { isAdmin, toggleMode, currentUser } = useApp();
@@ -65,14 +65,19 @@ export default function EscalaPage() {
     const getShiftClass = (shift) => {
         if (shift === 'Manhã') return 'M';
         if (shift === 'Tarde') return 'T';
+        if (shift === 'Noite') return 'N';
         if (shift === 'Folga') return 'F';
+        if (shift === 'Férias' || shift === 'Licença') return 'F';
         return '';
     };
 
     const getShiftIcon = (shift) => {
         if (shift === 'Manhã') return <Sun size={14} strokeWidth={2.5} />;
-        if (shift === 'Tarde') return <Moon size={14} strokeWidth={2.5} />;
+        if (shift === 'Tarde') return <Sunset size={14} strokeWidth={2.5} />;
+        if (shift === 'Noite') return <Moon size={14} strokeWidth={2.5} />;
         if (shift === 'Folga') return <Coffee size={14} strokeWidth={2.5} />;
+        if (shift === 'Férias') return <Plane size={14} strokeWidth={2.5} />;
+        if (shift === 'Licença') return <HeartPulse size={14} strokeWidth={2.5} />;
         return null;
     };
 
@@ -183,8 +188,12 @@ export default function EscalaPage() {
                                 <span style={{ fontSize: '12px' }}>Manhã</span>
                             </div>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                <div className={`${genStyles.shiftBadge} ${genStyles.T}`}><Moon size={12} strokeWidth={2.5} /></div>
+                                <div className={`${genStyles.shiftBadge} ${genStyles.T}`}><Sunset size={12} strokeWidth={2.5} /></div>
                                 <span style={{ fontSize: '12px' }}>Tarde</span>
+                            </div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                <div className={`${genStyles.shiftBadge} ${genStyles.N}`}><Moon size={12} strokeWidth={2.5} /></div>
+                                <span style={{ fontSize: '12px' }}>Noite</span>
                             </div>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                                 <div className={`${genStyles.shiftBadge} ${genStyles.F}`}><Coffee size={12} strokeWidth={2.5} /></div>

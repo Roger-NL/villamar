@@ -1,0 +1,508 @@
+import Head from 'next/head';
+import { useState, useMemo } from 'react';
+import { useRouter } from 'next/router';
+import styles from '@/styles/AdminPages.module.css';
+import formStyles from '@/styles/Forms.module.css';
+import Header from '@/components/layout/Header';
+import BottomNav from '@/components/layout/BottomNav';
+import Sidebar from '@/components/layout/Sidebar';
+import Card from '@/components/ui/Card';
+import { useApp } from '@/pages/_app';
+import { useData } from '@/contexts/DataContext';
+import { Baby, Plus, X, ArrowLeft, RefreshCw, Box, TableProperties, ChevronLeft, ChevronRight, CheckCircle2 } from 'lucide-react';
+
+// Helper for local YYYY-MM-DD
+const toISODate = (d) => {
+    const copy = new Date(d);
+    copy.setMinutes(copy.getMinutes() - copy.getTimezoneOffset());
+    return copy.toISOString().split('T')[0];
+};
+
+export default function FraldasPage() {
+    const { isAdmin, toggleMode, currentUser } = useApp();
+    const router = useRouter();
+    const {
+        diaperPatients, diaperLogs, inventoryItems,
+        addDiaperPatient, deleteDiaperPatient,
+        addDiaperLog,
+        addInventoryItem, updateInventoryItem
+    } = useData();
+
+    // TABS
+    const [activeTab, setActiveTab] = useState('tabela'); // tabela | deposito
+
+    // Formulários e Modais
+    const [showDepotForm, setShowDepotForm] = useState(false);
+    const [depotForm, setDepotForm] = useState({ name: '', initialStock: 0 });
+
+    const [showPatientForm, setShowPatientForm] = useState(false);
+    const [patientForm, setPatientForm] = useState({ name: '', diaperId: '' });
+
+    const [replaceModal, setReplaceModal] = useState(null); // { patient, date: YYYY-MM-DD }
+    const [currentRoomStock, setCurrentRoomStock] = useState('');
+
+    // Filtro de inventário para fraldas
+    const diaperInventory = useMemo(() => {
+        if (!inventoryItems) return [];
+        return inventoryItems.filter(i => i.category === 'fralda');
+    }, [inventoryItems]);
+
+    // Gestão da Semana Visível
+    const todayStr = toISODate(new Date());
+    const [weekOffset, setWeekOffset] = useState(0);
+
+    const weekDates = useMemo(() => {
+        const d = new Date();
+        const day = d.getDay();
+        const diff = d.getDate() - day + (day === 0 ? -6 : 1) + (weekOffset * 7); // Início na segunda-feira
+        const monday = new Date(d.setDate(diff));
+
+        const dates = [];
+        for (let i = 0; i < 7; i++) {
+            const current = new Date(monday);
+            current.setDate(monday.getDate() + i);
+            dates.push(current);
+        }
+        return dates;
+    }, [weekOffset]);
+
+    // Resumo mensal
+    const monthStats = useMemo(() => {
+        const stats = {};
+        const focusMonthStr = weekDates[0].toISOString().slice(0, 7); // Mês base desta semana focada (ex: 2023-11)
+
+        if (diaperLogs) {
+            diaperLogs.forEach(log => {
+                if (!log.date) return;
+                const logMonthStr = log.date.slice(0, 7);
+                if (logMonthStr === focusMonthStr) {
+                    if (!stats[log.patientId]) stats[log.patientId] = 0;
+                    stats[log.patientId] += Number(log.amountAdded || 0);
+                }
+            });
+        }
+        return { stats, focusMonthStr };
+    }, [diaperLogs, weekDates]);
+
+    // HANDLERS DEPÓSITO
+    const handleAddDepot = (e) => {
+        e.preventDefault();
+        if (!depotForm.name.trim()) return;
+        addInventoryItem({
+            name: depotForm.name.trim(),
+            category: 'fralda',
+            stockDepot: Number(depotForm.initialStock) || 0,
+        });
+        setDepotForm({ name: '', initialStock: 0 });
+        setShowDepotForm(false);
+    };
+
+    const handleUpdateDepot = (id, change) => {
+        const item = diaperInventory.find(i => i.id === id);
+        if (!item) return;
+        if (item.stockDepot + change < 0) return;
+        updateInventoryItem(id, { stockDepot: item.stockDepot + change });
+    };
+
+    // HANDLERS PACIENTES
+    const handleAddPatient = (e) => {
+        e.preventDefault();
+        if (!patientForm.name.trim() || !patientForm.diaperId) return;
+        addDiaperPatient({
+            name: patientForm.name.trim(),
+            diaperId: patientForm.diaperId,
+        });
+        setPatientForm({ name: '', diaperId: '' });
+        setShowPatientForm(false);
+    };
+
+    // HANDLERS REPOSIÇÃO
+    const handleReplaceSubmit = (e) => {
+        e.preventDefault();
+        const patient = replaceModal.patient;
+        const actionDateStr = replaceModal.date;
+        const currentInRoom = Number(currentRoomStock);
+
+        if (currentInRoom < 0 || currentInRoom > 10) {
+            alert("A quantidade no quarto deve ser entre 0 e 10.");
+            return;
+        }
+
+        const diaperType = diaperInventory.find(d => d.id === patient.diaperId);
+        if (!diaperType) {
+            alert('Tipo de fralda não encontrado! Verifique o depósito.');
+            return;
+        }
+
+        const requiredAmount = 10 - currentInRoom;
+        if (requiredAmount > 0 && diaperType.stockDepot < requiredAmount) {
+            alert(`Falta estoque no depósito! Há apenas ${diaperType.stockDepot} de ${diaperType.name}.`);
+            return;
+        }
+
+        // Subtrai do depósito se for preciso adicionar
+        if (requiredAmount > 0) {
+            updateInventoryItem(diaperType.id, { stockDepot: diaperType.stockDepot - requiredAmount });
+        }
+
+        // Log the refill
+        addDiaperLog({
+            patientId: patient.id,
+            patientName: patient.name,
+            diaperId: diaperType.id,
+            diaperName: diaperType.name,
+            date: actionDateStr,
+            amountAdded: requiredAmount,
+            previousStock: currentInRoom,
+            newStock: 10,
+            executorId: currentUser?.id || 'admin',
+            executorName: currentUser?.name || 'Admin',
+        });
+
+        setReplaceModal(null);
+        setCurrentRoomStock('');
+    };
+
+    return (
+        <>
+            <Head>
+                <title>Fraldas - Admin Villa Mar</title>
+            </Head>
+
+            <Header user={currentUser} isAdmin={isAdmin} onModeSwitch={toggleMode} />
+            <Sidebar isAdmin={true} />
+            <BottomNav isAdmin={true} />
+
+            <main className={styles.main}>
+                <div className={styles.container}>
+                    {/* Header Principal */}
+                    <div className={styles.pageHeader}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                            <button
+                                onClick={() => router.push('/admin/estoque')}
+                                style={{ background: '#F3F4F6', border: 'none', padding: '10px', borderRadius: '12px', cursor: 'pointer', display: 'flex' }}
+                            >
+                                <ArrowLeft size={20} color="#4B5563" />
+                            </button>
+                            <h1 className={styles.pageTitle} style={{ margin: 0 }}>
+                                <Baby size={28} />
+                                Planeamento de Fraldas
+                            </h1>
+                        </div>
+                    </div>
+
+                    {/* Menu Pivot */}
+                    <div style={{ display: 'flex', gap: '8px', borderBottom: '2px solid #E5E7EB', marginBottom: '24px' }}>
+                        <button
+                            onClick={() => setActiveTab('tabela')}
+                            style={{ padding: '12px 20px', border: 'none', background: 'transparent', cursor: 'pointer', borderBottom: activeTab === 'tabela' ? '3px solid #0071E3' : '3px solid transparent', fontWeight: activeTab === 'tabela' ? 700 : 500, color: activeTab === 'tabela' ? '#0071E3' : '#6B7280', display: 'flex', alignItems: 'center', gap: '8px' }}
+                        >
+                            <TableProperties size={18} /> Grelha de Reposição Semanal
+                        </button>
+                        <button
+                            onClick={() => setActiveTab('deposito')}
+                            style={{ padding: '12px 20px', border: 'none', background: 'transparent', cursor: 'pointer', borderBottom: activeTab === 'deposito' ? '3px solid #0071E3' : '3px solid transparent', fontWeight: activeTab === 'deposito' ? 700 : 500, color: activeTab === 'deposito' ? '#0071E3' : '#6B7280', display: 'flex', alignItems: 'center', gap: '8px' }}
+                        >
+                            <Box size={18} /> Central do Depósito
+                        </button>
+                    </div>
+
+                    {/* ---- ABA RELATÓRIO/TABELA SEMANAL ---- */}
+                    {activeTab === 'tabela' && (
+                        <div>
+                            {/* Controlos e Funcionalidades Adicionais */}
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '16px' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', background: 'white', padding: '6px', borderRadius: '12px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
+                                    <button onClick={() => setWeekOffset(w => w - 1)} style={{ background: 'transparent', border: 'none', padding: '6px', cursor: 'pointer', display: 'flex' }} title="Semana Anterior">
+                                        <ChevronLeft size={20} color="#4B5563" />
+                                    </button>
+                                    <span style={{ fontWeight: 600, fontSize: '14px', color: '#111827', minWidth: '150px', textAlign: 'center' }}>
+                                        {weekDates[0].toLocaleDateString('pt-PT', { day: '2-digit', month: 'short' })} - {weekDates[6].toLocaleDateString('pt-PT', { day: '2-digit', month: 'short' })}
+                                    </span>
+                                    <button onClick={() => setWeekOffset(w => w + 1)} style={{ background: 'transparent', border: 'none', padding: '6px', cursor: 'pointer', display: 'flex' }} title="Semana Seguinte">
+                                        <ChevronRight size={20} color="#4B5563" />
+                                    </button>
+                                    <button onClick={() => setWeekOffset(0)} style={{ background: '#F3F4F6', border: 'none', padding: '6px 12px', borderRadius: '8px', cursor: 'pointer', fontSize: '12px', fontWeight: 600, color: '#4B5563', marginLeft: '8px' }}>
+                                        Hoje
+                                    </button>
+                                </div>
+
+                                <button className={styles.primaryButton} onClick={() => setShowPatientForm(!showPatientForm)} style={{ padding: '8px 16px' }}>
+                                    {showPatientForm ? <X size={16} /> : <Plus size={16} />}
+                                    <span style={{ fontSize: '14px' }}>{showPatientForm ? 'Fechar Tab' : 'Nono Utente'}</span>
+                                </button>
+                            </div>
+
+                            {/* Mostrar formulário se necessário */}
+                            {showPatientForm && (
+                                <Card className={formStyles.formCard} padding="lg" style={{ marginBottom: '24px' }}>
+                                    <h3 style={{ margin: '0 0 16px', fontSize: '1.1rem' }}>Configurar Rotina do Utente</h3>
+                                    <form onSubmit={handleAddPatient} className={formStyles.form}>
+                                        <div className={formStyles.rowFormGroup}>
+                                            <div className={formStyles.formGroup} style={{ flex: 1 }}>
+                                                <label>Nome do Utente *</label>
+                                                <input type="text" value={patientForm.name} onChange={e => setPatientForm({ ...patientForm, name: e.target.value })} required placeholder="Ex: Sr. Joaquim" />
+                                            </div>
+                                            <div className={formStyles.formGroup} style={{ flex: 1 }}>
+                                                <label>Tamanho Associado (Depósito) *</label>
+                                                <select value={patientForm.diaperId} onChange={e => setPatientForm({ ...patientForm, diaperId: e.target.value })} required >
+                                                    <option value="">Selecione o tamanho</option>
+                                                    {diaperInventory.map(d => (
+                                                        <option key={d.id} value={d.id}>{d.name} ({d.stockDepot} disponíveis)</option>
+                                                    ))}
+                                                </select>
+                                                {diaperInventory.length === 0 && (
+                                                    <small style={{ color: '#EF4444', display: 'block', marginTop: '6px' }}>Vá à central do depósito primeiro.</small>
+                                                )}
+                                            </div>
+                                        </div>
+                                        <button type="submit" className={formStyles.btnPrimary} style={{ width: '100%', justifyContent: 'center' }}>Adicionar Registo</button>
+                                    </form>
+                                </Card>
+                            )}
+
+                            {/* A Tabela Robusta em Container SCROLL para mobile */}
+                            <div className={styles.tableWrapper} style={{ backgroundColor: 'white', borderRadius: '16px', border: '1px solid #E5E7EB', overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
+                                <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '800px', tableLayout: 'fixed' }}>
+                                    <thead>
+                                        <tr>
+                                            <th style={{ padding: '16px', textAlign: 'left', borderBottom: '2px solid #E5E7EB', width: '200px' }}>Utente</th>
+                                            {weekDates.map(d => (
+                                                <th key={d.toISOString()} style={{ padding: '16px 8px', textAlign: 'center', borderBottom: '2px solid #E5E7EB', background: toISODate(d) === todayStr ? '#FEF9C3' : 'transparent', width: '100px' }}>
+                                                    <div style={{ fontSize: '12px', color: '#6B7280', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                                                        {d.toLocaleDateString('pt-PT', { weekday: 'short' })}
+                                                    </div>
+                                                    <div style={{ fontSize: '15px', color: '#111827', marginTop: '4px' }}>
+                                                        {d.toLocaleDateString('pt-PT', { day: '2-digit', month: '2-digit' })}
+                                                    </div>
+                                                </th>
+                                            ))}
+                                            <th style={{ padding: '16px', textAlign: 'center', borderBottom: '2px solid #E5E7EB', background: '#F9FAFB', borderLeft: '1px solid #E5E7EB', width: '120px' }}>
+                                                <div style={{ fontSize: '12px', color: '#6B7280', textTransform: 'uppercase' }}>Consumo</div>
+                                                <div style={{ fontSize: '14px', color: '#111827', marginTop: '4px' }}>
+                                                    {new Date(monthStats.focusMonthStr + '-01').toLocaleDateString('pt-PT', { month: 'long', year: 'numeric' })}
+                                                </div>
+                                            </th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {diaperPatients && diaperPatients.length > 0 ? diaperPatients.map(patient => {
+                                            const diaperType = diaperInventory.find(d => d.id === patient.diaperId);
+
+                                            return (
+                                                <tr key={patient.id} style={{ borderBottom: '1px solid #E5E7EB' }}>
+                                                    <td style={{ padding: '16px', borderRight: '1px solid #F3F4F6' }}>
+                                                        <strong style={{ display: 'block', fontSize: '15px', color: '#111827' }}>{patient.name}</strong>
+                                                        <span style={{ fontSize: '12px', color: '#6B7280', display: 'flex', alignItems: 'center', gap: '4px', marginTop: '4px' }}>
+                                                            {diaperType ? <><Baby size={12} />{diaperType.name}</> : <span style={{ color: '#EF4444' }}>Sem Fralda</span>}
+                                                        </span>
+                                                    </td>
+
+                                                    {weekDates.map(d => {
+                                                        const dateStr = toISODate(d);
+                                                        const isFuture = dateStr > todayStr;
+                                                        const log = diaperLogs?.find(l => l.patientId === patient.id && l.date === dateStr);
+
+                                                        return (
+                                                            <td key={dateStr} style={{ padding: '12px 8px', textAlign: 'center', background: dateStr === todayStr ? '#FEFCE8' : 'transparent', borderRight: '1px solid #F3F4F6', verticalAlign: 'middle' }}>
+                                                                {log ? (
+                                                                    <div title={`Confirmado por ${log.executorName || 'Admin'}`} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', cursor: 'pointer' }}>
+                                                                        {log.amountAdded > 0 ? (
+                                                                            <div style={{ display: 'flex', alignItems: 'center', gap: '2px', background: '#DCFCE7', color: '#166534', padding: '4px 10px', borderRadius: '12px', fontWeight: 800, fontSize: '14px' }}>
+                                                                                +{log.amountAdded}
+                                                                            </div>
+                                                                        ) : (
+                                                                            <div style={{ display: 'flex', alignItems: 'center', gap: '2px', background: '#E5E7EB', color: '#4B5563', padding: '4px 10px', borderRadius: '12px', fontWeight: 600, fontSize: '14px' }}>
+                                                                                OK (10)
+                                                                            </div>
+                                                                        )}
+                                                                        <span style={{ fontSize: '11px', color: '#6B7280', marginTop: '6px', fontWeight: 500, display: 'flex', alignItems: 'center', gap: '2px' }}>
+                                                                            <CheckCircle2 size={10} color="#166534" />
+                                                                            {new Date(log.timestamp).toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' })}
+                                                                        </span>
+                                                                    </div>
+                                                                ) : isFuture ? (
+                                                                    <span style={{ color: '#D1D5DB' }}>-</span>
+                                                                ) : (
+                                                                    <button
+                                                                        onClick={() => setReplaceModal({ patient, date: dateStr })}
+                                                                        style={{ border: '1px dashed #9CA3AF', background: 'white', color: '#4B5563', padding: '6px', borderRadius: '6px', cursor: 'pointer', fontSize: '12px', width: '100%', transition: 'all 0.2s' }}
+                                                                        onMouseEnter={e => { e.currentTarget.style.borderColor = '#0071E3'; e.currentTarget.style.color = '#0071E3'; }}
+                                                                        onMouseLeave={e => { e.currentTarget.style.borderColor = '#9CA3AF'; e.currentTarget.style.color = '#4B5563'; }}
+                                                                    >
+                                                                        {dateStr === todayStr ? 'Repor' : 'Atrasado'}
+                                                                    </button>
+                                                                )}
+                                                            </td>
+                                                        )
+                                                    })}
+
+                                                    {/* COLUNA RESUMO MES */}
+                                                    <td style={{ padding: '16px', textAlign: 'center', background: '#F9FAFB', borderLeft: '1px solid #E5E7EB', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%' }}>
+                                                        <span style={{ fontSize: '18px', fontWeight: 800, color: '#111827' }}>{monthStats.stats[patient.id] || 0}</span>
+                                                        <span style={{ fontSize: '11px', color: '#6B7280' }}>utilizadas</span>
+                                                    </td>
+                                                </tr>
+                                            )
+                                        }) : (
+                                            <tr>
+                                                <td colSpan={9} style={{ padding: '32px', textAlign: 'center', color: '#6B7280' }}>
+                                                    Nenhum utente registado para gestão de fraldas.
+                                                </td>
+                                            </tr>
+                                        )}
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            {/* Informativo */}
+                            <div style={{ marginTop: '16px', fontSize: '13px', color: '#6B7280', display: 'flex', gap: '16px' }}>
+                                <span>💡 <strong>Dica:</strong> Pode adicionar reposições retroativas clicando em "Atrasado".</span>
+                                <span>🔒 Registo protegido com hora/assinatura exata do funcionário.</span>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* ---- ABA DEPÓSITO ---- */}
+                    {activeTab === 'deposito' && (
+                        <div>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+                                <h2 style={{ fontSize: '18px', fontWeight: 600, color: '#111827', margin: 0 }}>Gestão Principal das Caixas</h2>
+                                <button className={styles.primaryButton} onClick={() => setShowDepotForm(!showDepotForm)} style={{ padding: '8px 16px', background: '#34C759' }}>
+                                    {showDepotForm ? <X size={16} /> : <Plus size={16} />}
+                                    <span style={{ fontSize: '14px' }}>{showDepotForm ? 'Fechar' : 'Nova Referência'}</span>
+                                </button>
+                            </div>
+
+                            {/* Form Depósito */}
+                            {showDepotForm && (
+                                <Card className={formStyles.formCard} padding="lg" style={{ marginBottom: '24px' }}>
+                                    <h3 style={{ margin: '0 0 16px', fontSize: '1.1rem' }}>Adicionar Referência ao Almoxarifado</h3>
+                                    <form onSubmit={handleAddDepot} className={formStyles.form}>
+                                        <div className={formStyles.rowFormGroup}>
+                                            <div className={formStyles.formGroup} style={{ flex: 1 }}>
+                                                <label>Nome do Tamanho/Modelo *</label>
+                                                <input type="text" value={depotForm.name} onChange={e => setDepotForm({ ...depotForm, name: e.target.value })} required placeholder="Ex: Fralda Cueca TAM M" />
+                                            </div>
+                                            <div className={formStyles.formGroup} style={{ flex: 1 }}>
+                                                <label>Estoque Atual na Prateleira *</label>
+                                                <input type="number" min="0" value={depotForm.initialStock} onChange={e => setDepotForm({ ...depotForm, initialStock: e.target.value })} required />
+                                            </div>
+                                        </div>
+                                        <button type="submit" className={formStyles.btnPrimary} style={{ width: '100%', justifyContent: 'center', background: '#34C759' }}>Guardar no Site</button>
+                                    </form>
+                                </Card>
+                            )}
+
+                            {/* Tabela de Deposito */}
+                            <div className={styles.tableWrapper}>
+                                {diaperInventory.length > 0 ? (
+                                    <table className={styles.table}>
+                                        <thead>
+                                            <tr>
+                                                <th>Nome da Fralda</th>
+                                                <th style={{ textAlign: 'center' }}>Restam no Depósito</th>
+                                                <th align="right">Atualização Rápida de Entradas e Saidas</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {diaperInventory.map(item => (
+                                                <tr key={item.id}>
+                                                    <td><span style={{ fontWeight: 600, fontSize: '15px' }}>{item.name}</span></td>
+                                                    <td style={{ textAlign: 'center' }}>
+                                                        <div style={{ display: 'inline-block', background: '#F3F4F6', padding: '6px 20px', borderRadius: '16px', fontWeight: 800, fontSize: '18px', color: item.stockDepot < 30 ? '#EF4444' : '#111827' }}>
+                                                            {item.stockDepot}
+                                                        </div>
+                                                    </td>
+                                                    <td align="right">
+                                                        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
+                                                            <button title="-10" onClick={() => handleUpdateDepot(item.id, -10)} style={{ border: 'none', background: '#FEE2E2', color: '#EF4444', height: '36px', width: '36px', borderRadius: '8px', cursor: 'pointer', fontWeight: 800 }}>-10</button>
+                                                            <button title="-1" onClick={() => handleUpdateDepot(item.id, -1)} style={{ border: 'none', background: '#FEE2E2', color: '#EF4444', height: '36px', width: '36px', borderRadius: '8px', cursor: 'pointer', fontWeight: 800 }}>-1</button>
+                                                            <button title="+1" onClick={() => handleUpdateDepot(item.id, 1)} style={{ border: 'none', background: '#DCFCE7', color: '#22C55E', height: '36px', width: '36px', borderRadius: '8px', cursor: 'pointer', fontWeight: 800 }}>+1</button>
+                                                            <button title="+10" onClick={() => handleUpdateDepot(item.id, 10)} style={{ border: 'none', background: '#DCFCE7', color: '#22C55E', height: '36px', width: '36px', borderRadius: '8px', cursor: 'pointer', fontWeight: 800 }}>+10</button>
+                                                            <button title="+Pacote (50)" onClick={() => handleUpdateDepot(item.id, 50)} style={{ border: 'none', background: '#DCFCE7', color: '#166534', padding: '0 16px', borderRadius: '8px', cursor: 'pointer', fontWeight: 800 }}>+Pacotão</button>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                ) : (
+                                    <div className={formStyles.emptyState}>
+                                        <Box size={40} style={{ opacity: 0.5, marginBottom: '16px' }} />
+                                        <h3>Sem Fraldas no Sistema</h3>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    )}
+                </div>
+            </main>
+
+            {/* MODAL CONFIRMAÇÃO DIÁRIA (ActionModal) */}
+            {replaceModal && (
+                <div className={formStyles.modalBackdrop} onClick={() => { setReplaceModal(null); setCurrentRoomStock(''); }}>
+                    <div className={formStyles.modal} onClick={e => e.stopPropagation()}>
+                        <div className={formStyles.modalHeader}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                <RefreshCw size={24} color="#0071E3" />
+                                <h2 style={{ margin: 0, color: '#111827' }}>Completar o Quarto</h2>
+                            </div>
+                            <button className={formStyles.closeBtn} onClick={() => { setReplaceModal(null); setCurrentRoomStock(''); }}>
+                                <X size={24} />
+                            </button>
+                        </div>
+
+                        <div style={{ background: '#F3F4F6', padding: '16px', borderRadius: '12px', marginBottom: '24px' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                <div>
+                                    <p style={{ margin: '0 0 4px', fontSize: '13px', color: '#6B7280' }}>Alvo do Registo</p>
+                                    <h3 style={{ margin: '0', fontSize: '18px', color: '#111827' }}>{replaceModal.patient.name}</h3>
+                                </div>
+                                <div style={{ textAlign: 'right' }}>
+                                    <p style={{ margin: '0 0 4px', fontSize: '13px', color: '#6B7280' }}>Data Designada</p>
+                                    <h3 style={{ margin: '0', fontSize: '16px', color: '#0071E3', fontWeight: 800 }}>{new Date(replaceModal.date).toLocaleDateString('pt-PT')}</h3>
+                                </div>
+                            </div>
+                        </div>
+
+                        <form onSubmit={handleReplaceSubmit}>
+                            <div className={formStyles.formGroup}>
+                                <label style={{ fontSize: '16px', fontWeight: 600, color: '#111827' }}>Quantas fraldas AINDA estão na gaveta ou quarto agora? *</label>
+                                <p style={{ fontSize: '13px', color: '#6B7280', margin: '4px 0 16px 0', lineHeight: 1.5 }}>Insira a quantidade atual e o sistema saberá calcular o quanto precisa repor do depósito para atingir a quantidade base de 10.</p>
+                                <input
+                                    type="number"
+                                    min="0"
+                                    max="10"
+                                    value={currentRoomStock}
+                                    onChange={e => setCurrentRoomStock(e.target.value)}
+                                    required
+                                    autoFocus
+                                    placeholder="N° Atual. Ex: 3"
+                                    style={{ fontSize: '28px', padding: '16px', textAlign: 'center', height: '60px', borderRadius: '12px' }}
+                                />
+                                {currentRoomStock !== '' && (
+                                    <div style={{ marginTop: '20px', padding: '20px', background: '#EFF6FF', borderRadius: '16px', border: '1px solid #BFDBFE' }}>
+                                        <div style={{ fontSize: '15px', color: '#1D4ED8', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                            <span>O depósito vai enviar:</span>
+                                            <span style={{ fontWeight: 800, fontSize: '24px' }}>+{10 - Number(currentRoomStock)} uni.</span>
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+
+                            <div className={formStyles.formActions} style={{ marginTop: '24px' }}>
+                                <button type="button" className={formStyles.cancelBtn} onClick={() => { setReplaceModal(null); setCurrentRoomStock(''); }}>
+                                    Cancelar
+                                </button>
+                                <button type="submit" className={formStyles.submitBtn} style={{ background: '#0071E3', fontWeight: 700, fontSize: '16px', padding: '12px 24px' }}>
+                                    Assinar e Repor
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
+        </>
+    );
+}
