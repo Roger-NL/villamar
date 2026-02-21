@@ -61,7 +61,22 @@ function generateEmployeeSchedule(employee, days, assignedWeekends, allSchedules
     for (let i = 0; i < days.length; i++) {
         const day = days[i];
 
-        // Verificar se é folga de fim de semana
+        // Regras especiais: Enfermeiros (Seg-Sex, 7h-15h)
+        const isEnfermeiro = employee.role === 'Enfermeira' || employee.role === 'Enfermeiro';
+        if (isEnfermeiro) {
+            if (day.dayOfWeek === 0 || day.dayOfWeek === 6) {
+                schedule[day.dateStr] = { shift: 'Folga', isOff: true };
+            } else {
+                schedule[day.dateStr] = {
+                    shift: 'Manhã',
+                    hours: '7h-15h',
+                    isOff: false
+                };
+            }
+            continue; // Ignorar o resto do balanceamento para este dia
+        }
+
+        // Verificar se é folga de fim de semana (aplica-se a Cuidadores/Auxiliares)
         if (offDays.has(day.dateStr)) {
             schedule[day.dateStr] = { shift: 'Folga', isOff: true };
             consecutiveWork = 0;

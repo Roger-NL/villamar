@@ -30,8 +30,6 @@ export default function AdminEscalasPage() {
 
     // Funcionários para a escala (filtrar cuidadores/auxiliares ativos apenas)
     const scheduleEmployees = employees.filter(e =>
-        e.role !== 'Enfermeira' &&
-        e.role !== 'Enfermeiro' &&
         e.role !== 'Médico' &&
         e.role !== 'Médica' &&
         (!e.isAdmin || e.name.toLowerCase() === 'roger') // Esconde Admins das escalas mas mantém o Roger se ele se colocar como Admin
@@ -78,11 +76,14 @@ export default function AdminEscalasPage() {
         const { employeeId, date } = editModal;
         const employee = employees.find(e => e.id === employeeId);
         const isAuxiliar = employee?.role === 'Auxiliar';
+        const isEnfermeiro = employee?.role === 'Enfermeira' || employee?.role === 'Enfermeiro';
 
         let finalHours = '';
         if (newShift !== 'Folga') {
             if (isAuxiliar) {
                 finalHours = '7h-14h';
+            } else if (isEnfermeiro) {
+                finalHours = '7h-15h';
             } else {
                 finalHours = newShift === 'Manhã' ? '8h-16:30' : '11:30-20h';
             }

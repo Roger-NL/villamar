@@ -260,17 +260,27 @@ export default function EscalaPage() {
                                                 const isToday = new Date().toISOString().split('T')[0] === cell.date;
                                                 const isSunday = cell.dayOfWeek === 0;
 
-                                                // Regra Cuidadores/Auxiliares
+                                                // Regra Cuidadores/Auxiliares/Enfermeiros
                                                 const isCurrentUserAuxiliar = currentUser?.role === 'Auxiliar';
                                                 const isTargetAuxiliar = row.employee.role === 'Auxiliar';
+
+                                                const isCurrentUserEnfermeiro = currentUser?.role === 'Enfermeira' || currentUser?.role === 'Enfermeiro';
+                                                const isTargetEnfermeiro = row.employee.role === 'Enfermeira' || row.employee.role === 'Enfermeiro';
+
                                                 const sameRoleGroup = isCurrentUserAuxiliar === isTargetAuxiliar;
-                                                const canSwap = !isMe && sameRoleGroup;
+
+                                                // Enfermeiros não podem trocar (têm turno fixo) nem ninguém pode solicitar para trocar com eles através da APP
+                                                const canSwap = !isMe && sameRoleGroup && !isCurrentUserEnfermeiro && !isTargetEnfermeiro;
 
                                                 let titleMsg = cell.shift;
-                                                if (!sameRoleGroup && !isMe) {
-                                                    titleMsg = isCurrentUserAuxiliar
-                                                        ? `Apenas pode trocar com outros Auxiliares`
-                                                        : `Não pode trocar horas com Auxiliares`;
+                                                if (!canSwap && !isMe) {
+                                                    if (isCurrentUserEnfermeiro || isTargetEnfermeiro) {
+                                                        titleMsg = `O horário de Enfermagem é fixo`;
+                                                    } else {
+                                                        titleMsg = isCurrentUserAuxiliar
+                                                            ? `Apenas pode trocar com outros Auxiliares`
+                                                            : `Não pode trocar horas com Auxiliares`;
+                                                    }
                                                 } else if (canSwap) {
                                                     titleMsg = `Clique para pedir troca com ${row.employee.name.split(' ')[0]}`;
                                                 }
