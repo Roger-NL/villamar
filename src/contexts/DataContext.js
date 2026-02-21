@@ -467,8 +467,20 @@ export function DataProvider({ children }) {
         }
     };
 
+    // === FÉRIAS E LICENÇAS ===
+    const addLeave = useCallback(async (leave) => {
+        const newLeave = { id: Date.now(), ...leave };
+        if (!db) setLeaves(prev => [...prev, newLeave]);
+        else await writeDB('leaves', newLeave.id, newLeave);
+    }, [db]);
+
+    const deleteLeave = useCallback(async (id) => {
+        if (!db) setLeaves(prev => prev.filter(l => l.id !== id));
+        else await deleteDB('leaves', id);
+    }, [db]);
+
     const value = {
-        employees, tasks, swapRequests, notifications, timeRecords, activeSessions, savedSchedules, isHydrated,
+        employees, tasks, swapRequests, notifications, timeRecords, activeSessions, savedSchedules, isHydrated, leaves,
         addEmployee, updateEmployee, removeEmployee, getEmployeeById,
         addTask, updateTask, removeTask, toggleTaskComplete, getTasksByEmployee, getTasksByDate,
         addSwapRequest, approveSwapRequest, rejectSwapRequest, getPendingSwaps,
@@ -476,6 +488,7 @@ export function DataProvider({ children }) {
         clockIn, clockOut, isEmployeeClockedIn, getActiveSession, getAllActiveSessions, getTotalHours, getTimeRecords,
         saveSchedule, getScheduleForMonth, updateShift, removeFromSchedule,
         resetAllData, taskCategories: initialTaskCategories,
+        addLeave, deleteLeave
     };
 
     return <DataContext.Provider value={value}>{children}</DataContext.Provider>;
