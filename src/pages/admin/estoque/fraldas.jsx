@@ -9,7 +9,9 @@ import Sidebar from '@/components/layout/Sidebar';
 import Card from '@/components/ui/Card';
 import { useApp } from '@/pages/_app';
 import { useData } from '@/contexts/DataContext';
-import { Baby, Plus, X, ArrowLeft, RefreshCw, Box, TableProperties, ChevronLeft, ChevronRight, CheckCircle2 } from 'lucide-react';
+import jsPDF from 'jspdf';
+import 'jspdf-autotable';
+import { Baby, Plus, X, ArrowLeft, RefreshCw, Box, TableProperties, ChevronLeft, ChevronRight, CheckCircle2, Download } from 'lucide-react';
 
 // Helper for local YYYY-MM-DD
 const toISODate = (d) => {
@@ -33,10 +35,10 @@ export default function FraldasPage() {
 
     // Formulários e Modais
     const [showDepotForm, setShowDepotForm] = useState(false);
-    const [depotForm, setDepotForm] = useState({ name: '', initialStock: 0 });
+    const [depotForm, setDepotForm] = useState({ name: '', initialStock: 0, origin: 'Casa', patientName: '' });
 
     const [showPatientForm, setShowPatientForm] = useState(false);
-    const [patientForm, setPatientForm] = useState({ name: '', diaperId: '' });
+    const [patientForm, setPatientForm] = useState({ name: '', diaperId: '', origin: 'Casa' });
 
     const [replaceModal, setReplaceModal] = useState(null); // { patient, date: YYYY-MM-DD }
     const [currentRoomStock, setCurrentRoomStock] = useState('');
@@ -84,6 +86,61 @@ export default function FraldasPage() {
         return { stats, focusMonthStr };
     }, [diaperLogs, weekDates]);
 
+    // EXPORT PDF
+    const exportPDF = (patient = null) => {
+        const doc = new jsPDF();
+        doc.setFontSize(18);
+        doc.setTextColor(17, 24, 39);
+        doc.text(`Relatório Mensal de Fraldas - ${patient ? patient.name : 'Visão Geral'}`, 14, 22);
+
+        doc.setFontSize(11);
+        doc.setTextColor(107, 114, 128);
+        const focusMonthName = new Date(monthStats.focusMonthStr + '-01').toLocaleDateString('pt-PT', { month: 'long', year: 'numeric' });
+        doc.text(`Mês de Referência: ${focusMonthName}`, 14, 30);
+        doc.text(`Data de Emissão: ${new Date().toLocaleDateString('pt-PT')} às ${new Date().toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' })}`, 14, 36);
+
+        let targetPatients = patient ? [patient] : diaperPatients;
+        if (!targetPatients || targetPatients.length === 0) {
+            alert("Não há dados para exportar.");
+            return;
+        }
+
+        const tableColumn = ["Utente", "Fralda Utilizada", "Propriedade", "Total Gasto no Mês"];
+        const tableRows = [];
+
+        targetPatients.forEach(p => {
+            const diaperType = diaperInventory.find(d => d.id === p.diaperId);
+            const total = monthStats.stats[p.id] || 0;
+            const fraldaNome = diaperType ? diaperType.name : 'Sem fralda';
+            const prop = p.origin === 'Própria' ? 'Própria do Utente' : 'Fornecido pela Casa';
+
+            tableRows.push([
+                p.name,
+                fraldaNome,
+                prop,
+                total + " uni."
+            ]);
+        });
+
+        doc.autoTable({
+            startY: 44,
+            head: [tableColumn],
+            body: tableRows,
+            theme: 'grid',
+            headStyles: { fillColor: [0, 113, 227], textColor: [255, 255, 255], fontStyle: 'bold' },
+            styles: { fontSize: 10, cellPadding: 4 },
+            didDrawPage: function (data) {
+                // Footer
+                doc.setFontSize(9);
+                doc.text(`Página ${doc.internal.getNumberOfPages()}`, 14, doc.internal.pageSize.getHeight() - 10);
+                doc.text(`Villa Mar - Sistema de Gestão Interna`, doc.internal.pageSize.getWidth() - 70, doc.internal.pageSize.getHeight() - 10);
+            }
+        });
+
+        const filename = patient ? `Relatorio_Fraldas_${patient.name}_${focusMonthName}.pdf` : `Relatorio_Fraldas_Geral_${focusMonthName}.pdf`;
+        doc.save(filename.replace(/\s+/g, '_'));
+    };
+
     // HANDLERS DEPÓSITO
     const handleAddDepot = (e) => {
         e.preventDefault();
@@ -92,8 +149,10 @@ export default function FraldasPage() {
             name: depotForm.name.trim(),
             category: 'fralda',
             stockDepot: Number(depotForm.initialStock) || 0,
+            origin: depotForm.origin || 'Casa',
+            patientName: depotForm.origin === 'Própria' ? depotForm.patientName.trim() : null
         });
-        setDepotForm({ name: '', initialStock: 0 });
+        setDepotForm({ name: '', initialStock: 0, origin: 'Casa', patientName: '' });
         setShowDepotForm(false);
     };
 
@@ -111,8 +170,9 @@ export default function FraldasPage() {
         addDiaperPatient({
             name: patientForm.name.trim(),
             diaperId: patientForm.diaperId,
+            origin: patientForm.origin || 'Casa'
         });
-        setPatientForm({ name: '', diaperId: '' });
+        setPatientForm({ name: '', diaperId: '', origin: 'Casa' });
         setShowPatientForm(false);
     };
 
@@ -226,11 +286,18 @@ export default function FraldasPage() {
                                         Hoje
                                     </button>
                                 </div>
-
-                                <button className={styles.primaryButton} onClick={() => setShowPatientForm(!showPatientForm)} style={{ padding: '8px 16px' }}>
-                                    {showPatientForm ? <X size={16} /> : <Plus size={16} />}
-                                    <span style={{ fontSize: '14px' }}>{showPatientForm ? 'Fechar Tab' : 'Nono Utente'}</span>
-                                </button>
+                                <div style={{ display: 'flex', gap: '12px' }}>
+                                    <button
+                                        onClick={() => exportPDF()}
+                                        style={{ display: 'flex', alignItems: 'center', gap: '8px', background: 'white', border: '1px solid #D1D5DB', padding: '8px 16px', borderRadius: '12px', cursor: 'pointer', fontSize: '14px', fontWeight: 600, color: '#374151', boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}
+                                    >
+                                        <Download size={16} /> Relatório Geral Mensal
+                                    </button>
+                                    <button className={styles.primaryButton} onClick={() => setShowPatientForm(!showPatientForm)} style={{ padding: '8px 16px' }}>
+                                        {showPatientForm ? <X size={16} /> : <Plus size={16} />}
+                                        <span style={{ fontSize: '14px' }}>{showPatientForm ? 'Fechar Tab' : 'Novo Utente'}</span>
+                                    </button>
+                                </div>
                             </div>
 
                             {/* Mostrar formulário se necessário */}
@@ -254,6 +321,13 @@ export default function FraldasPage() {
                                                 {diaperInventory.length === 0 && (
                                                     <small style={{ color: '#EF4444', display: 'block', marginTop: '6px' }}>Vá à central do depósito primeiro.</small>
                                                 )}
+                                            </div>
+                                            <div className={formStyles.formGroup} style={{ flex: 1 }}>
+                                                <label>Propriedade da Fralda *</label>
+                                                <select value={patientForm.origin} onChange={e => setPatientForm({ ...patientForm, origin: e.target.value })} required>
+                                                    <option value="Casa">Fornecido pela Casa</option>
+                                                    <option value="Própria">Própria do Utente</option>
+                                                </select>
                                             </div>
                                         </div>
                                         <button type="submit" className={formStyles.btnPrimary} style={{ width: '100%', justifyContent: 'center' }}>Adicionar Registo</button>
@@ -295,6 +369,9 @@ export default function FraldasPage() {
                                                         <strong style={{ display: 'block', fontSize: '15px', color: '#111827' }}>{patient.name}</strong>
                                                         <span style={{ fontSize: '12px', color: '#6B7280', display: 'flex', alignItems: 'center', gap: '4px', marginTop: '4px' }}>
                                                             {diaperType ? <><Baby size={12} />{diaperType.name}</> : <span style={{ color: '#EF4444' }}>Sem Fralda</span>}
+                                                            {patient.origin === 'Própria' && (
+                                                                <span style={{ background: '#E0F2FE', color: '#0369A1', padding: '2px 6px', borderRadius: '4px', fontSize: '10px', fontWeight: 800, marginLeft: '4px' }}>PRÓPRIA</span>
+                                                            )}
                                                         </span>
                                                     </td>
 
@@ -337,10 +414,18 @@ export default function FraldasPage() {
                                                         )
                                                     })}
 
-                                                    {/* COLUNA RESUMO MES */}
-                                                    <td style={{ padding: '16px', textAlign: 'center', background: '#F9FAFB', borderLeft: '1px solid #E5E7EB', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%' }}>
-                                                        <span style={{ fontSize: '18px', fontWeight: 800, color: '#111827' }}>{monthStats.stats[patient.id] || 0}</span>
-                                                        <span style={{ fontSize: '11px', color: '#6B7280' }}>utilizadas</span>
+                                                    <td style={{ padding: '16px', textAlign: 'center', background: '#F9FAFB', borderLeft: '1px solid #E5E7EB', verticalAlign: 'middle' }}>
+                                                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%' }}>
+                                                            <span style={{ fontSize: '20px', fontWeight: 800, color: '#111827' }}>{monthStats.stats[patient.id] || 0}</span>
+                                                            <span style={{ fontSize: '11px', color: '#6B7280', marginBottom: '8px' }}>gastas</span>
+                                                            <button
+                                                                onClick={() => exportPDF(patient)}
+                                                                title="Baixar PDF Diste Utente"
+                                                                style={{ border: 'none', background: '#E0F2FE', color: '#0284C7', padding: '4px 8px', borderRadius: '6px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px', fontSize: '11px', fontWeight: 700 }}
+                                                            >
+                                                                <Download size={12} /> PDF
+                                                            </button>
+                                                        </div>
                                                     </td>
                                                 </tr>
                                             )
@@ -385,9 +470,24 @@ export default function FraldasPage() {
                                                 <input type="text" value={depotForm.name} onChange={e => setDepotForm({ ...depotForm, name: e.target.value })} required placeholder="Ex: Fralda Cueca TAM M" />
                                             </div>
                                             <div className={formStyles.formGroup} style={{ flex: 1 }}>
+                                                <label>Propriedade *</label>
+                                                <select value={depotForm.origin} onChange={e => setDepotForm({ ...depotForm, origin: e.target.value })} required>
+                                                    <option value="Casa">Fornecido pela Casa</option>
+                                                    <option value="Própria">Própria do Utente</option>
+                                                </select>
+                                            </div>
+                                        </div>
+                                        <div className={formStyles.rowFormGroup}>
+                                            <div className={formStyles.formGroup} style={{ flex: 1 }}>
                                                 <label>Estoque Atual na Prateleira *</label>
                                                 <input type="number" min="0" value={depotForm.initialStock} onChange={e => setDepotForm({ ...depotForm, initialStock: e.target.value })} required />
                                             </div>
+                                            {depotForm.origin === 'Própria' && (
+                                                <div className={formStyles.formGroup} style={{ flex: 1 }}>
+                                                    <label>Nome do Utente *</label>
+                                                    <input type="text" value={depotForm.patientName} onChange={e => setDepotForm({ ...depotForm, patientName: e.target.value })} required placeholder="Ex: Sr. Joaquim" />
+                                                </div>
+                                            )}
                                         </div>
                                         <button type="submit" className={formStyles.btnPrimary} style={{ width: '100%', justifyContent: 'center', background: '#34C759' }}>Guardar no Site</button>
                                     </form>
@@ -408,7 +508,16 @@ export default function FraldasPage() {
                                         <tbody>
                                             {diaperInventory.map(item => (
                                                 <tr key={item.id}>
-                                                    <td><span style={{ fontWeight: 600, fontSize: '15px' }}>{item.name}</span></td>
+                                                    <td>
+                                                        <span style={{ fontWeight: 600, fontSize: '15px', display: 'block' }}>{item.name}</span>
+                                                        <span style={{ fontSize: '12px', color: '#6B7280', display: 'flex', alignItems: 'center', gap: '4px', marginTop: '4px' }}>
+                                                            {item.origin === 'Própria' ? (
+                                                                <span style={{ background: '#E0F2FE', color: '#0369A1', padding: '2px 6px', borderRadius: '4px', fontSize: '10px', fontWeight: 800 }}>PRÓPRIA: {item.patientName}</span>
+                                                            ) : (
+                                                                <span style={{ background: '#DCFCE7', color: '#166534', padding: '2px 6px', borderRadius: '4px', fontSize: '10px', fontWeight: 800 }}>DA CASA</span>
+                                                            )}
+                                                        </span>
+                                                    </td>
                                                     <td style={{ textAlign: 'center' }}>
                                                         <div style={{ display: 'inline-block', background: '#F3F4F6', padding: '6px 20px', borderRadius: '16px', fontWeight: 800, fontSize: '18px', color: item.stockDepot < 30 ? '#EF4444' : '#111827' }}>
                                                             {item.stockDepot}
