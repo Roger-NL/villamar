@@ -8,11 +8,11 @@ import Avatar from '@/components/ui/Avatar';
 import { useApp } from '../_app';
 import { useData } from '@/contexts/DataContext';
 import { mockCurrentUser } from '@/data/mockData';
-import { ArrowLeftRight, Check, X, Sun, Moon } from 'lucide-react';
+import { ArrowLeftRight, Check, X, Sun, Moon, Trash2 } from 'lucide-react';
 
 export default function AdminTrocasPage() {
     const { isAdmin, toggleMode } = useApp();
-    const { swapRequests, approveSwapRequest, rejectSwapRequest, isHydrated } = useData();
+    const { swapRequests, approveSwapRequest, rejectSwapRequest, removeSwapRequest, isHydrated } = useData();
 
     const getStatusStyle = (status) => {
         switch (status) {
@@ -120,24 +120,52 @@ export default function AdminTrocasPage() {
                                 </div>
 
                                 {/* Actions */}
-                                {request.status === 'pending' && (
-                                    <div className={swapStyles.actions}>
-                                        <button
-                                            className={`${swapStyles.actionBtn} ${swapStyles.approve}`}
-                                            onClick={() => handleApprove(request.id)}
-                                        >
-                                            <Check size={18} />
-                                            Aprovar
-                                        </button>
+                                <div className={swapStyles.actions}>
+                                    {request.status === 'pending' ? (
+                                        <>
+                                            <button
+                                                className={`${swapStyles.actionBtn} ${swapStyles.approve}`}
+                                                onClick={() => handleApprove(request.id)}
+                                            >
+                                                <Check size={18} />
+                                                Aprovar
+                                            </button>
+                                            <button
+                                                className={`${swapStyles.actionBtn} ${swapStyles.reject}`}
+                                                onClick={() => handleReject(request.id)}
+                                            >
+                                                <X size={18} />
+                                                Rejeitar
+                                            </button>
+                                        </>
+                                    ) : (
                                         <button
                                             className={`${swapStyles.actionBtn} ${swapStyles.reject}`}
-                                            onClick={() => handleReject(request.id)}
+                                            onClick={() => {
+                                                if (confirm('Deseja remover este registo de troca do histórico?')) {
+                                                    removeSwapRequest(request.id);
+                                                }
+                                            }}
+                                            style={{ opacity: 0.7 }}
                                         >
-                                            <X size={18} />
-                                            Rejeitar
+                                            <Trash2 size={18} />
+                                            Remover do Histórico
                                         </button>
-                                    </div>
-                                )}
+                                    )}
+                                    {request.status === 'pending' && (
+                                        <button
+                                            className={`${swapStyles.actionBtn} ${swapStyles.reject}`}
+                                            onClick={() => {
+                                                if (confirm('Deseja cancelar/remover este pedido?')) {
+                                                    removeSwapRequest(request.id);
+                                                }
+                                            }}
+                                            style={{ background: '#FEE2E2', color: '#DC2626', border: 'none' }}
+                                        >
+                                            <Trash2 size={18} />
+                                        </button>
+                                    )}
+                                </div>
                             </div>
                         ))}
                     </div>

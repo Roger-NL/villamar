@@ -77,44 +77,44 @@ export function DataProvider({ children }) {
         } else if (db) {
             // WITH FIREBASE
             const unsubEmployees = onSnapshot(collection(db, 'employees'), (snapshot) => {
-                const items = snapshot.docs.map(doc => doc.data());
+                const items = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id }));
                 setEmployees(items);
             });
             const unsubTasks = onSnapshot(collection(db, 'tasks'), (snapshot) => {
-                const items = snapshot.docs.map(doc => doc.data());
+                const items = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id }));
                 setTasks(items);
             });
             const unsubSwaps = onSnapshot(collection(db, 'swapRequests'), (snapshot) => {
-                const items = snapshot.docs.map(doc => doc.data());
+                const items = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id }));
                 setSwapRequests(items);
             });
             const unsubNotifications = onSnapshot(collection(db, 'notifications'), (snapshot) => {
-                setNotifications(snapshot.docs.map(doc => doc.data()).sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)));
+                setNotifications(snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id })).sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)));
             });
             const unsubTimeRecords = onSnapshot(collection(db, 'timeRecords'), (snapshot) => {
-                setTimeRecords(snapshot.docs.map(doc => doc.data()));
+                setTimeRecords(snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id })));
             });
             const unsubActiveSessions = onSnapshot(collection(db, 'activeSessions'), (snapshot) => {
                 const sessions = {};
-                snapshot.docs.forEach(doc => { sessions[doc.id] = doc.data(); });
+                snapshot.docs.forEach(doc => { sessions[doc.id] = { ...doc.data(), id: doc.id }; });
                 setActiveSessions(sessions);
             });
             const unsubSchedules = onSnapshot(collection(db, 'schedules'), (snapshot) => {
                 const schedules = {};
-                snapshot.docs.forEach(doc => { schedules[doc.id] = doc.data(); });
+                snapshot.docs.forEach(doc => { schedules[doc.id] = { ...doc.data(), id: doc.id }; });
                 setSavedSchedules(schedules);
             });
             const unsubLeaves = onSnapshot(collection(db, 'leaves'), (snapshot) => {
-                setLeaves(snapshot.docs.map(doc => doc.data()));
+                setLeaves(snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id })));
             });
             const unsubInventory = onSnapshot(collection(db, 'inventoryItems'), (snapshot) => {
-                setInventoryItems(snapshot.docs.map(doc => doc.data()));
+                setInventoryItems(snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id })));
             });
             const unsubDiaperPatients = onSnapshot(collection(db, 'diaperPatients'), (snapshot) => {
-                setDiaperPatients(snapshot.docs.map(doc => doc.data()));
+                setDiaperPatients(snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id })));
             });
             const unsubDiaperLogs = onSnapshot(collection(db, 'diaperLogs'), (snapshot) => {
-                setDiaperLogs(snapshot.docs.map(doc => doc.data()));
+                setDiaperLogs(snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id })));
             });
 
             setIsHydrated(true);
@@ -410,6 +410,11 @@ export function DataProvider({ children }) {
         addNotification({ type: 'swap_rejected', title: 'Troca Rejeitada', message: `Troca entre ${request.requestor} e ${request.swapWith} foi rejeitada.`, forAdmin: true, forEmployee: request.requestorId });
     };
 
+    const removeSwapRequest = async (id) => {
+        if (!db) setSwapRequests(prev => prev.filter(r => r.id !== id));
+        else await deleteDB('swapRequests', id);
+    };
+
     const getPendingSwaps = () => swapRequests.filter(r => r.status === 'pending');
 
     // === SCHEDULES ===
@@ -458,26 +463,48 @@ export function DataProvider({ children }) {
     };
 
     // === RESET ===
-    const resetAllData = async () => {
+    const resetData = async (selectedCollections = []) => {
         if (!db) {
-            setEmployees(initialEmployees);
-            setTasks(initialTasks);
-            setSwapRequests(initialSwaps);
-            setNotifications([]);
-            setTimeRecords([]);
-            setActiveSessions({});
+            if (selectedCollections.includes('tasks')) setTasks(initialTasks || []);
+            if (selectedCollections.includes('swapRequests')) setSwapRequests(initialSwaps || []);
+            if (selectedCollections.includes('notifications')) setNotifications([]);
+            if (selectedCollections.includes('timeRecords')) {
+                setTimeRecords([]);
+                setActiveSessions({});
+            }
+            if (selectedCollections.includes('employees')) setEmployees(initialEmployees || []);
+            if (selectedCollections.includes('leaves')) setLeaves([]);
+            if (selectedCollections.includes('inventoryItems')) setInventoryItems([]);
+            if (selectedCollections.includes('diaperPatients')) setDiaperPatients([]);
+            if (selectedCollections.includes('diaperLogs')) setDiaperLogs([]);
+            if (selectedCollections.includes('schedules')) setSavedSchedules({});
         } else {
-            // Very unsafe conceptually without proper rules, but provided as feature request
-            const collections = ['employees', 'tasks', 'swapRequests', 'notifications', 'timeRecords', 'activeSessions', 'schedules'];
-            for (let c of collections) {
+            // Se incluir funcionários, removemos a proteção mas avisamos no UI
+            for (let c of selectedCollections) {
+                // Caso especial para Presenças (duas coleções)
+                if (c === 'timeRecords') {
+                    const snapshotP = await getDocs(collection(db, 'timeRecords'));
+                    const batchP = writeBatch(db);
+                    snapshotP.docs.forEach(d => batchP.delete(d.ref));
+                    await batchP.commit();
+
+                    const snapshotS = await getDocs(collection(db, 'activeSessions'));
+                    const batchS = writeBatch(db);
+                    snapshotS.docs.forEach(d => batchS.delete(d.ref));
+                    await batchS.commit();
+                    continue;
+                }
+
                 const snapshot = await getDocs(collection(db, c));
                 const batch = writeBatch(db);
                 snapshot.docs.forEach(d => batch.delete(d.ref));
                 await batch.commit();
+
+                // Re-semear se necessário
+                if (c === 'tasks' && initialTasks?.length > 0) await seedCollection('tasks', initialTasks);
+                if (c === 'swapRequests' && initialSwaps?.length > 0) await seedCollection('swapRequests', initialSwaps);
+                // NOTA: Employees não re-semeamos automaticamente aqui para evitar duplicar admins se não for limpo da auth
             }
-            await seedCollection('employees', initialEmployees);
-            await seedCollection('tasks', initialTasks);
-            await seedCollection('swapRequests', initialSwaps);
         }
     };
 
@@ -549,11 +576,11 @@ export function DataProvider({ children }) {
         diaperPatients, diaperLogs,
         addEmployee, updateEmployee, removeEmployee, getEmployeeById,
         addTask, updateTask, removeTask, toggleTaskComplete, getTasksByEmployee, getTasksByDate,
-        addSwapRequest, approveSwapRequest, rejectSwapRequest, getPendingSwaps,
+        addSwapRequest, approveSwapRequest, rejectSwapRequest, removeSwapRequest, getPendingSwaps,
         addNotification, markNotificationRead, markAllNotificationsRead, clearNotifications, getUnreadCount,
         clockIn, clockOut, isEmployeeClockedIn, getActiveSession, getAllActiveSessions, getTotalHours, getTimeRecords,
         saveSchedule, getScheduleForMonth, updateShift, removeFromSchedule,
-        resetAllData, taskCategories: initialTaskCategories,
+        resetData, taskCategories: initialTaskCategories,
         addLeave, deleteLeave,
         addInventoryItem, updateInventoryItem, deleteInventoryItem,
         addDiaperPatient, updateDiaperPatient, deleteDiaperPatient,
