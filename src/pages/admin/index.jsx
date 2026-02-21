@@ -49,7 +49,7 @@ export default function AdminDashboard() {
     }
 
     // Filtrar funcionários para excluir administradores da lista (excepto Roger)
-    const validTeamEmployees = employees.filter(emp => !emp.isAdmin || emp.name.toLowerCase() === 'roger');
+    const validTeamEmployees = employees.filter(emp => !emp.isAdmin || emp.name.toLowerCase().includes('roger'));
 
     const presentCount = validTeamEmployees.filter(emp => activeSessions[emp.id]).length;
     const absentCount = validTeamEmployees.length - presentCount;

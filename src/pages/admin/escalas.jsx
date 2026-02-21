@@ -32,7 +32,7 @@ export default function AdminEscalasPage() {
     const scheduleEmployees = employees.filter(e =>
         e.role !== 'Médico' &&
         e.role !== 'Médica' &&
-        (!e.isAdmin || e.name.toLowerCase() === 'roger') // Esconde Admins das escalas mas mantém o Roger se ele se colocar como Admin
+        (!e.isAdmin || e.name.toLowerCase().includes('roger')) // Esconde Admins das escalas mas mantém o Roger se ele se colocar como Admin
     );
 
     // Carregar escala salva ao mudar de mês

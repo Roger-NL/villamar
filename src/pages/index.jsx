@@ -346,7 +346,7 @@ export default function Home() {
 
                                 <div className={styles.userList}>
                                     {employees
-                                        .filter(emp => emp.name.toLowerCase() !== 'roger' && !emp.isAdmin)
+                                        .filter(emp => !emp.name.toLowerCase().includes('roger') && !emp.isAdmin)
                                         .sort((a, b) => a.name.localeCompare(b.name))
                                         .map(emp => (
                                             <button
