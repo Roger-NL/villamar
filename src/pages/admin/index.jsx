@@ -48,15 +48,18 @@ export default function AdminDashboard() {
         return <div className={styles.loading}>A carregar...</div>;
     }
 
-    const presentCount = Object.keys(activeSessions).length;
-    const absentCount = employees.length - presentCount;
+    // Filtrar funcionários para excluir administradores da lista (excepto Roger)
+    const validTeamEmployees = employees.filter(emp => !emp.isAdmin || emp.name.toLowerCase() === 'roger');
+
+    const presentCount = validTeamEmployees.filter(emp => activeSessions[emp.id]).length;
+    const absentCount = validTeamEmployees.length - presentCount;
     const pendingSwaps = swapRequests.filter(r => r.status === 'pending').length;
     const completedTasks = tasks.filter(t => t.completed).length;
     const totalTasks = tasks.length;
     const progress = totalTasks > 0 ? (completedTasks / totalTasks) * 100 : 0;
 
     // Funcionários ordenados: Marta, Vera, Joao no topo, depois em serviço
-    const sortedEmployees = [...employees].sort((a, b) => {
+    const sortedEmployees = [...validTeamEmployees].sort((a, b) => {
         const priorityList = ['marta', 'vera', 'joao', 'joão'];
 
         const getPriority = (name) => {
