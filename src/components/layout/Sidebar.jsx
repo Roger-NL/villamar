@@ -3,7 +3,7 @@ import { useRouter } from 'next/router';
 import styles from './Sidebar.module.css';
 import {
     Home, Clock, CalendarDays, CheckSquare, Users,
-    Settings, BarChart3, ArrowLeftRight, FileText
+    Settings, BarChart3, ArrowLeftRight, FileText, CalendarRange
 } from 'lucide-react';
 
 const adminSidebarItems = [
@@ -18,6 +18,7 @@ const adminSidebarItems = [
     {
         section: 'Gestão', items: [
             { href: '/admin/funcionarios', icon: Users, label: 'Funcionários' },
+            { href: '/admin/ferias-licencas', icon: CalendarRange, label: 'Férias & Licenças' },
             { href: '/admin/trocas', icon: ArrowLeftRight, label: 'Pedidos de Troca' },
             { href: '/admin/relatorios', icon: FileText, label: 'Relatórios' },
         ]

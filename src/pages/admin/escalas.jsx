@@ -8,12 +8,12 @@ import Avatar from '@/components/ui/Avatar';
 import { useApp } from '../_app';
 import { useData } from '@/contexts/DataContext';
 import { generateMonthlySchedule, formatScheduleForGrid } from '@/utils/scheduleGenerator';
-import { Calendar, Sun, Moon, Coffee, ChevronLeft, ChevronRight, Sparkles, Save, X } from 'lucide-react';
+import { Calendar, Sun, Moon, Coffee, ChevronLeft, ChevronRight, Sparkles, Save, X, Plane, HeartPulse } from 'lucide-react';
 import { useState, useMemo, useEffect } from 'react';
 
 export default function AdminEscalasPage() {
     const { isAdmin, toggleMode, currentUser } = useApp();
-    const { employees, saveSchedule, getScheduleForMonth, updateShift } = useData();
+    const { employees, leaves, saveSchedule, getScheduleForMonth, updateShift } = useData();
 
     // Estado para mês/ano selecionado
     const today = new Date();
@@ -50,7 +50,7 @@ export default function AdminEscalasPage() {
     const handleGenerate = () => {
         setIsGenerating(true);
         setTimeout(() => {
-            const schedule = generateMonthlySchedule(scheduleEmployees, selectedYear, selectedMonth);
+            const schedule = generateMonthlySchedule(scheduleEmployees, selectedYear, selectedMonth, leaves);
             setCurrentSchedule(schedule);
             setHasUnsavedChanges(true);
             setIsGenerating(false);
@@ -141,6 +141,7 @@ export default function AdminEscalasPage() {
         if (shift === 'Manhã') return 'M';
         if (shift === 'Tarde') return 'T';
         if (shift === 'Folga') return 'F';
+        if (shift === 'Férias' || shift === 'Licença') return 'F'; // Usa a cor de folga para holidays
         return '';
     };
 
@@ -148,6 +149,8 @@ export default function AdminEscalasPage() {
         if (shift === 'Manhã') return <Sun size={14} strokeWidth={2.5} />;
         if (shift === 'Tarde') return <Moon size={14} strokeWidth={2.5} />;
         if (shift === 'Folga') return <Coffee size={14} strokeWidth={2.5} />;
+        if (shift === 'Férias') return <Plane size={14} strokeWidth={2.5} />;
+        if (shift === 'Licença') return <HeartPulse size={14} strokeWidth={2.5} />;
         return null;
     };
 
@@ -269,12 +272,16 @@ export default function AdminEscalasPage() {
                                                     className={`
                                                         ${genStyles.shiftCell} 
                                                         ${genStyles[getShiftClass(cell.shift)]}
-                                                        ${genStyles.editable}
+                                                        ${(cell.shift === 'Férias' || cell.shift === 'Licença') ? '' : genStyles.editable}
                                                         ${isToday ? genStyles.currentDay : ''}
                                                         ${isSunday ? genStyles.weekEnd : ''}
                                                     `}
-                                                    title={`${cell.shift} - Clique para editar`}
-                                                    onClick={() => handleCellClick(row.employee.id, cell.date, cell.shift)}
+                                                    title={`${cell.shift} - ${(cell.shift === 'Férias' || cell.shift === 'Licença') ? 'Gerido no painel de Férias' : 'Clique para editar'}`}
+                                                    onClick={() => {
+                                                        if (cell.shift !== 'Férias' && cell.shift !== 'Licença') {
+                                                            handleCellClick(row.employee.id, cell.date, cell.shift);
+                                                        }
+                                                    }}
                                                 >
                                                     {getShiftIcon(cell.shift)}
                                                 </div>

@@ -29,6 +29,7 @@ export function DataProvider({ children }) {
     const [timeRecords, setTimeRecords] = useState([]);
     const [activeSessions, setActiveSessions] = useState({});
     const [savedSchedules, setSavedSchedules] = useState({});
+    const [leaves, setLeaves] = useState([]); // Férias e Licenças
     const [isHydrated, setIsHydrated] = useState(false);
 
     // Initial Sync from LocalStorage or Firebase
@@ -65,7 +66,10 @@ export function DataProvider({ children }) {
             setNotifications(savedNotifications ? JSON.parse(savedNotifications) : []);
             setTimeRecords(savedTimeRecords ? JSON.parse(savedTimeRecords) : []);
             setActiveSessions(savedActiveSessions ? JSON.parse(savedActiveSessions) : {});
+            const savedLeaves = localStorage.getItem('leaves');
+
             setSavedSchedules(savedSchedulesData ? JSON.parse(savedSchedulesData) : {});
+            setLeaves(savedLeaves ? JSON.parse(savedLeaves) : []);
             setIsHydrated(true);
         } else if (db) {
             // WITH FIREBASE
@@ -97,6 +101,9 @@ export function DataProvider({ children }) {
                 snapshot.docs.forEach(doc => { schedules[doc.id] = doc.data(); });
                 setSavedSchedules(schedules);
             });
+            const unsubLeaves = onSnapshot(collection(db, 'leaves'), (snapshot) => {
+                setLeaves(snapshot.docs.map(doc => doc.data()));
+            });
 
             setIsHydrated(true);
 
@@ -108,6 +115,7 @@ export function DataProvider({ children }) {
                 unsubTimeRecords();
                 unsubActiveSessions();
                 unsubSchedules();
+                unsubLeaves();
             };
         }
     }, []);

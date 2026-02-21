@@ -45,7 +45,7 @@ export function getWeekends(days) {
 }
 
 // Gerar escala para um funcionário
-function generateEmployeeSchedule(employee, days, assignedWeekends, allSchedules) {
+function generateEmployeeSchedule(employee, days, assignedWeekends, allSchedules, employeeLeaves = []) {
     const schedule = {};
     let consecutiveWork = 0;
     let lastShift = Math.random() > 0.5 ? 'Manhã' : 'Tarde'; // Começa aleatório
@@ -61,17 +61,45 @@ function generateEmployeeSchedule(employee, days, assignedWeekends, allSchedules
     for (let i = 0; i < days.length; i++) {
         const day = days[i];
 
-        // Regras especiais: Enfermeiros (Seg-Sex, 7h-15h)
+        // Se está de férias/licença
+        const currentLeave = employeeLeaves.find(leave =>
+            new Date(day.dateStr) >= new Date(leave.startDate) &&
+            new Date(day.dateStr) <= new Date(leave.endDate)
+        );
+
+        if (currentLeave) {
+            schedule[day.dateStr] = { shift: currentLeave.type, isOff: true };
+            consecutiveWork = 0;
+            continue;
+        }
+
+        // Regras especiais: Enfermeiros
         const isEnfermeiro = employee.role === 'Enfermeira' || employee.role === 'Enfermeiro';
+        const isFabio = employee.name.toLowerCase().includes('fabio') || employee.name.toLowerCase().includes('fábio');
+
         if (isEnfermeiro) {
-            if (day.dayOfWeek === 0 || day.dayOfWeek === 6) {
-                schedule[day.dateStr] = { shift: 'Folga', isOff: true };
+            if (isFabio) {
+                // Fábio: Trabalha apenas Sábado (6) e Domingo (0)
+                if (day.dayOfWeek === 0 || day.dayOfWeek === 6) {
+                    schedule[day.dateStr] = {
+                        shift: 'Manhã',
+                        hours: '7h-15h',
+                        isOff: false
+                    };
+                } else {
+                    schedule[day.dateStr] = { shift: 'Folga', isOff: true };
+                }
             } else {
-                schedule[day.dateStr] = {
-                    shift: 'Manhã',
-                    hours: '7h-15h',
-                    isOff: false
-                };
+                // Outros Enfermeiros: Segunda a Sexta
+                if (day.dayOfWeek === 0 || day.dayOfWeek === 6) {
+                    schedule[day.dateStr] = { shift: 'Folga', isOff: true };
+                } else {
+                    schedule[day.dateStr] = {
+                        shift: 'Manhã',
+                        hours: '7h-15h',
+                        isOff: false
+                    };
+                }
             }
             continue; // Ignorar o resto do balanceamento para este dia
         }
@@ -162,9 +190,10 @@ function distributeWeekends(employees, weekends) {
  * @param {Array} employees - Lista de funcionários
  * @param {number} year - Ano
  * @param {number} month - Mês (0-11)
+ * @param {Array} leaves - Lista de todas as Férias/Licenças registadas
  * @returns {Object} Escala gerada { employeeId: { dateStr: { shift, hours, isOff } } }
  */
-export function generateMonthlySchedule(employees, year, month) {
+export function generateMonthlySchedule(employees, year, month, leaves = []) {
     const days = getDaysInMonth(year, month);
     const weekends = getWeekends(days);
 
@@ -176,7 +205,8 @@ export function generateMonthlySchedule(employees, year, month) {
 
     for (const emp of employees) {
         const assignedWeekends = weekendDistribution[emp.id] || [];
-        schedules[emp.id] = generateEmployeeSchedule(emp, days, assignedWeekends, schedules);
+        const employeeLeaves = leaves.filter(l => Number(l.employeeId) === Number(emp.id));
+        schedules[emp.id] = generateEmployeeSchedule(emp, days, assignedWeekends, schedules, employeeLeaves);
     }
 
     return {
