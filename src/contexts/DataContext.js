@@ -18,6 +18,7 @@ const STORAGE_KEYS = {
     ACTIVE_SESSIONS: 'villamar_active_sessions',
     SCHEDULES: 'villamar_schedules',
     INVENTORY: 'villamar_inventory',
+    DAILY_PLANS: 'villamar_daily_plans',
 };
 
 export function DataProvider({ children }) {
@@ -33,6 +34,7 @@ export function DataProvider({ children }) {
     const [inventoryItems, setInventoryItems] = useState([]); // Estoque
     const [diaperPatients, setDiaperPatients] = useState([]); // Utentes e as suas fraldas
     const [diaperLogs, setDiaperLogs] = useState([]); // Histórico de reposições
+    const [dailyPlans, setDailyPlans] = useState({}); // Planos Diários de Tarefas (Assignments + Status)
     const [isHydrated, setIsHydrated] = useState(false);
 
     // Initial Sync from LocalStorage or Firebase
@@ -46,6 +48,7 @@ export function DataProvider({ children }) {
             const savedTimeRecords = localStorage.getItem(STORAGE_KEYS.TIME_RECORDS);
             const savedActiveSessions = localStorage.getItem(STORAGE_KEYS.ACTIVE_SESSIONS);
             const savedSchedulesData = localStorage.getItem(STORAGE_KEYS.SCHEDULES);
+            const savedDailyPlans = localStorage.getItem(STORAGE_KEYS.DAILY_PLANS);
 
             let loadedEmployees = savedEmployees ? JSON.parse(savedEmployees) : initialEmployees;
             if (savedEmployees) {
@@ -73,6 +76,7 @@ export function DataProvider({ children }) {
 
             setSavedSchedules(savedSchedulesData ? JSON.parse(savedSchedulesData) : {});
             setLeaves(savedLeaves ? JSON.parse(savedLeaves) : []);
+            setDailyPlans(savedDailyPlans ? JSON.parse(savedDailyPlans) : {});
             setIsHydrated(true);
         } else if (db) {
             // WITH FIREBASE
@@ -116,6 +120,11 @@ export function DataProvider({ children }) {
             const unsubDiaperLogs = onSnapshot(collection(db, 'diaperLogs'), (snapshot) => {
                 setDiaperLogs(snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id })));
             });
+            const unsubDailyPlans = onSnapshot(collection(db, 'dailyPlans'), (snapshot) => {
+                const plans = {};
+                snapshot.docs.forEach(doc => { plans[doc.id] = { ...doc.data(), id: doc.id }; });
+                setDailyPlans(plans);
+            });
 
             setIsHydrated(true);
 
@@ -130,6 +139,7 @@ export function DataProvider({ children }) {
                 unsubInventory();
                 unsubDiaperPatients();
                 unsubDiaperLogs();
+                unsubDailyPlans();
             };
         }
     }, []);
@@ -170,8 +180,9 @@ export function DataProvider({ children }) {
             localStorage.setItem(STORAGE_KEYS.TIME_RECORDS, JSON.stringify(timeRecords));
             localStorage.setItem(STORAGE_KEYS.ACTIVE_SESSIONS, JSON.stringify(activeSessions));
             localStorage.setItem(STORAGE_KEYS.SCHEDULES, JSON.stringify(savedSchedules));
+            localStorage.setItem(STORAGE_KEYS.DAILY_PLANS, JSON.stringify(dailyPlans));
         }
-    }, [employees, tasks, swapRequests, notifications, timeRecords, activeSessions, savedSchedules, isHydrated]);
+    }, [employees, tasks, swapRequests, notifications, timeRecords, activeSessions, savedSchedules, dailyPlans, isHydrated]);
 
 
     // === TIME TRACKING / BANCO DE HORAS ===
@@ -478,6 +489,7 @@ export function DataProvider({ children }) {
             if (selectedCollections.includes('diaperPatients')) setDiaperPatients([]);
             if (selectedCollections.includes('diaperLogs')) setDiaperLogs([]);
             if (selectedCollections.includes('schedules')) setSavedSchedules({});
+            if (selectedCollections.includes('dailyPlans')) setDailyPlans({});
         } else {
             // Se incluir funcionários, removemos a proteção mas avisamos no UI
             for (let c of selectedCollections) {
@@ -571,9 +583,50 @@ export function DataProvider({ children }) {
         else await deleteDB('diaperLogs', id);
     }, [db]);
 
+    // === PLANO DIÁRIO DE TAREFAS ===
+    const updateDailyPlan = useCallback(async (dateStr, assignments, customLabels = {}) => {
+        const plan = dailyPlans[dateStr] || { id: dateStr, date: dateStr, assignments: {}, statuses: {}, customLabels: {}, publishedAt: null };
+        const newPlan = { ...plan, assignments, customLabels };
+
+        if (!db) setDailyPlans(prev => ({ ...prev, [dateStr]: newPlan }));
+        else await writeDB('dailyPlans', dateStr, newPlan);
+    }, [db, dailyPlans]);
+
+    const publishDailyPlan = useCallback(async (dateStr) => {
+        const plan = dailyPlans[dateStr] || { id: dateStr, date: dateStr, assignments: {}, statuses: {} };
+        const newPlan = { ...plan, publishedAt: new Date().toISOString() };
+
+        if (!db) setDailyPlans(prev => ({ ...prev, [dateStr]: newPlan }));
+        else await writeDB('dailyPlans', dateStr, newPlan);
+
+        addNotification({
+            type: 'daily_plan_published',
+            title: 'Novo Plano Diário',
+            message: `Plano Diário para ${dateStr} foi publicado.`,
+            forAdmin: false // General notification
+        });
+    }, [db, dailyPlans, addNotification]);
+
+    const toggleDailyTaskComplete = useCallback(async (dateStr, taskId, employeeId) => {
+        const plan = dailyPlans[dateStr] || { id: dateStr, date: dateStr, assignments: {}, statuses: {}, publishedAt: null };
+        const currentStatus = plan.statuses[taskId];
+
+        const newStatuses = { ...plan.statuses };
+        if (currentStatus?.completed) {
+            delete newStatuses[taskId]; // Uncomplete
+        } else {
+            newStatuses[taskId] = { completed: true, completedAt: new Date().toISOString(), completedBy: employeeId };
+        }
+
+        const newPlan = { ...plan, statuses: newStatuses };
+
+        if (!db) setDailyPlans(prev => ({ ...prev, [dateStr]: newPlan }));
+        else await writeDB('dailyPlans', dateStr, newPlan);
+    }, [db, dailyPlans]);
+
     const value = {
         employees, tasks, swapRequests, notifications, timeRecords, activeSessions, savedSchedules, isHydrated, leaves, inventoryItems,
-        diaperPatients, diaperLogs,
+        diaperPatients, diaperLogs, dailyPlans,
         addEmployee, updateEmployee, removeEmployee, getEmployeeById,
         addTask, updateTask, removeTask, toggleTaskComplete, getTasksByEmployee, getTasksByDate,
         addSwapRequest, approveSwapRequest, rejectSwapRequest, removeSwapRequest, getPendingSwaps,
@@ -584,7 +637,8 @@ export function DataProvider({ children }) {
         addLeave, deleteLeave,
         addInventoryItem, updateInventoryItem, deleteInventoryItem,
         addDiaperPatient, updateDiaperPatient, deleteDiaperPatient,
-        addDiaperLog, deleteDiaperLog
+        addDiaperLog, deleteDiaperLog,
+        updateDailyPlan, publishDailyPlan, toggleDailyTaskComplete
     };
 
     return <DataContext.Provider value={value}>{children}</DataContext.Provider>;

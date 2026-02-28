@@ -1,0 +1,243 @@
+.grid {
+    display: grid;
+    grid-template-columns: 280px 1fr;
+    gap: 24px;
+    align-items: start;
+}
+
+@media (max-width: 768px) {
+    .grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+.headerActions {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+}
+
+.datePickerContainer {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: #fff;
+    border: 1px solid #e2e8f0;
+    padding: 8px 12px;
+    border-radius: 8px;
+    color: #475569;
+}
+
+.dateInput {
+    border: none;
+    outline: none;
+    font-family: inherit;
+    font-size: 1rem;
+    color: #1e293b;
+    background: transparent;
+}
+
+.publishBtn {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: #0077b6;
+    color: white;
+    padding: 10px 20px;
+    border: none;
+    border-radius: 8px;
+    font-size: 0.95rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.publishBtn:hover {
+    background: #00b4d8;
+}
+
+.publishBtn.published {
+    background: #10b981;
+}
+
+.employeesCol {
+    background: white;
+    padding: 20px;
+    border-radius: 12px;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+    position: sticky;
+    top: 80px;
+    max-height: calc(100vh - 100px);
+    overflow-y: auto;
+}
+
+.employeesCol h2 {
+    font-size: 1.25rem;
+    color: #1e293b;
+    margin-bottom: 4px;
+}
+
+.helperText {
+    font-size: 0.85rem;
+    color: #64748b;
+    margin-bottom: 16px;
+}
+
+.employeesList {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.draggableEmployee {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    padding: 12px;
+    border-radius: 8px;
+    cursor: grab;
+    transition: all 0.2s;
+}
+
+.draggableEmployee:hover {
+    background: #f1f5f9;
+    border-color: #cbd5e1;
+}
+
+.draggableEmployee.dragging {
+    background: #fff;
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+    cursor: grabbing;
+}
+
+.empInfo {
+    display: flex;
+    flex-direction: column;
+}
+
+.empName {
+    font-weight: 600;
+    color: #334155;
+    font-size: 0.95rem;
+}
+
+.empRole {
+    font-size: 0.8rem;
+    color: #64748b;
+}
+
+.planCol {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+}
+
+.block {
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+    overflow: hidden;
+}
+
+.blockTitle {
+    background: #f8fafc;
+    padding: 16px 20px;
+    color: #1e293b;
+    font-size: 1.1rem;
+    border-bottom: 1px solid #e2e8f0;
+    margin: 0;
+}
+
+.blockColumns {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+}
+
+@media (max-width: 640px) {
+    .blockColumns {
+        grid-template-columns: 1fr;
+    }
+}
+
+.colData {
+    padding: 20px;
+    border-right: 1px solid #f1f5f9;
+}
+
+.colData:last-child {
+    border-right: none;
+}
+
+.colData h4 {
+    margin-top: 0;
+    margin-bottom: 16px;
+    color: #475569;
+    font-size: 0.95rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.blockList {
+    padding: 20px;
+}
+
+.taskRow {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 0;
+    border-bottom: 1px solid #f1f5f9;
+}
+
+.taskRow:last-child {
+    border-bottom: none;
+}
+
+.taskLabel {
+    font-weight: 500;
+    color: #334155;
+    font-size: 0.95rem;
+    flex: 1;
+}
+
+.taskSlot {
+    display: flex;
+    align-items: center;
+    background: #f8fafc;
+    border: 1px dashed #cbd5e1;
+    border-radius: 6px;
+    padding: 6px 12px;
+    min-width: 140px;
+    min-height: 36px;
+    justify-content: space-between;
+    transition: all 0.2s;
+    position: relative;
+}
+
+.slotOver {
+    background-color: #f0fdf4 !important;
+    border: 2px dashed #22c55e !important;
+}
+
+.assignedName {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: #0077b6;
+}
+
+.unassignedName {
+    font-size: 0.85rem;
+    color: #94a3b8;
+}
+
+.slotSelect {
+    opacity: 0;
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    cursor: pointer;
+}
