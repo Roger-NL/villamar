@@ -8,7 +8,7 @@ import Sidebar from '@/components/layout/Sidebar';
 import Card from '@/components/ui/Card';
 import { useApp } from '../_app';
 import { useData } from '@/contexts/DataContext';
-import { planoDiarioTemplate } from '@/data/planoDiarioTemplate';
+import { planoDiarioTemplate, planoDiarioNoturnoTemplate } from '@/data/planoDiarioTemplate';
 import { ClipboardList, CheckCircle, Clock, Check, Users, AlertCircle } from 'lucide-react';
 
 export default function TarefasPage() {
@@ -20,34 +20,77 @@ export default function TarefasPage() {
     const localISOTime = (new Date(Date.now() - tzOffset)).toISOString().slice(0, 10);
     const selectedDate = localISOTime;
 
-    const currentPlan = dailyPlans[selectedDate];
-    const isPublished = currentPlan && currentPlan.publishedAt;
+    const dayPlan = dailyPlans[selectedDate];
+    const nightPlan = dailyPlans[`${selectedDate}_NIGHT`];
+    const isPublished = (dayPlan && dayPlan.publishedAt) || (nightPlan && nightPlan.publishedAt);
 
     // Filter tasks from the template based on assignments
     const myTasks = useMemo(() => {
-        if (!currentPlan || !isPublished) return [];
-
         const tasks = [];
-        planoDiarioTemplate.blocks.forEach(block => {
-            block.items.forEach(item => {
-                const assignedEmpId = currentPlan.assignments?.[item.id];
-                // Note: currentUser.id might be int, select value is string
-                if (assignedEmpId && assignedEmpId.toString() === currentUser?.id?.toString()) {
-                    const status = currentPlan.statuses?.[item.id] || {};
-                    const customLabel = currentPlan.customLabels?.[item.id] || item.label;
-                    tasks.push({
-                        ...item,
-                        label: customLabel,
-                        blockName: block.name,
-                        time: item.time || block.time || 'Diário',
-                        completed: !!status.completed,
-                        completedAt: status.completedAt
+
+        const processTemplate = (template, plan, planKey) => {
+            if (!plan || !plan.publishedAt) return;
+            template.blocks.forEach(block => {
+                if (block.type === 'group_assignment') {
+                    block.columns.forEach((colName, colIdx) => {
+                        const taskId = `${block.id}_${colIdx}`;
+                        const assignedEmpId = plan.assignments?.[taskId];
+                        if (assignedEmpId && assignedEmpId.toString() === currentUser?.id?.toString()) {
+                            const status = plan.statuses?.[taskId] || {};
+                            let residentList = [];
+                            if (plan.groupResidents && plan.groupResidents[block.id] && plan.groupResidents[block.id][colIdx]) {
+                                residentList = plan.groupResidents[block.id][colIdx];
+                            } else if (block.predefinedColumns) {
+                                residentList = block.predefinedColumns[colIdx] || [];
+                            } else if (block.residents) {
+                                residentList = block.residents;
+                            }
+
+                            if (residentList.length > 0) {
+                                const formattedResidents = residentList.map(r => {
+                                    const customName = plan.customResidentNames?.[r] || r;
+                                    const resStatus = plan.residentStatuses?.[`${block.id}:${r}`];
+                                    return resStatus ? `${customName} (${resStatus})` : customName;
+                                });
+
+                                tasks.push({
+                                    id: taskId,
+                                    label: `${block.name} — ${block.columns[colIdx]} (${formattedResidents.join(', ')})`,
+                                    blockName: template.name === 'Plano Individual de trabalho Noturno' ? 'Noturno' : block.name,
+                                    time: 'Turno',
+                                    completed: !!status.completed,
+                                    completedAt: status.completedAt,
+                                    planKey: planKey
+                                });
+                            }
+                        }
+                    });
+                } else if (block.items) {
+                    block.items.forEach(item => {
+                        const assignedEmpId = plan.assignments?.[item.id];
+                        if (assignedEmpId && assignedEmpId.toString() === currentUser?.id?.toString()) {
+                            const status = plan.statuses?.[item.id] || {};
+                            const customLabel = plan.customLabels?.[item.id] || item.label;
+                            tasks.push({
+                                ...item,
+                                label: customLabel,
+                                blockName: template.name === 'Plano Individual de trabalho Noturno' ? 'Noturno' : block.name,
+                                time: item.time || block.time || 'Diário',
+                                completed: !!status.completed,
+                                completedAt: status.completedAt,
+                                planKey: planKey
+                            });
+                        }
                     });
                 }
             });
-        });
+        };
+
+        processTemplate(planoDiarioTemplate, dayPlan, selectedDate);
+        processTemplate(planoDiarioNoturnoTemplate, nightPlan, `${selectedDate}_NIGHT`);
+
         return tasks;
-    }, [currentPlan, isPublished, currentUser]);
+    }, [dayPlan, nightPlan, currentUser]);
 
     const filteredMyTasks = myTasks.filter(task => {
         if (filter === 'pending') return !task.completed;
@@ -58,8 +101,8 @@ export default function TarefasPage() {
     const completedCount = myTasks.filter(t => t.completed).length;
     const pendingCount = myTasks.filter(t => !t.completed).length;
 
-    const handleToggleComplete = (taskId) => {
-        toggleDailyTaskComplete(selectedDate, taskId, currentUser?.id);
+    const handleToggleComplete = (planKey, taskId) => {
+        toggleDailyTaskComplete(planKey, taskId, currentUser?.id);
     };
 
     if (!isHydrated) {
@@ -148,7 +191,7 @@ export default function TarefasPage() {
                                         <div
                                             key={task.id}
                                             className={`${styles.taskItem} ${task.completed ? styles.completed : ''}`}
-                                            onClick={() => handleToggleComplete(task.id)}
+                                            onClick={() => handleToggleComplete(task.planKey, task.id)}
                                         >
                                             <div className={styles.taskCheckbox}>
                                                 {task.completed && <Check size={16} />}

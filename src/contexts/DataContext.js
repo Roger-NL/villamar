@@ -584,9 +584,9 @@ export function DataProvider({ children }) {
     }, [db]);
 
     // === PLANO DIÁRIO DE TAREFAS ===
-    const updateDailyPlan = useCallback(async (dateStr, assignments, customLabels = {}) => {
-        const plan = dailyPlans[dateStr] || { id: dateStr, date: dateStr, assignments: {}, statuses: {}, customLabels: {}, publishedAt: null };
-        const newPlan = { ...plan, assignments, customLabels };
+    const updateDailyPlan = useCallback(async (dateStr, assignments, customLabels = {}, groupResidents = {}, residentStatuses = {}, customResidentNames = {}) => {
+        const plan = dailyPlans[dateStr] || { id: dateStr, date: dateStr, assignments: {}, statuses: {}, customLabels: {}, groupResidents: {}, residentStatuses: {}, customResidentNames: {}, publishedAt: null };
+        const newPlan = { ...plan, assignments, customLabels, groupResidents, residentStatuses, customResidentNames };
 
         if (!db) setDailyPlans(prev => ({ ...prev, [dateStr]: newPlan }));
         else await writeDB('dailyPlans', dateStr, newPlan);

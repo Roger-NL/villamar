@@ -5,115 +5,57 @@ export const planoDiarioTemplate = {
         {
             id: "trocas_11",
             name: "Trocas das 11H",
-            type: "trocas",
+            type: "group_assignment",
             time: "11:00",
             columns: ["Esquerda", "Direita"],
-            items: [
-                { id: "T11_LurdesN", label: "Lurdes N", col: 0 },
-                { id: "T11_LurdesC", label: "Lurdes C", col: 1 },
-                { id: "T11_Fernanda", label: "Fernanda", col: 0 },
-                { id: "T11_Tina", label: "Tina", col: 1 },
-                { id: "T11_Simao", label: "Simão", col: 0 },
-                { id: "T11_Luisa", label: "Luísa", col: 1 },
-                { id: "T11_Mario", label: "Mário", col: 0 },
-                { id: "T11_Ventura", label: "Ventura", col: 1 },
-                { id: "T11_Sofia", label: "Sofia", col: 0 },
-                { id: "T11_Babixa", label: "Babixa", col: 1 },
-                { id: "T11_Perpetua", label: "Perpétua", col: 0 },
-                { id: "T11_MRodrigues", label: "M. Rodrigues", col: 1 },
-                { id: "T11_Amelia", label: "Amélia", col: 0 },
-                { id: "T11_CarlosA", label: "Carlos A.", col: 1 },
-                { id: "T11_Adicionar1", label: "+ Adicionar Nova Pessoa", col: 0, isExtra: true },
-                { id: "T11_Adicionar2", label: "+ Adicionar Nova Pessoa", col: 1, isExtra: true },
-            ]
+            predefinedColumns: {
+                0: ["Lurdes N", "Fernanda", "Simão", "Mário", "Sofia", "Perpétua", "Amélia"],
+                1: ["Lurdes C", "Tina", "Luísa", "Ventura", "Babixa", "M. Rodrigues", "Carlos A."]
+            }
         },
         {
             id: "trocas_15",
             name: "Trocas das 15H",
-            type: "trocas",
+            type: "group_assignment",
             time: "15:00",
             columns: ["Esquerda", "Direita"],
-            items: [
-                { id: "T15_LurdesN", label: "Lurdes N", col: 0 },
-                { id: "T15_LurdesC", label: "Lurdes C", col: 1 },
-                { id: "T15_Fernanda", label: "Fernanda", col: 0 },
-                { id: "T15_Tina", label: "Tina", col: 1 },
-                { id: "T15_Simao", label: "Simão", col: 0 },
-                { id: "T15_Luisa", label: "Luísa", col: 1 },
-                { id: "T15_Mario", label: "Mário", col: 0 },
-                { id: "T15_Ventura", label: "Ventura", col: 1 },
-                { id: "T15_Sofia", label: "Sofia", col: 0 },
-                { id: "T15_Babixa", label: "Babixa", col: 1 },
-                { id: "T15_Perpetua", label: "Perpétua", col: 0 },
-                { id: "T15_MRodrigues", label: "M. Rodrigues", col: 1 },
-                { id: "T15_Amelia", label: "Amélia", col: 0 },
-                { id: "T15_CarlosA", label: "Carlos A.", col: 1 },
-                { id: "T15_Adicionar1", label: "+ Adicionar Nova Pessoa", col: 0, isExtra: true },
-                { id: "T15_Adicionar2", label: "+ Adicionar Nova Pessoa", col: 1, isExtra: true },
-            ]
+            predefinedColumns: {
+                0: ["Lurdes N", "Fernanda", "Simão", "Mário", "Sofia", "Perpétua", "Amélia"],
+                1: ["Lurdes C", "Tina", "Luísa", "Ventura", "Babixa", "M. Rodrigues", "Carlos A."]
+            }
         },
         {
             id: "trocas_18",
             name: "Trocas das 18H",
-            type: "trocas",
+            type: "group_assignment",
             time: "18:00",
             columns: ["Esquerda", "Direita"],
-            items: [
-                { id: "T18_LurdesN", label: "Lurdes N", col: 0 },
-                { id: "T18_LurdesC", label: "Lurdes C", col: 1 },
-                { id: "T18_Fernanda", label: "Fernanda", col: 0 },
-                { id: "T18_Tina", label: "Tina", col: 1 },
-                { id: "T18_Simao", label: "Simão", col: 0 },
-                { id: "T18_Luisa", label: "Luísa", col: 1 },
-                { id: "T18_Mario", label: "Mário", col: 0 },
-                { id: "T18_Ventura", label: "Ventura", col: 1 },
-                { id: "T18_Sofia", label: "Sofia", col: 0 },
-                { id: "T18_Babixa", label: "Babixa", col: 1 },
-                { id: "T18_Perpetua", label: "Perpétua", col: 0 },
-                { id: "T18_MRodrigues", label: "M. Rodrigues", col: 1 },
-                { id: "T18_Amelia", label: "Amélia", col: 0 },
-                { id: "T18_CarlosA", label: "Carlos A.", col: 1 },
-                { id: "T18_Adicionar1", label: "+ Adicionar Nova Pessoa", col: 0, isExtra: true },
-                { id: "T18_Adicionar2", label: "+ Adicionar Nova Pessoa", col: 1, isExtra: true },
-            ]
+            predefinedColumns: {
+                0: ["Lurdes N", "Fernanda", "Simão", "Mário", "Sofia", "Perpétua", "Amélia"],
+                1: ["Lurdes C", "Tina", "Luísa", "Ventura", "Babixa", "M. Rodrigues", "Carlos A."]
+            }
         },
         {
             id: "levante",
             name: "Levante (Manhã 8h–16:30h)",
-            type: "levante",
+            type: "group_assignment",
             time: "Manhã",
-            items: [
-                { id: "L_Antonio", label: "António" },
-                { id: "L_Simao", label: "Simão" },
-                { id: "L_CarlosA", label: "Carlos A." },
-                { id: "L_Conceicao", label: "Conceição" },
-                { id: "L_MZelia", label: "M. Zélia" },
-                { id: "L_Mario", label: "Mário" },
-                { id: "L_Teresa", label: "Teresa" },
-                { id: "L_Babixa", label: "Babixa" },
-                { id: "L_Judite", label: "Judite" },
-                { id: "L_JoseCarlos", label: "José Carlos" },
-                { id: "L_Ventura", label: "Ventura" },
-                { id: "L_Otilio", label: "Otílio" },
-                { id: "L_Adicionar1", label: "+ Adicionar Nova Pessoa", isExtra: true },
-                { id: "L_Adicionar2", label: "+ Adicionar Nova Pessoa", isExtra: true },
-                { id: "L_Adicionar3", label: "+ Adicionar Nova Pessoa", isExtra: true },
-            ]
+            columns: ["Responsável 1", "Responsável 2"],
+            predefinedColumns: {
+                0: ["António", "Simão", "Carlos A.", "Conceição", "M. Zélia", "Mário"],
+                1: ["Teresa", "Babixa", "Judite", "José Carlos", "Ventura", "Otílio"]
+            }
         },
         {
             id: "deitar",
             name: "Deitares (Tarde 11:30–20h)",
-            type: "deitar",
+            type: "group_assignment",
             time: "Tarde",
-            items: [
-                { id: "D_Perpetua", label: "Perpétua" },
-                { id: "D_Amelia", label: "Amélia" },
-                { id: "D_Otilio", label: "Otílio" },
-                { id: "D_Ventura", label: "Ventura" },
-                { id: "D_Babixa", label: "Babixa" },
-                { id: "D_Adicionar1", label: "+ Adicionar Nova Pessoa", isExtra: true },
-                { id: "D_Adicionar2", label: "+ Adicionar Nova Pessoa", isExtra: true },
-            ]
+            columns: ["Responsável 1", "Responsável 2"],
+            predefinedColumns: {
+                0: ["Perpétua", "Amélia", "Otílio"],
+                1: ["Ventura", "Babixa"]
+            }
         },
         {
             id: "gerais",
@@ -140,6 +82,53 @@ export const planoDiarioTemplate = {
                 { id: "G_Adicionar1", label: "+ Adicionar Nova Tarefa", isExtra: true },
                 { id: "G_Adicionar2", label: "+ Adicionar Nova Tarefa", isExtra: true },
                 { id: "G_Adicionar3", label: "+ Adicionar Nova Tarefa", isExtra: true },
+            ]
+        }
+    ]
+};
+
+export const planoDiarioNoturnoTemplate = {
+    id: "tpl_night_v1",
+    name: "Plano Individual de trabalho Noturno",
+    blocks: [
+        {
+            id: "night_levantes",
+            name: "LEVANTES",
+            type: "group_assignment",
+            columns: ["Coluna 1", "Coluna 2"],
+            predefinedColumns: [
+                ["Amélia", "Fernanda", "Emília", "Perpétua", "Maria", "M. Rodrigues"],
+                ["Sofia", "Lurdes N.", "Lurdes C.", "Luísa", "Tina"]
+            ],
+            residents: [
+                "Amélia", "Fernanda", "Emília", "Perpétua", "Maria",
+                "M. Rodrigues", "Sofia", "Lurdes N.", "Lurdes C.", "Luísa", "Tina"
+            ]
+        },
+        {
+            id: "night_deitares",
+            name: "DEITARES",
+            type: "group_assignment",
+            columns: ["Coluna 1", "Coluna 2"],
+            predefinedColumns: [
+                ["Sofia", "Amélia", "José Carlos", "Luísa", "Teresa", "Tina", "Conceição", "Mário"],
+                ["Simão", "Júlio", "Judite", "Fernanda C.", "Maria", "M. Rodrigues", "M. Zélia"]
+            ],
+            residents: [
+                "Sofia", "Amélia", "José Carlos", "Luísa", "Teresa",
+                "Tina", "Conceição", "Mário", "Simão", "Júlio",
+                "Judite", "Fernanda C.", "Maria", "M. Rodrigues", "M. Zélia"
+            ]
+        },
+        {
+            id: "night_gerais",
+            name: "Tarefas Noturnas",
+            type: "single_assignment",
+            items: [
+                { id: "night_roupeiros", label: "Roupeiros" },
+                { id: "night_limpeza_salao", label: "Limpeza Salão" },
+                { id: "night_roupa_passar_ferro", label: "Roupa (Passar a Ferro)" },
+                { id: "night_admin_terapeutica_insulinas", label: "Administração terapêutica / Insulinas" }
             ]
         }
     ]
