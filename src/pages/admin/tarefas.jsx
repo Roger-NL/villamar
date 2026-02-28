@@ -39,10 +39,7 @@ function TaskSlot({ taskId, label, isExtra, customLabels, onUpdateCustomLabel, a
 
     const handleLabelClick = () => {
         if (!isExtra) return;
-        const newLabel = prompt("Digite o nome (Ex: João, Limpeza extra, etc):", displayLabel === label ? "" : displayLabel);
-        if (newLabel !== null) {
-            onUpdateCustomLabel(taskId, newLabel || label);
-        }
+        onUpdateCustomLabel(taskId, displayLabel, label);
     };
 
     return (
@@ -87,6 +84,9 @@ export default function AdminTarefasPage() {
     const [localAssignments, setLocalAssignments] = useState({});
     const [customLabels, setCustomLabels] = useState({});
 
+    // Modal state for custom extra labels
+    const [labelModal, setLabelModal] = useState({ isOpen: false, taskId: null, value: '', defaultLabel: '' });
+
     const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }));
 
     useEffect(() => {
@@ -117,6 +117,26 @@ export default function AdminTarefasPage() {
         const newLabels = { ...customLabels, [taskId]: newLabel };
         setCustomLabels(newLabels);
         updateDailyPlan(selectedDate, localAssignments, newLabels);
+    };
+
+    const handleOpenLabelModal = (taskId, displayLabel, defaultLabel) => {
+        setLabelModal({
+            isOpen: true,
+            taskId,
+            value: displayLabel === defaultLabel ? '' : displayLabel,
+            defaultLabel
+        });
+    };
+
+    const handleSaveLabelModal = (e) => {
+        e?.preventDefault();
+        const { taskId, value, defaultLabel } = labelModal;
+        handleUpdateCustomLabel(taskId, value || defaultLabel);
+        setLabelModal({ isOpen: false, taskId: null, value: '', defaultLabel: '' });
+    };
+
+    const handleCloseLabelModal = () => {
+        setLabelModal({ isOpen: false, taskId: null, value: '', defaultLabel: '' });
     };
 
     const handleDragStart = (event) => {
@@ -218,7 +238,7 @@ export default function AdminTarefasPage() {
                                                                 label={item.label}
                                                                 isExtra={item.isExtra}
                                                                 customLabels={customLabels}
-                                                                onUpdateCustomLabel={handleUpdateCustomLabel}
+                                                                onUpdateCustomLabel={handleOpenLabelModal}
                                                                 assignedName={localAssignments[item.id] ? getEmployeeName(localAssignments[item.id]) : null}
                                                                 employees={employees}
                                                                 onAssign={(empId) => handleAssign(item.id, empId)}
@@ -236,7 +256,7 @@ export default function AdminTarefasPage() {
                                                         label={item.label}
                                                         isExtra={item.isExtra}
                                                         customLabels={customLabels}
-                                                        onUpdateCustomLabel={handleUpdateCustomLabel}
+                                                        onUpdateCustomLabel={handleOpenLabelModal}
                                                         assignedName={localAssignments[item.id] ? getEmployeeName(localAssignments[item.id]) : null}
                                                         employees={employees}
                                                         onAssign={(empId) => handleAssign(item.id, empId)}
@@ -260,6 +280,36 @@ export default function AdminTarefasPage() {
                             ) : null}
                         </DragOverlay>
                     </DndContext>
+
+                    {/* Custom Popup Modal for Extra Labels */}
+                    {labelModal.isOpen && (
+                        <div className={planStyles.modalOverlay} onClick={handleCloseLabelModal}>
+                            <div className={planStyles.modalContent} onClick={(e) => e.stopPropagation()}>
+                                <div className={planStyles.modalHeader}>
+                                    <h3 className={planStyles.modalTitle}>Adicionar Nome ou Tarefa</h3>
+                                    <p className={planStyles.modalDesc}>Digite a informação extra e salve.</p>
+                                </div>
+                                <form onSubmit={handleSaveLabelModal}>
+                                    <input
+                                        type="text"
+                                        autoFocus
+                                        placeholder="Ex: João, Limpeza extra, etc..."
+                                        value={labelModal.value}
+                                        onChange={(e) => setLabelModal({ ...labelModal, value: e.target.value })}
+                                        className={planStyles.modalInput}
+                                    />
+                                    <div className={planStyles.modalActions}>
+                                        <button type="button" className={planStyles.modalBtnCancel} onClick={handleCloseLabelModal}>
+                                            Cancelar
+                                        </button>
+                                        <button type="submit" className={planStyles.modalBtnSave}>
+                                            Salvar Nome
+                                        </button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    )}
                 </div>
             </main>
         </>
