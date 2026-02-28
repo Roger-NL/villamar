@@ -356,14 +356,18 @@ export default function AdminTarefasPage() {
     };
 
     const handleAddNewResident = (taskId, targetCol) => {
-        const newName = `Novo Utente ${Math.floor(Math.random() * 1000)}`;
+        const newName = `Nova Pessoa ${Math.floor(Math.random() * 10000)}`;
+        const targetStr = String(targetCol);
         setLocalGroupResidents(prev => {
             const blockGroups = prev[taskId] || { unassigned: [], '0': [], '1': [] };
+            const currentList = blockGroups[targetStr] || [];
+            if (currentList.includes(newName)) return prev; // Just in case of impossible collision
+
             const newGroups = {
                 ...prev,
                 [taskId]: {
                     ...blockGroups,
-                    [targetCol]: [...(blockGroups[targetCol] || []), newName]
+                    [targetStr]: [...currentList, newName]
                 }
             };
             updateDailyPlan(planKey, localAssignments, customLabels, newGroups, residentStatuses, customResidentNames);
