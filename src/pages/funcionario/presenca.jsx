@@ -13,12 +13,7 @@ export default function PresencaPage() {
     const user = mockCurrentUser;
     const [clockedIn, setClockedIn] = useState(false);
     const [clockTime, setClockTime] = useState(null);
-    const [history, setHistory] = useState([
-        { type: 'in', time: '08:02', date: '2026-02-06' },
-        { type: 'out', time: '16:35', date: '2026-02-06' },
-        { type: 'in', time: '07:58', date: '2026-02-05' },
-        { type: 'out', time: '16:28', date: '2026-02-05' },
-    ]);
+    const [history, setHistory] = useState([]);
 
     const handleClock = () => {
         const now = new Date();
