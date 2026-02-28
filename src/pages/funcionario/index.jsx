@@ -8,6 +8,7 @@ import Sidebar from '@/components/layout/Sidebar';
 import { useApp } from '../_app';
 import { useData } from '@/contexts/DataContext';
 import { mockSchedule } from '@/data/mockData';
+import { planoDiarioTemplate, planoDiarioNoturnoTemplate } from '@/data/planoDiarioTemplate';
 import {
     LogIn, LogOut, Calendar, CheckCircle, Clock,
     ListChecks, ArrowRight, Timer, TrendingUp
@@ -28,13 +29,13 @@ export default function FuncionarioDashboard() {
     const router = useRouter();
     const { isAdmin, toggleMode, currentUser } = useApp();
     const {
-        tasks,
         clockIn,
         clockOut,
         isEmployeeClockedIn,
         getActiveSession,
         getTotalHours,
-        isHydrated
+        isHydrated,
+        dailyPlans
     } = useData();
 
     const [elapsedTime, setElapsedTime] = useState(0);
@@ -63,7 +64,82 @@ export default function FuncionarioDashboard() {
         return () => clearInterval(interval);
     }, [isClockedIn, activeSession]);
 
-    const pendingTasks = tasks.filter(t => !t.completed && (t.assignedTo === currentUser?.id || !t.assignedTo)).length;
+    // Calculate pending tasks from daily plans
+    const tzOffset = (new Date()).getTimezoneOffset() * 60000;
+    const localISOTime = (new Date(Date.now() - tzOffset)).toISOString().slice(0, 10);
+    const dayPlan = dailyPlans[localISOTime];
+    const nightPlan = dailyPlans[`${localISOTime}_NIGHT`];
+
+    let pendingTasks = 0;
+    let nextTaskInfo = null;
+
+    if (currentUser) {
+        const myTasks = [];
+
+        const processTemplate = (template, plan, planKey) => {
+            if (!plan || !plan.publishedAt) return;
+            template.blocks.forEach(block => {
+                if (block.type === 'group_assignment') {
+                    block.columns.forEach((colName, colIdx) => {
+                        const taskId = `${block.id}_${colIdx}`;
+                        const assignedEmpId = plan.assignments?.[taskId];
+                        if (assignedEmpId && assignedEmpId.toString() === currentUser?.id?.toString()) {
+                            const status = plan.statuses?.[taskId] || {};
+                            if (!status.completed) {
+                                pendingTasks++;
+                                let residentList = [];
+                                if (plan.groupResidents && plan.groupResidents[block.id] && plan.groupResidents[block.id][colIdx]) {
+                                    residentList = plan.groupResidents[block.id][colIdx];
+                                } else if (block.predefinedColumns) {
+                                    residentList = block.predefinedColumns[colIdx] || [];
+                                } else if (block.residents) {
+                                    residentList = block.residents;
+                                }
+
+                                if (residentList.length > 0) {
+                                    const formattedResidents = residentList.map(r => {
+                                        const customName = plan.customResidentNames?.[r] || r;
+                                        return customName;
+                                    });
+                                    myTasks.push({ label: `${block.name} — ${colName} (${formattedResidents.join(', ')})` });
+                                }
+                            }
+                        }
+                    });
+                } else if (block.items) {
+                    block.items.forEach(item => {
+                        const assignedEmpId = plan.assignments?.[item.id];
+                        if (assignedEmpId && assignedEmpId.toString() === currentUser?.id?.toString()) {
+                            const status = plan.statuses?.[item.id] || {};
+                            if (!status.completed) {
+                                pendingTasks++;
+                                const customLabel = plan.customLabels?.[item.id] || item.label;
+                                myTasks.push({ label: customLabel });
+                            }
+                        }
+                    });
+                }
+            });
+        };
+
+        processTemplate(planoDiarioTemplate, dayPlan, localISOTime);
+        processTemplate(planoDiarioNoturnoTemplate, nightPlan, `${localISOTime}_NIGHT`);
+
+        if (myTasks.length > 0) {
+            // First pending task
+            const firstTask = myTasks[0];
+            let displayLabel = firstTask.label;
+
+            // Format label identically to Tasks screen if it has dashes
+            if (displayLabel.includes(' — ')) {
+                displayLabel = displayLabel.split(' — ')[0]; // We just show the main action in the dash
+            } else if (displayLabel.includes('_')) {
+                // Fallback if we only have the ID
+                displayLabel = "Tarefa Pendente";
+            }
+            nextTaskInfo = displayLabel;
+        }
+    }
     const nextDayOff = mockSchedule.currentWeek.find(d => d.isDayOff) ||
         mockSchedule.nextWeek.find(d => d.isDayOff);
 
@@ -145,13 +221,15 @@ export default function FuncionarioDashboard() {
                         </div>
 
                         {/* Widget 3: Tasks (Medium) */}
-                        <div className={styles.widget} onClick={() => router.push('/funcionario/tarefas')}>
+                        <div className={styles.widget} onClick={() => router.push('/funcionario/tarefas')} style={{ cursor: 'pointer' }}>
                             <div className={styles.widgetHeader}>
                                 <ListChecks className={styles.widgetIcon} size={20} />
-                                <span>Tarefas</span>
+                                <span>Próx. Tarefa</span>
                             </div>
-                            <div className={styles.metricBig}>{pendingTasks}</div>
-                            <div className={styles.metricLabel}>Pendentes</div>
+                            <div className={styles.metricBig} style={{ fontSize: nextTaskInfo ? '1.2rem' : '2rem', lineHeight: '1.2', marginTop: '8px' }}>
+                                {nextTaskInfo || pendingTasks}
+                            </div>
+                            <div className={styles.metricLabel}>{nextTaskInfo ? `${pendingTasks} na fila` : 'Pendentes'}</div>
                             <div className={styles.widgetArrow}>
                                 <ArrowRight size={16} />
                             </div>

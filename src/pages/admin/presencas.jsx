@@ -5,11 +5,14 @@ import BottomNav from '@/components/layout/BottomNav';
 import Sidebar from '@/components/layout/Sidebar';
 import Avatar from '@/components/ui/Avatar';
 import { useApp } from '../_app';
-import { mockEmployees, mockCurrentUser } from '@/data/mockData';
+import { useData } from '@/contexts/DataContext';
+import { formatTime } from '@/data/mockData';
 import { UserCheck, UserX, Coffee, Clock, Search } from 'lucide-react';
 
 export default function AdminPresencasPage() {
-    const { isAdmin, toggleMode } = useApp();
+    const { isAdmin, toggleMode, currentUser } = useApp();
+    const { employees } = useData();
+    const user = currentUser;
 
     const getStatusIcon = (status) => {
         switch (status) {
@@ -35,7 +38,7 @@ export default function AdminPresencasPage() {
                 <title>Presenças - Admin Villa Mar</title>
             </Head>
 
-            <Header user={mockCurrentUser} isAdmin={isAdmin} onModeSwitch={toggleMode} />
+            <Header user={user} isAdmin={isAdmin} onModeSwitch={toggleMode} />
             <Sidebar isAdmin={true} />
             <BottomNav isAdmin={true} />
 
@@ -50,19 +53,19 @@ export default function AdminPresencasPage() {
                     <div className={styles.miniStats}>
                         <div className={`${styles.miniStat} ${styles.success}`}>
                             <span className={styles.miniStatNumber}>
-                                {mockEmployees.filter(e => e.status === 'present').length}
+                                {employees.filter(e => e.status === 'present').length}
                             </span>
                             <span>Presentes</span>
                         </div>
                         <div className={`${styles.miniStat} ${styles.warning}`}>
                             <span className={styles.miniStatNumber}>
-                                {mockEmployees.filter(e => e.status === 'dayoff').length}
+                                {employees.filter(e => e.status === 'dayoff').length}
                             </span>
                             <span>Folga</span>
                         </div>
                         <div className={`${styles.miniStat} ${styles.danger}`}>
                             <span className={styles.miniStatNumber}>
-                                {mockEmployees.filter(e => e.status === 'absent').length}
+                                {employees.filter(e => e.status === 'absent').length}
                             </span>
                             <span>Ausentes</span>
                         </div>
@@ -70,7 +73,7 @@ export default function AdminPresencasPage() {
 
                     {/* Employee List */}
                     <div className={styles.list}>
-                        {mockEmployees.map(emp => (
+                        {employees.map(emp => (
                             <div key={emp.id} className={styles.listItem}>
                                 <Avatar name={emp.name} size="md" status={emp.status === 'present' ? 'online' : emp.status === 'dayoff' ? 'away' : 'offline'} />
                                 <div className={styles.listItemInfo}>

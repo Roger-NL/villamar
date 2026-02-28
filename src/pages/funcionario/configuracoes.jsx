@@ -10,8 +10,8 @@ import Avatar from '@/components/ui/Avatar';
 import { User, Bell, Moon, Shield, LogOut, ChevronRight, Check } from 'lucide-react';
 
 export default function ConfiguracoesPage() {
-    const { isAdmin, toggleMode } = useApp();
-    const user = mockCurrentUser;
+    const { isAdmin, toggleMode, currentUser } = useApp();
+    const user = currentUser || mockCurrentUser;
     const [notifications, setNotifications] = useState(true);
     const [darkMode, setDarkMode] = useState(false);
 

@@ -198,9 +198,60 @@ export default function TarefasPage() {
                                             </div>
                                             <div className={styles.taskInfo}>
                                                 <span className={styles.taskTitle}>
-                                                    {task.label}
+                                                    {(() => {
+                                                        const [mainAction, ...rest] = task.label.split(' — ');
+                                                        if (rest.length > 0) {
+                                                            let restString = rest.join(' — ');
+
+                                                            // Clean "Esquerda (...)" pattern 
+                                                            if (restString.includes('Esquerda (') || restString.includes('Direita (')) {
+                                                                const splitted = restString.split('(');
+                                                                const teamPart = splitted[0].trim();
+                                                                const namesPart = restString.substring(restString.indexOf('(') + 1, restString.lastIndexOf(')'));
+
+                                                                return (
+                                                                    <>
+                                                                        <strong style={{ fontSize: '1.05rem', color: '#111827' }}>{mainAction}</strong>
+                                                                        <span style={{ color: '#64748b', fontWeight: '500' }}> • {teamPart}</span>
+                                                                        <div style={{ marginTop: '4px', color: '#334155', fontWeight: '600', lineHeight: '1.4' }}>
+                                                                            {namesPart}
+                                                                        </div>
+                                                                    </>
+                                                                );
+                                                            }
+
+                                                            // Clean "Responsável 1 (...)" pattern
+                                                            if (restString.includes('Responsável')) {
+                                                                const lastParenStart = restString.lastIndexOf('(');
+                                                                const lastParenEnd = restString.lastIndexOf(')');
+                                                                if (lastParenStart !== -1 && lastParenEnd !== -1) {
+                                                                    const namesPart = restString.substring(lastParenStart + 1, lastParenEnd);
+                                                                    return (
+                                                                        <>
+                                                                            <strong style={{ fontSize: '1.05rem', color: '#111827' }}>{mainAction}</strong>
+                                                                            <div style={{ marginTop: '4px', color: '#334155', fontWeight: '600', lineHeight: '1.4' }}>
+                                                                                {namesPart}
+                                                                            </div>
+                                                                        </>
+                                                                    )
+                                                                }
+                                                            }
+
+                                                            return (
+                                                                <>
+                                                                    <strong style={{ fontSize: '1.05rem', color: '#111827' }}>{mainAction}</strong>
+                                                                    <div style={{ marginTop: '4px', color: '#334155', fontWeight: '600', lineHeight: '1.4' }}>
+                                                                        {restString}
+                                                                    </div>
+                                                                </>
+                                                            );
+                                                        }
+
+                                                        // No dash, fallback
+                                                        return <strong style={{ fontSize: '1.05rem', color: '#111827' }}>{task.label}</strong>;
+                                                    })()}
                                                 </span>
-                                                <div className={styles.taskMeta}>
+                                                <div className={styles.taskMeta} style={{ marginTop: '2px' }}>
                                                     <span className={styles.taskCategory} style={{ background: '#f1f5f9', color: '#475569' }}>
                                                         {task.blockName}
                                                     </span>
@@ -220,8 +271,8 @@ export default function TarefasPage() {
                             </Card>
                         </>
                     )}
-                </div>
-            </main>
+                </div >
+            </main >
         </>
     );
 }

@@ -5,12 +5,12 @@ import Header from '@/components/layout/Header';
 import BottomNav from '@/components/layout/BottomNav';
 import Sidebar from '@/components/layout/Sidebar';
 import { useApp } from '../_app';
-import { mockCurrentUser, formatTime } from '@/data/mockData';
+import { formatTime } from '@/data/mockData';
 import { LogIn, LogOut, Clock, Check, Coffee, Calendar } from 'lucide-react';
 
 export default function PresencaPage() {
-    const { isAdmin, toggleMode } = useApp();
-    const user = mockCurrentUser;
+    const { isAdmin, toggleMode, currentUser } = useApp();
+    const user = currentUser;
     const [clockedIn, setClockedIn] = useState(false);
     const [clockTime, setClockTime] = useState(null);
     const [history, setHistory] = useState([]);

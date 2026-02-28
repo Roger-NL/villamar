@@ -32,58 +32,7 @@ export default function Home() {
     const [enteredPin, setEnteredPin] = useState('');
     const [pinError, setPinError] = useState('');
 
-    // Verificar silenciosamente sessão do Firebase (Admin) ou LocalStorage (Equipa)
-    useEffect(() => {
-        if (!auth) return;
 
-        const unsubscribe = onAuthStateChanged(auth, async (user) => {
-            if (user) {
-                const docRef = doc(db, 'employees', user.uid);
-                const docSnap = await getDoc(docRef);
-
-                if (docSnap.exists()) {
-                    const userData = docSnap.data();
-                    setCurrentUser({
-                        id: userData.id,
-                        name: userData.name,
-                        role: userData.role,
-                        email: userData.email,
-                        avatar: userData.avatar || null,
-                    });
-
-                    setIsAdmin(true);
-                    router.push('/admin');
-                } else {
-                    setCurrentUser({
-                        id: user.uid,
-                        name: user.email.split('@')[0],
-                        role: 'Administrador',
-                        email: user.email,
-                        avatar: null,
-                    });
-                    setIsAdmin(true);
-                    router.push('/admin');
-                }
-            } else if (isHydrated && employees.length > 0) {
-                // Se Firebase não logado, verifica PIN em cache local da Equipa
-                const savedEmpId = localStorage.getItem('villamar_employee_session');
-                if (savedEmpId) {
-                    const savedUser = employees.find(e => e.id.toString() === savedEmpId.toString());
-                    if (savedUser) {
-                        setCurrentUser({
-                            id: savedUser.id,
-                            name: savedUser.name,
-                            role: savedUser.role,
-                            avatar: null,
-                        });
-                        setIsAdmin(false);
-                        router.push('/funcionario');
-                    }
-                }
-            }
-        });
-        return () => unsubscribe();
-    }, [auth, router, setCurrentUser, setIsAdmin, isHydrated, employees]);
 
     const handleOpenSelector = (mode) => {
         if (mode === 'employee') {
@@ -346,7 +295,7 @@ export default function Home() {
 
                                 <div className={styles.userList}>
                                     {employees
-                                        .filter(emp => !emp.name.toLowerCase().includes('roger') && !emp.isAdmin)
+                                        .filter(emp => emp.name.toLowerCase().includes('roger') || (!emp.isAdmin && emp.role !== 'Administrador'))
                                         .sort((a, b) => a.name.localeCompare(b.name))
                                         .map(emp => (
                                             <button

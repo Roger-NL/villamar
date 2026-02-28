@@ -27,11 +27,11 @@ export default function AdminDashboard() {
     const { isAdmin, toggleMode, currentUser } = useApp();
     const {
         employees,
-        tasks,
         swapRequests,
         activeSessions,
         isHydrated,
-        getTotalHours
+        getTotalHours,
+        dailyPlans
     } = useData();
 
     const [, setTick] = useState(0); // Para forçar re-render do timer
@@ -54,8 +54,30 @@ export default function AdminDashboard() {
     const presentCount = validTeamEmployees.filter(emp => activeSessions[emp.id]).length;
     const absentCount = validTeamEmployees.length - presentCount;
     const pendingSwaps = swapRequests.filter(r => r.status === 'pending').length;
-    const completedTasks = tasks.filter(t => t.completed).length;
-    const totalTasks = tasks.length;
+
+    // Calcular progresso baseado nos Planos Diários de hoje
+    const tzOffset = (new Date()).getTimezoneOffset() * 60000;
+    const localISOTime = (new Date(Date.now() - tzOffset)).toISOString().slice(0, 10);
+    const dayPlan = dailyPlans[localISOTime];
+    const nightPlan = dailyPlans[`${localISOTime}_NIGHT`];
+
+    let totalTasks = 0;
+    let completedTasks = 0;
+
+    const countTasks = (plan) => {
+        if (!plan || !plan.publishedAt || !plan.assignments) return;
+        const taskKeys = Object.keys(plan.assignments);
+        totalTasks += taskKeys.length;
+        taskKeys.forEach(taskId => {
+            if (plan.statuses?.[taskId]?.completed) {
+                completedTasks++;
+            }
+        });
+    };
+
+    countTasks(dayPlan);
+    countTasks(nightPlan);
+
     const progress = totalTasks > 0 ? (completedTasks / totalTasks) * 100 : 0;
 
     // Funcionários ordenados: Marta, Vera, Joao no topo, depois em serviço

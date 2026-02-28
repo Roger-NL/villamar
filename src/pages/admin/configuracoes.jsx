@@ -17,7 +17,8 @@ import { useRouter } from 'next/router';
 
 export default function AdminConfiguracoesPage() {
     const router = useRouter();
-    const { isAdmin, toggleMode } = useApp();
+    const { isAdmin, toggleMode, currentUser } = useApp();
+    const user = currentUser || mockCurrentUser;
     const { resetData } = useData();
     const [notifications, setNotifications] = useState(true);
     const [showResetModal, setShowResetModal] = useState(false);
@@ -79,7 +80,7 @@ export default function AdminConfiguracoesPage() {
                 <title>Configurações - Admin Villa Mar</title>
             </Head>
 
-            <Header user={mockCurrentUser} isAdmin={isAdmin} onModeSwitch={toggleMode} />
+            <Header user={user} isAdmin={isAdmin} onModeSwitch={toggleMode} />
             <Sidebar isAdmin={true} />
             <BottomNav isAdmin={true} />
 
@@ -88,10 +89,10 @@ export default function AdminConfiguracoesPage() {
 
                     {/* Profile Card */}
                     <div className={styles.profileCard}>
-                        <Avatar name="Administrador" size="xl" />
+                        <Avatar name={user.name} size="xl" />
                         <div className={styles.profileInfo}>
-                            <h2>Administrador</h2>
-                            <span>Villa Mar</span>
+                            <h2>{user.name}</h2>
+                            <span>{user.email || 'Villa Mar'}</span>
                         </div>
                     </div>
 

@@ -10,7 +10,9 @@ import Avatar from '@/components/ui/Avatar';
 import { useApp } from '../_app';
 import { useData } from '@/contexts/DataContext';
 import { planoDiarioTemplate, planoDiarioNoturnoTemplate } from '@/data/planoDiarioTemplate';
-import { Calendar, Save, Send, ClipboardList, Check, Moon, Sun, X } from 'lucide-react';
+import {
+    ClipboardList, CheckCircle, Clock, Check, Users, AlertCircle, Calendar, Send, Sun, Moon, ArrowRight, X, UserX, RotateCcw, Save
+} from 'lucide-react';
 
 function DraggableEmployee({ id, name, role }) {
     const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({ id: `employee:${id}` });
@@ -319,9 +321,17 @@ export default function AdminTarefasPage() {
             const key = `${taskId}:${residentName}`;
             const current = (prev && prev[key]) || null;
             let nextStatus = null;
-            if (current === null) nextStatus = 'Banho';
-            else if (current === 'Banho') nextStatus = 'Troca';
-            else if (current === 'Troca') nextStatus = null;
+
+            const isLevante = taskId.toLowerCase().includes('levante');
+
+            if (isLevante) {
+                if (current === null) nextStatus = 'Banho';
+                else if (current === 'Banho') nextStatus = 'Troca';
+                else if (current === 'Troca') nextStatus = null;
+            } else {
+                if (current === null) nextStatus = 'Troca';
+                else if (current === 'Troca') nextStatus = null;
+            }
 
             const newStatuses = { ...prev, [key]: nextStatus };
             if (nextStatus === null) { delete newStatuses[key]; }
@@ -434,6 +444,17 @@ export default function AdminTarefasPage() {
         publishDailyPlan(planKey);
     };
 
+    const handleClearPlan = () => {
+        if (confirm("Tem certeza que deseja limpar todo o plano atual para recomeçar?")) {
+            setLocalAssignments({});
+            setCustomLabels({});
+            setLocalGroupResidents({});
+            setResidentStatuses({});
+            setCustomResidentNames({});
+            updateDailyPlan(planKey, {}, {}, {}, {}, {});
+        }
+    };
+
     if (!isHydrated) return <div>A carregar...</div>;
 
     const activeEmployee = activeDragItem?.type === 'employee' ? employees.find(e => e.id.toString() === activeDragItem.id.toString().replace('employee:', '')) : null;
@@ -483,6 +504,13 @@ export default function AdminTarefasPage() {
                                     <Moon size={16} /> Noturno
                                 </button>
                             </div>
+                            <button
+                                onClick={handleClearPlan}
+                                style={{ padding: '8px 12px', borderRadius: '8px', border: '1px solid #ef4444', background: '#fef2f2', color: '#ef4444', fontWeight: 'bold', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}
+                            >
+                                <RotateCcw size={16} />
+                                Limpar
+                            </button>
                             <button
                                 className={`${planStyles.publishBtn} ${isPublished ? planStyles.published : ''}`}
                                 onClick={handlePublish}

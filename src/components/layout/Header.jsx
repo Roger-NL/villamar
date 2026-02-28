@@ -31,19 +31,6 @@ export default function Header({
                 </div>
 
                 <div className={styles.rightSection}>
-                    {showModeSwitch && (
-                        <button
-                            className={`${styles.modeSwitch} ${isAdmin ? styles.adminMode : styles.userMode}`}
-                            onClick={() => router.push('/')}
-                            title="Trocar de modo"
-                        >
-                            <div className={styles.modeIcon}>
-                                <ArrowLeftRight size={14} />
-                            </div>
-                            <span>{isAdmin ? 'Admin' : 'Equipa'}</span>
-                        </button>
-                    )}
-
                     <div className={styles.userSection}>
                         <Avatar
                             name={user?.name || 'Utilizador'}
