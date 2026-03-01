@@ -203,38 +203,21 @@ export default function TarefasPage() {
                                                         if (rest.length > 0) {
                                                             let restString = rest.join(' — ');
 
-                                                            // Clean "Esquerda (...)" pattern 
-                                                            if (restString.includes('Esquerda (') || restString.includes('Direita (')) {
-                                                                const splitted = restString.split('(');
-                                                                const teamPart = splitted[0].trim();
-                                                                const namesPart = restString.substring(restString.indexOf('(') + 1, restString.lastIndexOf(')'));
+                                                            const firstParenIndex = restString.indexOf('(');
+                                                            const lastParenIndex = restString.lastIndexOf(')');
 
+                                                            if (firstParenIndex !== -1 && lastParenIndex !== -1 && lastParenIndex > firstParenIndex) {
+                                                                const teamPart = restString.substring(0, firstParenIndex).trim();
+                                                                const namesPart = restString.substring(firstParenIndex + 1, lastParenIndex);
                                                                 return (
                                                                     <>
                                                                         <strong style={{ fontSize: '1.05rem', color: '#111827' }}>{mainAction}</strong>
-                                                                        <span style={{ color: '#64748b', fontWeight: '500' }}> • {teamPart}</span>
+                                                                        {teamPart && <span style={{ color: '#64748b', fontWeight: '500' }}> • {teamPart}</span>}
                                                                         <div style={{ marginTop: '4px', color: '#334155', fontWeight: '600', lineHeight: '1.4' }}>
                                                                             {namesPart}
                                                                         </div>
                                                                     </>
                                                                 );
-                                                            }
-
-                                                            // Clean "Responsável 1 (...)" pattern
-                                                            if (restString.includes('Responsável')) {
-                                                                const lastParenStart = restString.lastIndexOf('(');
-                                                                const lastParenEnd = restString.lastIndexOf(')');
-                                                                if (lastParenStart !== -1 && lastParenEnd !== -1) {
-                                                                    const namesPart = restString.substring(lastParenStart + 1, lastParenEnd);
-                                                                    return (
-                                                                        <>
-                                                                            <strong style={{ fontSize: '1.05rem', color: '#111827' }}>{mainAction}</strong>
-                                                                            <div style={{ marginTop: '4px', color: '#334155', fontWeight: '600', lineHeight: '1.4' }}>
-                                                                                {namesPart}
-                                                                            </div>
-                                                                        </>
-                                                                    )
-                                                                }
                                                             }
 
                                                             return (
