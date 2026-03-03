@@ -1,0 +1,491 @@
+/* ===========================================
+   EscalaReal.module.css
+   Estilo tabela compacta tipo Excel/planilha
+   =========================================== */
+
+/* Top Bar */
+.topBar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 12px;
+    flex-wrap: wrap;
+    gap: 12px;
+}
+
+.title {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 20px;
+    font-weight: 800;
+    color: #1a1a2e;
+    margin: 0;
+}
+
+.monthNav {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: #f4f6fa;
+    padding: 4px 12px;
+    border-radius: 10px;
+}
+
+.navBtn {
+    width: 28px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: transparent;
+    border: none;
+    border-radius: 6px;
+    color: #4361ee;
+    cursor: pointer;
+    transition: background 0.15s;
+}
+
+.navBtn:hover {
+    background: #e0e7ff;
+}
+
+.monthLabel {
+    font-weight: 700;
+    font-size: 14px;
+    color: #1a1a2e;
+    text-transform: capitalize;
+    min-width: 140px;
+    text-align: center;
+}
+
+/* Legenda compacta */
+.legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px 14px;
+    font-size: 11px;
+    color: #555;
+    margin-bottom: 10px;
+    padding: 6px 10px;
+    background: #fafbfd;
+    border-radius: 8px;
+    border: 1px solid #eef0f5;
+}
+
+.legend span {
+    display: flex;
+    align-items: center;
+    gap: 3px;
+}
+
+.legend b {
+    display: inline-block;
+    padding: 1px 5px;
+    border-radius: 3px;
+    font-size: 10px;
+    font-weight: 700;
+    min-width: 18px;
+    text-align: center;
+}
+
+.cM {
+    background: #fff3cd;
+    color: #b8860b;
+}
+
+.cT {
+    background: #e8dff5;
+    color: #6f42c1;
+}
+
+.cN {
+    background: #d6e4f0;
+    color: #2c3e50;
+}
+
+.cD {
+    background: #d4edda;
+    color: #155724;
+}
+
+.cHL {
+    background: #cce5ff;
+    color: #004085;
+}
+
+.cHM {
+    background: #d1ecf1;
+    color: #0c5460;
+}
+
+.cHT {
+    background: #e2d5f1;
+    color: #563d7c;
+}
+
+.cHF {
+    background: #f8d7da;
+    color: #721c24;
+}
+
+.cHJ {
+    background: #fff3cd;
+    color: #856404;
+}
+
+.cHC {
+    background: #fde4cf;
+    color: #a05a2c;
+}
+
+.folgaLegend {
+    color: #999;
+}
+
+/* Table wrapper */
+.tableWrap {
+    overflow-x: auto;
+    background: white;
+    border-radius: 10px;
+    box-shadow: 0 1px 6px rgba(0, 0, 0, 0.06);
+    border: 1px solid #e8ecf2;
+}
+
+/* Table */
+.table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 11px;
+    white-space: nowrap;
+    font-family: 'Inter', -apple-system, sans-serif;
+}
+
+/* Header */
+.nameHeader {
+    position: sticky;
+    left: 0;
+    z-index: 30;
+    background: #f0f2f7;
+    padding: 6px 8px;
+    text-align: left;
+    font-weight: 700;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: #555;
+    border-bottom: 2px solid #dde1e9;
+    border-right: 1px solid #dde1e9;
+    min-width: 120px;
+}
+
+.dayHeader {
+    padding: 3px 0;
+    text-align: center;
+    min-width: 28px;
+    max-width: 28px;
+    border-bottom: 2px solid #dde1e9;
+    background: #f0f2f7;
+    vertical-align: middle;
+}
+
+.dayLabel {
+    display: block;
+    font-size: 8px;
+    font-weight: 600;
+    color: #888;
+    text-transform: lowercase;
+    line-height: 1;
+}
+
+.dayNum {
+    display: block;
+    font-size: 11px;
+    font-weight: 700;
+    color: #333;
+    line-height: 1.2;
+}
+
+.weekendH {
+    background: #e9ecf5;
+}
+
+.weekendH .dayNum {
+    color: #4361ee;
+}
+
+.todayH {
+    background: #dbeafe !important;
+}
+
+.todayH .dayNum {
+    color: #1d4ed8;
+    font-weight: 800;
+}
+
+.statsHeader {
+    padding: 3px 4px;
+    text-align: center;
+    min-width: 28px;
+    font-size: 9px;
+    font-weight: 700;
+    color: #666;
+    background: #f0f2f7;
+    border-bottom: 2px solid #dde1e9;
+    border-left: 1px solid #dde1e9;
+}
+
+/* Section separator */
+.sectionRow {
+    background: #e3e8f0;
+}
+
+.sectionLabel {
+    font-weight: 800;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: #3a4a6b;
+    padding: 4px 8px;
+    border-bottom: 1px solid #d0d5df;
+}
+
+/* Employee Row */
+.empRow {
+    transition: background 0.1s;
+}
+
+.empRow:hover {
+    background: #f8f9fc;
+}
+
+.nameCell {
+    position: sticky;
+    left: 0;
+    z-index: 10;
+    background: white;
+    padding: 4px 8px;
+    border-right: 1px solid #e8ecf2;
+    border-bottom: 1px solid #f0f2f5;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    min-width: 120px;
+}
+
+.empRow:hover .nameCell {
+    background: #f8f9fc;
+}
+
+.empName {
+    font-weight: 600;
+    font-size: 11px;
+    color: #1a1a2e;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 90px;
+}
+
+.empCode {
+    font-size: 9px;
+    font-weight: 700;
+    color: #888;
+    background: #f0f2f7;
+    padding: 1px 4px;
+    border-radius: 3px;
+    flex-shrink: 0;
+}
+
+/* Cells */
+.cell {
+    text-align: center;
+    padding: 3px 1px;
+    min-width: 28px;
+    max-width: 28px;
+    font-weight: 700;
+    font-size: 10px;
+    border-bottom: 1px solid #f0f2f5;
+    transition: all 0.1s;
+}
+
+/* Shift colors */
+.manha {
+    background: #fff8e1;
+    color: #b8860b;
+}
+
+.tarde {
+    background: #f3e8ff;
+    color: #7c3aed;
+}
+
+.noite {
+    background: #e2e8f0;
+    color: #334155;
+}
+
+.diurno {
+    background: #d1fae5;
+    color: #065f46;
+}
+
+.hl {
+    background: #dbeafe;
+    color: #1e40af;
+}
+
+.hm {
+    background: #ccfbf1;
+    color: #0f766e;
+}
+
+.ht {
+    background: #ede9fe;
+    color: #6d28d9;
+}
+
+.hf {
+    background: #fce7f3;
+    color: #be185d;
+}
+
+.hj {
+    background: #fef3c7;
+    color: #92400e;
+}
+
+.hc {
+    background: #fed7aa;
+    color: #9a3412;
+}
+
+.folga {
+    background: transparent;
+    color: #ccc;
+}
+
+/* Weekend column */
+.weekendC {
+    background: #f5f6fa !important;
+}
+
+.weekendC.manha {
+    background: #fef9e7 !important;
+}
+
+.weekendC.tarde {
+    background: #f0e6ff !important;
+}
+
+.weekendC.noite {
+    background: #dfe5ed !important;
+}
+
+.weekendC.diurno {
+    background: #c6f6d5 !important;
+}
+
+/* Today column */
+.todayC {
+    border-left: 2px solid #3b82f6 !important;
+    border-right: 2px solid #3b82f6 !important;
+}
+
+/* Sunday border (week separator) */
+.sundayBorder {
+    border-right: 2px solid #c7cdd8 !important;
+}
+
+/* Stats column cells */
+.statCell {
+    text-align: center;
+    font-size: 10px;
+    font-weight: 600;
+    color: #666;
+    padding: 3px 4px;
+    border-left: 1px solid #e8ecf2;
+    border-bottom: 1px solid #f0f2f5;
+    background: #fafbfd;
+}
+
+/* Empty state */
+.empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 60px 20px;
+    background: white;
+    border-radius: 12px;
+    text-align: center;
+    color: #999;
+    border: 1px dashed #ddd;
+}
+
+.empty svg {
+    margin-bottom: 12px;
+    opacity: 0.3;
+}
+
+.empty h3 {
+    font-size: 16px;
+    color: #333;
+    margin: 0 0 6px 0;
+}
+
+.empty p {
+    font-size: 13px;
+    color: #777;
+    margin: 0;
+}
+
+/* ===== MOBILE ===== */
+@media (max-width: 768px) {
+    .topBar {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .title {
+        font-size: 18px;
+    }
+
+    .monthLabel {
+        font-size: 13px;
+        min-width: 120px;
+    }
+
+    .legend {
+        font-size: 10px;
+        gap: 4px 10px;
+    }
+
+    .nameHeader,
+    .nameCell {
+        min-width: 90px;
+        max-width: 90px;
+    }
+
+    .empName {
+        max-width: 60px;
+        font-size: 10px;
+    }
+
+    .dayHeader,
+    .cell {
+        min-width: 24px;
+        max-width: 24px;
+    }
+
+    .cell {
+        font-size: 9px;
+        padding: 2px 0;
+    }
+
+    .dayNum {
+        font-size: 10px;
+    }
+
+    .dayLabel {
+        font-size: 7px;
+    }
+}

@@ -11,6 +11,7 @@ import {
     Users, UserCheck, UserX, ArrowLeftRight,
     CheckCircle, Clock, Timer
 } from 'lucide-react';
+import { getRealScheduleData } from '@/data/mockData';
 
 // Formatar duração
 function formatDuration(ms) {
@@ -56,7 +57,8 @@ export default function AdminDashboard() {
     const pendingSwaps = swapRequests.filter(r => r.status === 'pending').length;
 
     // Calcular progresso baseado nos Planos Diários de hoje
-    const tzOffset = (new Date()).getTimezoneOffset() * 60000;
+    const today = new Date();
+    const tzOffset = today.getTimezoneOffset() * 60000;
     const localISOTime = (new Date(Date.now() - tzOffset)).toISOString().slice(0, 10);
     const dayPlan = dailyPlans[localISOTime];
     const nightPlan = dailyPlans[`${localISOTime}_NIGHT`];
@@ -79,6 +81,40 @@ export default function AdminDashboard() {
     countTasks(nightPlan);
 
     const progress = totalTasks > 0 ? (completedTasks / totalTasks) * 100 : 0;
+
+    // Obter dados reais da escala para o dia de hoje
+    const currentYear = today.getFullYear();
+    const currentMonth = today.getMonth(); // 0-indexed, Março = 2
+    const currentDayIndex = today.getDate() - 1; // 0-indexed, dia 3 = 2
+
+    // Fallback import for now, better to get it from DataContext or mockData directly if available
+    // For MVP we can just import it at top of file, but let's assume it's available or we rewrite logic
+
+    // We already have mockEmployees inside employees list, but let's just use a simpler check for MVP avoiding full circular deps
+    // Removed duplicate import of getRealScheduleData as it's now at the top of the file.
+    const scheduleData = getRealScheduleData(currentYear, currentMonth);
+
+    // Function to check if employee is scheduled today
+    const isScheduledToday = (empId) => {
+        if (!scheduleData) return false;
+
+        for (const section of scheduleData.sections) {
+            const empFromSchedule = section.employees.find((e) => {
+                // Try to match by ID based on order or name if possible. 
+                // Since getRealScheduleData doesn't expose ID directly, we map by name
+                const eName = e.name.toLowerCase().split(' ')[0];
+                const empName = employees.find(x => x.id === empId)?.name.toLowerCase().split(' ')[0];
+                return eName === empName;
+            });
+
+            if (empFromSchedule) {
+                const shiftCode = empFromSchedule.days[currentDayIndex];
+                return shiftCode !== null && shiftCode !== undefined && shiftCode !== '';
+            }
+        }
+        return false;
+    };
+
 
     // Funcionários ordenados: Marta, Vera, Joao no topo, depois em serviço
     const sortedEmployees = [...validTeamEmployees].sort((a, b) => {
@@ -167,34 +203,42 @@ export default function AdminDashboard() {
                         {/* Team Grid (Wide) */}
                         <div className={`${styles.card} ${styles.teamSection}`}>
                             <div className={styles.cardHeader}>
-                                <h2>Equipa</h2>
+                                <h2>Equipa (Escalados Hoje)</h2>
                                 {presentCount > 0 && <div className={styles.dot}></div>}
                             </div>
                             <div className={styles.teamGrid}>
-                                {sortedEmployees.slice(0, 6).map(emp => {
-                                    const isActive = !!activeSessions[emp.id];
-                                    const elapsed = getElapsedTime(emp.id);
-                                    const totalHours = getTotalHours(emp.id);
+                                {sortedEmployees
+                                    .filter(emp => activeSessions[emp.id] || isScheduledToday(emp.id))
+                                    .slice(0, 10)
+                                    .map(emp => {
+                                        const isActive = !!activeSessions[emp.id];
+                                        const elapsed = getElapsedTime(emp.id);
 
-                                    return (
-                                        <div key={emp.id} className={`${styles.teamMember} ${isActive ? styles.active : ''}`}>
-                                            <div className={styles.avatarWrapper}>
-                                                <Avatar name={emp.name} size="md" status={isActive ? 'online' : 'offline'} />
+                                        return (
+                                            <div key={emp.id} className={`${styles.teamMember} ${isActive ? styles.active : ''}`} style={{ background: isActive ? '#F8FAFC' : '#FFFFFF', padding: '12px', borderRadius: '16px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px', border: '1px solid #E2E8F0', boxShadow: '0 2px 4px rgba(0,0,0,0.02)', opacity: isActive ? 1 : 0.6 }}>
+                                                <div className={styles.avatarWrapper} style={{ position: 'relative' }}>
+                                                    <Avatar name={emp.name} size="lg" status={isActive ? 'online' : 'offline'} />
+                                                </div>
+                                                <span className={styles.memberName} style={{ fontWeight: '600', color: '#1E293B', fontSize: '0.95rem' }}>{emp.name.split(' ')[0]}</span>
+                                                {isActive ? (
+                                                    <span className={styles.memberTimer} style={{ color: '#3B82F6', background: '#DBEAFE', padding: '4px 10px', borderRadius: '20px', fontWeight: 'bold', fontSize: '0.75rem', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                                        <Timer size={14} />
+                                                        {formatDuration(elapsed)}
+                                                    </span>
+                                                ) : (
+                                                    <span className={styles.memberTimer} style={{ color: '#64748B', background: '#F1F5F9', padding: '4px 10px', borderRadius: '20px', fontWeight: '600', fontSize: '0.75rem', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                                        <Clock size={14} />
+                                                        Pendente
+                                                    </span>
+                                                )}
                                             </div>
-                                            <span className={styles.memberName}>{emp.name.split(' ')[0]}</span>
-                                            {isActive ? (
-                                                <span className={styles.memberTimer}>
-                                                    <Timer size={12} />
-                                                    {formatDuration(elapsed)}
-                                                </span>
-                                            ) : (
-                                                <span className={styles.memberHours}>
-                                                    {totalHours.hours}h {totalHours.minutes}m
-                                                </span>
-                                            )}
-                                        </div>
-                                    );
-                                })}
+                                        );
+                                    })}
+                                {sortedEmployees.filter(emp => activeSessions[emp.id] || isScheduledToday(emp.id)).length === 0 && (
+                                    <div style={{ gridColumn: '1 / -1', padding: '32px 0', textAlign: 'center', color: '#94A3B8', fontSize: '0.9rem' }}>
+                                        Nenhum funcionário escalado para hoje.
+                                    </div>
+                                )}
                             </div>
                         </div>
 
@@ -224,7 +268,7 @@ export default function AdminDashboard() {
 
                     </div>
                 </div>
-            </main>
+            </main >
         </>
     );
 }

@@ -3,7 +3,7 @@
  * Gere: Funcionários, Tarefas, Escalas, Pedidos de Troca, Notificações, Banco de Horas
  */
 import { createContext, useContext, useState, useEffect, useCallback } from 'react';
-import { mockEmployees as initialEmployees, mockTasks as initialTasks, mockSwapRequests as initialSwaps, taskCategories as initialTaskCategories } from '@/data/mockData';
+import { mockEmployees as initialEmployees, mockTasks as initialTasks, mockSwapRequests as initialSwaps, taskCategories as initialTaskCategories, getPrebuiltSchedule } from '@/data/mockData';
 import { db } from '@/config/firebase';
 import { collection, doc, setDoc, deleteDoc, onSnapshot, getDocs, writeBatch } from 'firebase/firestore';
 
@@ -52,18 +52,19 @@ export function DataProvider({ children }) {
 
             let loadedEmployees = savedEmployees ? JSON.parse(savedEmployees) : initialEmployees;
             if (savedEmployees) {
+                // Adicionar novos funcionários do mockData que ainda não existem
                 const existingIds = new Set(loadedEmployees.map(e => e.id));
                 const newEmployees = initialEmployees.filter(e => !existingIds.has(e.id));
                 if (newEmployees.length > 0) loadedEmployees = [...loadedEmployees, ...newEmployees];
-                const adminsToUpdate = [13, 14, 15];
+                // Atualizar nome/cargo de todos os funcionários para refletir mockData atualizado
                 loadedEmployees = loadedEmployees.map(emp => {
-                    if (adminsToUpdate.includes(emp.id)) {
-                        const original = initialEmployees.find(e => e.id === emp.id);
-                        if (original) return { ...emp, role: original.role, name: original.name };
-                    }
+                    const original = initialEmployees.find(e => e.id === emp.id);
+                    if (original) return { ...emp, role: original.role, name: original.name, isAdmin: original.isAdmin };
                     return emp;
                 });
-                loadedEmployees = loadedEmployees.filter(emp => ![7, 8, 10, 12].includes(emp.id));
+                // Remover funcionários que já não existem no mockData
+                const validIds = new Set(initialEmployees.map(e => e.id));
+                loadedEmployees = loadedEmployees.filter(emp => validIds.has(emp.id));
             }
 
             setEmployees(loadedEmployees);
@@ -303,8 +304,8 @@ export function DataProvider({ children }) {
 
     // === EMPLOYEES CRUD ===
     const addEmployee = async (employee) => {
-        const pin = Math.floor(1000 + Math.random() * 9000).toString();
-        const newEmployee = { ...employee, id: Date.now(), status: 'absent', clockIn: null, clockOut: null, pin };
+        const pin = employee.pin || Math.floor(1000 + Math.random() * 9000).toString();
+        const newEmployee = { ...employee, id: employee.id || Date.now(), status: 'absent', clockIn: null, clockOut: null, pin };
         if (!db) setEmployees(prev => [...prev, newEmployee]);
         else await writeDB('employees', newEmployee.id, newEmployee);
 
@@ -440,7 +441,8 @@ export function DataProvider({ children }) {
 
     const getScheduleForMonth = (year, month) => {
         const key = `${year}-${String(month + 1).padStart(2, '0')}`;
-        return savedSchedules[key] || null;
+        // Retorna escala guardada, ou escala real pré-construída do Excel, ou null
+        return savedSchedules[key] || getPrebuiltSchedule(year, month) || null;
     };
 
     const updateShift = async (year, month, employeeId, dateStr, newShift) => {
