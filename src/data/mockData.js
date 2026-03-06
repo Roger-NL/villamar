@@ -183,7 +183,7 @@ const fevereiroRawData = {
 // ============================================================
 // Mapeamento de código → turno
 // ============================================================
-function mapCode(code) {
+function _mapCode(code) {
     if (!code || code === null) return { shift: 'Folga', hours: '', isOff: true };
 
     const c = String(code).trim().toUpperCase();
@@ -225,6 +225,12 @@ function mapCode(code) {
     if (c.startsWith('HC')) return { shift: 'Manhã', hours: '8h-20h', isOff: false };
 
     return { shift: 'Folga', hours: '', isOff: true };
+}
+
+function mapCode(code) {
+    const result = _mapCode(code);
+    result.rawCode = code || 'Folga';
+    return result;
 }
 
 // ============================================================
@@ -402,34 +408,34 @@ export function getRealScheduleData(year, month) {
             {
                 label: 'Direção / Gestão',
                 employees: [
-                    { name: 'Marta Almeida', code: 'D', days: getDays(1) },
-                    { name: 'Vera Cordeiro', code: 'D', days: getDays(2) },
-                    { name: 'João Pedro Belo', code: 'D', days: getDays(3) },
-                    { name: 'Daniela Gomes', code: 'F', days: getDays(4) },
+                    { name: 'Marta Almeida', code: 'D', id: 1, days: getDays(1) },
+                    { name: 'Vera Cordeiro', code: 'D', id: 2, days: getDays(2) },
+                    { name: 'João Pedro Belo', code: 'D', id: 3, days: getDays(3) },
+                    { name: 'Daniela Gomes', code: 'F', id: 4, days: getDays(4) },
                 ],
             },
             {
                 label: 'Manhã / Tarde',
                 employees: [
-                    { name: 'Deisy Ribeiro', code: 'B', days: getDays(5) },
-                    { name: 'Camila Machado', code: 'C', days: getDays(6) },
-                    { name: 'Tátá', code: 'E', days: getDays(7) },
-                    { name: 'Marlene', code: 'M', days: getDays(8) },
-                    { name: 'Roger Antunes', code: 'G', days: getDays(9) },
-                    { name: 'Anilsa Furtado', code: 'K', days: getDays(10) },
-                    { name: 'Fábio Martins', code: 'H', days: getDays(11) },
-                    { name: 'Joel Cortina', code: 'EN', days: getDays(12) },
-                    { name: 'Marcelina', code: 'L', days: getDays(13) },
-                    { name: 'Cozinha', code: 'R', days: getDays(14) },
+                    { name: 'Deisy Ribeiro', code: 'B', id: 5, days: getDays(5) },
+                    { name: 'Camila Machado', code: 'C', id: 6, days: getDays(6) },
+                    { name: 'Tátá', code: 'E', id: 7, days: getDays(7) },
+                    { name: 'Marlene', code: 'M', id: 8, days: getDays(8) },
+                    { name: 'Roger Antunes', code: 'G', id: 9, days: getDays(9) },
+                    { name: 'Anilsa Furtado', code: 'K', id: 10, days: getDays(10) },
+                    { name: 'Fábio Martins', code: 'H', id: 11, days: getDays(11) },
+                    { name: 'Joel Cortina', code: 'EN', id: 12, days: getDays(12) },
+                    { name: 'Marcelina', code: 'L', id: 13, days: getDays(13) },
+                    { name: 'Cozinha', code: 'R', id: 14, days: getDays(14) },
                 ],
             },
             {
                 label: 'Noite',
                 employees: [
-                    { name: 'Meiry Santos', code: 'I', days: getDays(15) },
-                    { name: 'Safira', code: 'I', days: getDays(16) },
-                    { name: 'Viviane Aparecida', code: 'J', days: getDays(17) },
-                    { name: 'Flávia Pagíola', code: 'J', days: getDays(18) },
+                    { name: 'Meiry Santos', code: 'I', id: 15, days: getDays(15) },
+                    { name: 'Safira', code: 'I', id: 16, days: getDays(16) },
+                    { name: 'Viviane Aparecida', code: 'J', id: 17, days: getDays(17) },
+                    { name: 'Flávia Pagíola', code: 'J', id: 18, days: getDays(18) },
                 ],
             },
         ],

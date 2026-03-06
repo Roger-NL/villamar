@@ -13,8 +13,9 @@ import { ClipboardList, CheckCircle, Clock, Check, Users, AlertCircle } from 'lu
 
 export default function TarefasPage() {
     const { isAdmin, toggleMode, currentUser } = useApp();
-    const { dailyPlans, toggleDailyTaskComplete, isHydrated } = useData();
+    const { dailyPlans, toggleDailyTaskComplete, isHydrated, getScheduleForMonth, employees } = useData();
     const [filter, setFilter] = useState('all');
+    const [selectedUserId, setSelectedUserId] = useState(currentUser?.id);
 
     const tzOffset = (new Date()).getTimezoneOffset() * 60000;
     const localISOTime = (new Date(Date.now() - tzOffset)).toISOString().slice(0, 10);
@@ -23,6 +24,47 @@ export default function TarefasPage() {
     const dayPlan = dailyPlans[selectedDate];
     const nightPlan = dailyPlans[`${selectedDate}_NIGHT`];
     const isPublished = (dayPlan && dayPlan.publishedAt) || (nightPlan && nightPlan.publishedAt);
+
+    // Get colleagues working today
+    const colleaguesToday = useMemo(() => {
+        if (!currentUser || !isHydrated) return [];
+        let list = [];
+        const currentYear = new Date().getFullYear();
+        const currentMonth = new Date().getMonth();
+        const scheduleData = getScheduleForMonth(currentYear, currentMonth);
+
+        if (scheduleData) {
+            const todayStr = new Date().toISOString().slice(0, 10);
+            const myTodaySched = scheduleData.schedules[currentUser.id]?.[todayStr];
+
+            if (myTodaySched && !myTodaySched.isOff && myTodaySched.shift !== 'Folga' && myTodaySched.shift !== 'Férias' && myTodaySched.shift !== 'Licença') {
+                const isMyNightShift = myTodaySched.shift === 'Noite';
+
+                employees.forEach(emp => {
+                    if (emp.id === currentUser.id) return;
+                    if (emp.role?.toLowerCase().includes('cozinha') || emp.name.toLowerCase().includes('cozinha')) return;
+
+                    const empSched = scheduleData.schedules[emp.id]?.[todayStr];
+                    if (empSched && !empSched.isOff && empSched.shift !== 'Folga' && empSched.shift !== 'Férias' && empSched.shift !== 'Licença') {
+                        const isEmpNightShift = empSched.shift === 'Noite';
+                        if (isMyNightShift === isEmpNightShift) {
+                            list.push({ id: emp.id, name: emp.name.split(' ')[0] });
+                        }
+                    }
+                });
+            }
+        }
+        return list;
+    }, [currentUser, isHydrated, employees, getScheduleForMonth]);
+
+    // Make sure selectedUserId is set to currentUser.id if empty
+    useMemo(() => {
+        if (!selectedUserId && currentUser?.id) {
+            setSelectedUserId(currentUser.id);
+        }
+    }, [currentUser, selectedUserId]);
+
+    const activeUserIdToView = selectedUserId || currentUser?.id;
 
     // Filter tasks from the template based on assignments
     const myTasks = useMemo(() => {
@@ -35,7 +77,10 @@ export default function TarefasPage() {
                     block.columns.forEach((colName, colIdx) => {
                         const taskId = `${block.id}_${colIdx}`;
                         const assignedEmpId = plan.assignments?.[taskId];
-                        if (assignedEmpId && assignedEmpId.toString() === currentUser?.id?.toString()) {
+                        const isAssigned = Array.isArray(assignedEmpId)
+                            ? assignedEmpId.some(id => id.toString() === activeUserIdToView?.toString())
+                            : (assignedEmpId && assignedEmpId.toString() === activeUserIdToView?.toString());
+                        if (isAssigned) {
                             const status = plan.statuses?.[taskId] || {};
                             let residentList = [];
                             if (plan.groupResidents && plan.groupResidents[block.id] && plan.groupResidents[block.id][colIdx]) {
@@ -68,7 +113,10 @@ export default function TarefasPage() {
                 } else if (block.items) {
                     block.items.forEach(item => {
                         const assignedEmpId = plan.assignments?.[item.id];
-                        if (assignedEmpId && assignedEmpId.toString() === currentUser?.id?.toString()) {
+                        const isAssigned = Array.isArray(assignedEmpId)
+                            ? assignedEmpId.some(id => id.toString() === activeUserIdToView?.toString())
+                            : (assignedEmpId && assignedEmpId.toString() === activeUserIdToView?.toString());
+                        if (isAssigned) {
                             const status = plan.statuses?.[item.id] || {};
                             const customLabel = plan.customLabels?.[item.id] || item.label;
                             tasks.push({
@@ -90,7 +138,7 @@ export default function TarefasPage() {
         processTemplate(planoDiarioNoturnoTemplate, nightPlan, `${selectedDate}_NIGHT`);
 
         return tasks;
-    }, [dayPlan, nightPlan, currentUser]);
+    }, [dayPlan, nightPlan, activeUserIdToView]);
 
     const filteredMyTasks = myTasks.filter(task => {
         if (filter === 'pending') return !task.completed;
@@ -125,7 +173,7 @@ export default function TarefasPage() {
                         <div className={dashStyles.greetingText}>
                             <span className={dashStyles.greetingLine}>
                                 <ClipboardList size={20} />
-                                Minhas Tarefas do Dia
+                                {selectedUserId === currentUser?.id ? 'Minhas Tarefas do Dia' : `Tarefas de ${employees.find(e => e.id == selectedUserId)?.name?.split(' ')[0] || 'Colega'}`}
                             </span>
                             <p className={dashStyles.greetingSubtext}>
                                 {isPublished
@@ -143,6 +191,45 @@ export default function TarefasPage() {
                         </Card>
                     ) : (
                         <>
+                            {/* Colleagues Selector */}
+                            {colleaguesToday.length > 0 && (
+                                <div style={{
+                                    display: 'flex', gap: '8px', overflowX: 'auto', paddingBottom: '12px', marginBottom: '16px',
+                                    msOverflowStyle: 'none', scrollbarWidth: 'none'
+                                }}>
+                                    <style>{`
+                                        div::-webkit-scrollbar { display: none; }
+                                    `}</style>
+                                    <button
+                                        onClick={() => setSelectedUserId(currentUser?.id)}
+                                        style={{
+                                            padding: '8px 16px', borderRadius: '20px', whiteSpace: 'nowrap', fontWeight: '600', fontSize: '14px',
+                                            border: selectedUserId === currentUser?.id ? 'none' : '1px solid #cbd5e1',
+                                            background: selectedUserId === currentUser?.id ? '#0f172a' : '#fff',
+                                            color: selectedUserId === currentUser?.id ? '#fff' : '#64748b',
+                                            cursor: 'pointer', transition: 'all 0.2s'
+                                        }}
+                                    >
+                                        Minhas Tarefas
+                                    </button>
+                                    {colleaguesToday.map(colleague => (
+                                        <button
+                                            key={colleague.id}
+                                            onClick={() => setSelectedUserId(colleague.id)}
+                                            style={{
+                                                padding: '8px 16px', borderRadius: '20px', whiteSpace: 'nowrap', fontWeight: '600', fontSize: '14px',
+                                                border: selectedUserId === colleague.id ? 'none' : '1px solid #cbd5e1',
+                                                background: selectedUserId === colleague.id ? '#0284c7' : '#fff',
+                                                color: selectedUserId === colleague.id ? '#fff' : '#64748b',
+                                                cursor: 'pointer', transition: 'all 0.2s'
+                                            }}
+                                        >
+                                            {colleague.name}
+                                        </button>
+                                    ))}
+                                </div>
+                            )}
+
                             {/* Stats */}
                             <div className={styles.statsRow}>
                                 <Card padding="sm" className={styles.statCard}>

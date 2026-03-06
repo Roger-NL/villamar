@@ -238,12 +238,22 @@ function TaskSlot({ taskId, label, isExtra, customLabels, onUpdateCustomLabel, a
                 <span className={assignedName ? planStyles.assignedName : planStyles.unassignedName}>
                     {assignedName || "Arrastar ou Selecionar"}
                 </span>
+                {assignedName && (
+                    <button
+                        onClick={(e) => { e.stopPropagation(); onAssign(null); }}
+                        style={{ background: 'transparent', border: 'none', color: '#ef4444', cursor: 'pointer', padding: '4px', display: 'flex', alignItems: 'center' }}
+                        title="Remover atribuição"
+                    >
+                        <X size={14} />
+                    </button>
+                )}
                 <select
                     value={assignedName ? employees.find(e => e.name.split(' ')[0] === assignedName || e.name === assignedName)?.id || "" : ""}
                     onChange={(e) => onAssign(e.target.value)}
                     className={planStyles.slotSelect}
                 >
                     <option value="" disabled>Atribuir...</option>
+                    <option value="unassign">-- Remover --</option>
                     {employees.map(e => <option key={e.id} value={e.id}>{e.name.split(' ')[0]}</option>)}
                 </select>
             </div>
@@ -305,7 +315,13 @@ export default function AdminTarefasPage() {
     const getEmployeeName = (id) => employees.find(e => e.id == id)?.name.split(' ')[0] || null;
 
     const handleAssign = (taskId, employeeId) => {
-        const newAssignments = { ...localAssignments, [taskId]: employeeId };
+        let newAssignments;
+        if (!employeeId || employeeId === 'unassign') {
+            newAssignments = { ...localAssignments };
+            delete newAssignments[taskId];
+        } else {
+            newAssignments = { ...localAssignments, [taskId]: employeeId };
+        }
         setLocalAssignments(newAssignments);
         updateDailyPlan(planKey, newAssignments, customLabels, localGroupResidents, residentStatuses, customResidentNames);
     };
@@ -322,16 +338,9 @@ export default function AdminTarefasPage() {
             const current = (prev && prev[key]) || null;
             let nextStatus = null;
 
-            const isLevante = taskId.toLowerCase().includes('levante');
-
-            if (isLevante) {
-                if (current === null) nextStatus = 'Banho';
-                else if (current === 'Banho') nextStatus = 'Troca';
-                else if (current === 'Troca') nextStatus = null;
-            } else {
-                if (current === null) nextStatus = 'Troca';
-                else if (current === 'Troca') nextStatus = null;
-            }
+            if (current === null) nextStatus = 'Banho';
+            else if (current === 'Banho') nextStatus = 'Troca';
+            else if (current === 'Troca') nextStatus = null;
 
             const newStatuses = { ...prev, [key]: nextStatus };
             if (nextStatus === null) { delete newStatuses[key]; }

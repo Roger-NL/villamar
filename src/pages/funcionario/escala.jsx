@@ -1,8 +1,9 @@
 import Head from 'next/head';
-import { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import styles from '@/styles/Schedule.module.css';
 import genStyles from '@/styles/ScheduleGenerator.module.css';
 import dashStyles from '@/styles/Dashboard.module.css';
+import escStyles from '@/styles/EscalaReal.module.css';
 import Header from '@/components/layout/Header';
 import BottomNav from '@/components/layout/BottomNav';
 import Sidebar from '@/components/layout/Sidebar';
@@ -11,6 +12,7 @@ import Card from '@/components/ui/Card';
 import { useApp } from '../_app';
 import { useData } from '@/contexts/DataContext';
 import { formatScheduleForGrid } from '@/utils/scheduleGenerator';
+import { getRealScheduleData } from '@/data/mockData';
 import { Calendar, Sun, Sunset, Moon, Coffee, ChevronLeft, ChevronRight, X, AlertCircle, Send, Plane, HeartPulse } from 'lucide-react';
 
 export default function EscalaPage() {
@@ -34,11 +36,10 @@ export default function EscalaPage() {
         setCurrentSchedule(saved);
     }, [selectedYear, selectedMonth, getScheduleForMonth]);
 
-    // Formatar escala para exibição
-    const gridData = useMemo(() => {
-        if (!currentSchedule) return null;
-        return formatScheduleForGrid(currentSchedule);
-    }, [currentSchedule]);
+    // Buscar dados reais do mês para exibição em tabela
+    const scheduleData = useMemo(() => {
+        return getRealScheduleData(selectedYear, selectedMonth);
+    }, [selectedYear, selectedMonth]);
 
     // Navegar entre meses
     const goToPrevMonth = () => {
@@ -62,23 +63,45 @@ export default function EscalaPage() {
     const monthName = new Date(selectedYear, selectedMonth, 1)
         .toLocaleDateString('pt-PT', { month: 'long', year: 'numeric' });
 
-    const getShiftClass = (shift) => {
-        if (shift === 'Manhã') return 'M';
-        if (shift === 'Tarde') return 'T';
-        if (shift === 'Noite') return 'N';
-        if (shift === 'Folga') return 'F';
-        if (shift === 'Férias' || shift === 'Licença') return 'F';
-        return '';
+    const dayLabels = ['dom', 'seg', 'ter', 'qua', 'qui', 'sex', 'sáb'];
+
+    // Gerar array de dias do mês
+    const daysInMonth = useMemo(() => {
+        const count = new Date(selectedYear, selectedMonth + 1, 0).getDate();
+        const days = [];
+        for (let d = 1; d <= count; d++) {
+            const date = new Date(selectedYear, selectedMonth, d);
+            days.push({
+                num: d,
+                dow: date.getDay(),
+                label: dayLabels[date.getDay()],
+                isWeekend: date.getDay() === 0 || date.getDay() === 6,
+                isToday: date.toISOString().split('T')[0] === today.toISOString().split('T')[0],
+            });
+        }
+        return days;
+    }, [selectedYear, selectedMonth]);
+
+    // Cor e estilo por código
+    const getCellClass = (code) => {
+        if (!code) return escStyles.folga;
+        const c = String(code).toUpperCase();
+        if (c === 'M' || c === 'M/T' || c === 'T/M') return escStyles.manha;
+        if (c === 'T') return escStyles.tarde;
+        if (c === 'N') return escStyles.noite;
+        if (c === 'D') return escStyles.diurno;
+        if (c.startsWith('HL')) return escStyles.hl;
+        if (c.startsWith('HM') || c === 'M/HM' || c === 'T/HM') return escStyles.hm;
+        if (c.startsWith('HT')) return escStyles.ht;
+        if (c.startsWith('HF')) return escStyles.hf;
+        if (c.startsWith('HJ')) return escStyles.hj;
+        if (c.startsWith('HC')) return escStyles.hc;
+        return escStyles.folga;
     };
 
-    const getShiftIcon = (shift) => {
-        if (shift === 'Manhã') return <Sun size={14} strokeWidth={2.5} />;
-        if (shift === 'Tarde') return <Sunset size={14} strokeWidth={2.5} />;
-        if (shift === 'Noite') return <Moon size={14} strokeWidth={2.5} />;
-        if (shift === 'Folga') return <Coffee size={14} strokeWidth={2.5} />;
-        if (shift === 'Férias') return <Plane size={14} strokeWidth={2.5} />;
-        if (shift === 'Licença') return <HeartPulse size={14} strokeWidth={2.5} />;
-        return null;
+    const getCellText = (code) => {
+        if (!code) return '';
+        return String(code);
     };
 
     // Abrir modal de troca ao clicar em célula
@@ -142,9 +165,6 @@ export default function EscalaPage() {
         setSwapModal(null);
     };
 
-    // Encontrar a minha linha na escala
-    const myRow = gridData?.rows?.find(r => r.employee.id === currentUser?.id);
-
     return (
         <>
             <Head>
@@ -181,141 +201,118 @@ export default function EscalaPage() {
                             </button>
                         </div>
 
-                        {/* Legend */}
-                        <div style={{ display: 'flex', gap: '12px' }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                <div className={`${genStyles.shiftBadge} ${genStyles.M}`}><Sun size={12} strokeWidth={2.5} /></div>
-                                <span style={{ fontSize: '12px' }}>Manhã</span>
-                            </div>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                <div className={`${genStyles.shiftBadge} ${genStyles.T}`}><Sunset size={12} strokeWidth={2.5} /></div>
-                                <span style={{ fontSize: '12px' }}>Tarde</span>
-                            </div>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                <div className={`${genStyles.shiftBadge} ${genStyles.N}`}><Moon size={12} strokeWidth={2.5} /></div>
-                                <span style={{ fontSize: '12px' }}>Noite</span>
-                            </div>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                <div className={`${genStyles.shiftBadge} ${genStyles.F}`}><Coffee size={12} strokeWidth={2.5} /></div>
-                                <span style={{ fontSize: '12px' }}>Folga</span>
-                            </div>
+                        {/* Menu de Legenda Compacto */}
+                        <div className={escStyles.legend} style={{ marginTop: '16px' }}>
+                            <span><b className={escStyles.cM}>M</b> Manhã</span>
+                            <span><b className={escStyles.cT}>T</b> Tarde</span>
+                            <span><b className={escStyles.cN}>N</b> Noite</span>
+                            <span><b className={escStyles.cD}>D</b> Diurno</span>
+                            <span><b className={escStyles.cHL}>HL</b> Hor. Logístico</span>
+                            <span><b className={escStyles.cHM}>HM</b> Hor. Manhã</span>
+                            <span><b className={escStyles.cHT}>HT</b> Hor. Tarde</span>
+                            <span><b className={escStyles.cHF}>HF</b> Fisio</span>
+                            <span><b className={escStyles.cHJ}>HJ</b> Joel</span>
+                            <span><b className={escStyles.cHC}>HC</b> Cozinha</span>
+                            <span className={escStyles.folgaLegend}>— Folga</span>
                         </div>
                     </div>
 
-                    {/* My Schedule Highlight */}
-                    {myRow && (
-                        <Card padding="md" className={styles.myScheduleCard}>
-                            <h4 style={{ margin: '0 0 12px 0', fontSize: '14px', fontWeight: 600 }}>
-                                A Minha Escala Este Mês
-                            </h4>
-                            <div style={{ display: 'flex', gap: '4px', overflowX: 'auto', paddingBottom: '8px' }}>
-                                {myRow.cells.map((cell, i) => {
-                                    const isToday = new Date().toISOString().split('T')[0] === cell.date;
-                                    return (
-                                        <div
-                                            key={i}
-                                            className={`${genStyles.shiftCell} ${genStyles[getShiftClass(cell.shift)]} ${isToday ? styles.todayCell : ''}`}
-                                            style={{ minWidth: '36px', maxWidth: '36px' }}
-                                            title={`${new Date(cell.date).getDate()} - ${cell.shift}`}
-                                        >
-                                            {getShiftIcon(cell.shift)}
-                                        </div>
-                                    );
-                                })}
-                            </div>
-                        </Card>
-                    )}
+                    {/* Full Team Schedule Table */}
+                    {scheduleData ? (
+                        <div className={escStyles.tableWrap}>
+                            <table className={escStyles.table}>
+                                <thead>
+                                    <tr>
+                                        <th className={escStyles.nameHeader}>Nome</th>
+                                        {daysInMonth.map(d => (
+                                            <th key={d.num} className={`${escStyles.dayHeader} ${d.isWeekend ? escStyles.weekendH : ''} ${d.isToday ? escStyles.todayH : ''} ${d.dow === 0 ? escStyles.sundayBorder : ''}`}>
+                                                <span className={escStyles.dayLabel}>{d.label}</span>
+                                                <span className={escStyles.dayNum}>{d.num}</span>
+                                            </th>
+                                        ))}
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {scheduleData.sections.map((section, si) => (
+                                        <React.Fragment key={`section-${si}`}>
+                                            {/* Section divider */}
+                                            <tr className={escStyles.sectionRow}>
+                                                <td colSpan={daysInMonth.length + 1} className={escStyles.sectionLabel}>
+                                                    {section.label}
+                                                </td>
+                                            </tr>
+                                            {section.employees.map((emp, ei) => {
+                                                const codes = emp.days;
+                                                const isMe = emp.id === currentUser?.id;
 
-                    {/* Full Team Schedule Grid (Read-Only) */}
-                    {gridData ? (
-                        <div className={genStyles.scheduleWrapper}>
-                            <div className={genStyles.scheduleGrid}>
-                                {/* Header Row - Days */}
-                                <div className={genStyles.gridHeader}>
-                                    <div className={genStyles.nameColumn}>Equipa</div>
-                                    {gridData.headers.map((day, i) => {
-                                        const isToday = new Date().toISOString().split('T')[0] === day.date;
-                                        const isSunday = day.dayOfWeek === 0;
-
-                                        return (
-                                            <div
-                                                key={i}
-                                                className={`
-                                                    ${genStyles.dayColumn} 
-                                                    ${day.isWeekend ? genStyles.weekend : ''}
-                                                    ${isToday ? genStyles.currentDay : ''}
-                                                    ${isSunday ? genStyles.weekEnd : ''}
-                                                `}
-                                            >
-                                                <span className={genStyles.dayName}>{day.dayName}</span>
-                                                <span className={genStyles.dayNum}>{day.dayNum}</span>
-                                            </div>
-                                        );
-                                    })}
-                                </div>
-
-                                {/* Employee Rows */}
-                                {gridData.rows.map((row, i) => {
-                                    const isMe = row.employee.id === currentUser?.id;
-
-                                    return (
-                                        <div key={i} className={`${genStyles.gridRow} ${isMe ? styles.myRow : ''}`}>
-                                            <div className={genStyles.nameColumn}>
-                                                <Avatar name={row.employee.name} size="sm" />
-                                                <span>{row.employee.name.split(' ')[0]}</span>
-                                                {isMe && <span className={styles.meTag}>Eu</span>}
-                                            </div>
-                                            {row.cells.map((cell, j) => {
-                                                const isToday = new Date().toISOString().split('T')[0] === cell.date;
-                                                const isSunday = cell.dayOfWeek === 0;
-
-                                                // Regra Cuidadores/Auxiliares/Enfermeiros
+                                                // Logica de trocas
                                                 const isCurrentUserAuxiliar = currentUser?.role === 'Auxiliar';
-                                                const isTargetAuxiliar = row.employee.role === 'Auxiliar';
+
+                                                // Simplified role check without emp.role exactly as we only have emp.code and emp.id.
+                                                // Assuming employees in other sections aren't swappable for non-admins to keep it simple, OR using global employees array
+                                                const globalEmp = employees.find(e => e.id === emp.id) || {};
+                                                const isTargetAuxiliar = globalEmp.role === 'Auxiliar';
 
                                                 const isCurrentUserEnfermeiro = currentUser?.role === 'Enfermeira' || currentUser?.role === 'Enfermeiro';
-                                                const isTargetEnfermeiro = row.employee.role === 'Enfermeira' || row.employee.role === 'Enfermeiro';
+                                                const isTargetEnfermeiro = globalEmp.role === 'Enfermeira' || globalEmp.role === 'Enfermeiro';
 
                                                 const sameRoleGroup = isCurrentUserAuxiliar === isTargetAuxiliar;
 
-                                                // Enfermeiros não podem trocar (têm turno fixo) nem ninguém pode solicitar para trocar com eles através da APP
                                                 const canSwap = !isMe && sameRoleGroup && !isCurrentUserEnfermeiro && !isTargetEnfermeiro;
 
-                                                let titleMsg = cell.shift;
-                                                if (!canSwap && !isMe) {
-                                                    if (isCurrentUserEnfermeiro || isTargetEnfermeiro) {
-                                                        titleMsg = `O horário de Enfermagem é fixo`;
-                                                    } else {
-                                                        titleMsg = isCurrentUserAuxiliar
-                                                            ? `Apenas pode trocar com outros Auxiliares`
-                                                            : `Não pode trocar horas com Auxiliares`;
-                                                    }
-                                                } else if (canSwap) {
-                                                    titleMsg = `Clique para pedir troca com ${row.employee.name.split(' ')[0]}`;
-                                                }
-
                                                 return (
-                                                    <div
-                                                        key={j}
-                                                        className={`
-                                                            ${genStyles.shiftCell} 
-                                                            ${genStyles[getShiftClass(cell.shift)]}
-                                                            ${canSwap ? styles.swappable : ''}
-                                                            ${isToday ? genStyles.currentDay : ''}
-                                                            ${isSunday ? genStyles.weekEnd : ''}
-                                                        `}
-                                                        style={(!canSwap && !isMe) ? { opacity: 0.6, cursor: 'not-allowed' } : {}}
-                                                        title={titleMsg}
-                                                        onClick={() => canSwap && handleCellClick(row.employee, cell.date, cell.shift)}
-                                                    >
-                                                        {getShiftIcon(cell.shift)}
-                                                    </div>
+                                                    <tr key={`${si}-${ei}`} className={`${escStyles.empRow} ${isMe ? styles.myRowHighlight : ''}`}>
+                                                        <td className={escStyles.nameCell}>
+                                                            <span className={escStyles.empName} style={{ fontWeight: isMe ? 700 : 500 }}>
+                                                                {emp.name.split(' ')[0]} {isMe && '(Eu)'}
+                                                            </span>
+                                                            <span className={escStyles.empCode}>{emp.code}</span>
+                                                        </td>
+                                                        {codes.map((code, di) => {
+                                                            const d = daysInMonth[di];
+                                                            if (!d) return <td key={di} className={escStyles.cell}></td>;
+
+                                                            const formattedDate = `${selectedYear}-${String(selectedMonth + 1).padStart(2, '0')}-${String(d.num).padStart(2, '0')}`;
+
+                                                            let titleMsg = code || 'Folga';
+                                                            if (!canSwap && !isMe) {
+                                                                if (isCurrentUserEnfermeiro || isTargetEnfermeiro) {
+                                                                    titleMsg = `O horário de Enfermagem é fixo`;
+                                                                } else {
+                                                                    titleMsg = isCurrentUserAuxiliar
+                                                                        ? `Apenas pode trocar com outros Auxiliares`
+                                                                        : `Não pode trocar horas com Auxiliares`;
+                                                                }
+                                                            } else if (canSwap) {
+                                                                titleMsg = `Clique para pedir troca com ${emp.name.split(' ')[0]} - Turno original: ${code || 'Folga'}`;
+                                                            }
+
+                                                            return (
+                                                                <td
+                                                                    key={di}
+                                                                    className={`
+                                                                        ${escStyles.cell} 
+                                                                        ${getCellClass(code)} 
+                                                                        ${d.isWeekend ? escStyles.weekendC : ''} 
+                                                                        ${d.isToday ? escStyles.todayC : ''} 
+                                                                        ${d.dow === 0 ? escStyles.sundayBorder : ''}
+                                                                        ${canSwap ? styles.swappableCell : ''}
+                                                                    `}
+                                                                    style={(!canSwap && !isMe) ? { opacity: 0.7, cursor: 'not-allowed' } : { cursor: canSwap ? 'pointer' : 'default' }}
+                                                                    title={titleMsg}
+                                                                    onClick={() => canSwap && handleCellClick(globalEmp, formattedDate, code || 'Folga')}
+                                                                >
+                                                                    {getCellText(code)}
+                                                                </td>
+                                                            );
+                                                        })}
+                                                    </tr>
                                                 );
                                             })}
-                                        </div>
-                                    );
-                                })}
-                            </div>
+                                        </React.Fragment>
+                                    ))}
+                                </tbody>
+                            </table>
                         </div>
                     ) : (
                         <div className={genStyles.emptyState}>
@@ -344,8 +341,8 @@ export default function EscalaPage() {
                                     <Avatar name={currentUser?.name || 'Eu'} size="md" />
                                     <div>
                                         <strong>{currentUser?.name?.split(' ')[0]}</strong>
-                                        <span className={`${styles.shiftTag} ${styles[getShiftClass(swapModal.myShift)]}`}>
-                                            {getShiftIcon(swapModal.myShift)} {swapModal.myShift}
+                                        <span className={`${styles.shiftTag} ${escStyles[getCellClass(swapModal.myShift)] || ''}`}>
+                                            {swapModal.myShift}
                                         </span>
                                     </div>
                                 </div>
@@ -355,9 +352,9 @@ export default function EscalaPage() {
                                 <div className={styles.swapParty}>
                                     <Avatar name={swapModal.targetEmployeeName} size="md" />
                                     <div>
-                                        <strong>{swapModal.targetEmployeeName.split(' ')[0]}</strong>
-                                        <span className={`${styles.shiftTag} ${styles[getShiftClass(swapModal.targetShift)]}`}>
-                                            {getShiftIcon(swapModal.targetShift)} {swapModal.targetShift}
+                                        <strong>{swapModal.targetEmployeeName?.split(' ')[0] || '?'}</strong>
+                                        <span className={`${styles.shiftTag} ${escStyles[getCellClass(swapModal.targetShift)] || ''}`}>
+                                            {swapModal.targetShift}
                                         </span>
                                     </div>
                                 </div>

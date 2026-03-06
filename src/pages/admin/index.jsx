@@ -9,7 +9,7 @@ import { useData } from '@/contexts/DataContext';
 import Avatar from '@/components/ui/Avatar';
 import {
     Users, UserCheck, UserX, ArrowLeftRight,
-    CheckCircle, Clock, Timer
+    CheckCircle, Clock, Timer, Bell, Plus, Trash2, Send
 } from 'lucide-react';
 import { getRealScheduleData } from '@/data/mockData';
 
@@ -32,9 +32,13 @@ export default function AdminDashboard() {
         activeSessions,
         isHydrated,
         getTotalHours,
-        dailyPlans
+        dailyPlans,
+        dailyAnnouncements,
+        addDailyAnnouncement,
+        removeDailyAnnouncement
     } = useData();
 
+    const [newAnnouncement, setNewAnnouncement] = useState('');
     const [, setTick] = useState(0); // Para forçar re-render do timer
 
     // Atualizar timers a cada segundo
@@ -143,6 +147,15 @@ export default function AdminDashboard() {
         if (!session) return null;
         const startTime = new Date(session.startTime).getTime();
         return Date.now() - startTime;
+    };
+
+    const [announcementSeverity, setAnnouncementSeverity] = useState('normal');
+
+    const handleAddAnnouncement = async () => {
+        if (!newAnnouncement.trim()) return;
+        await addDailyAnnouncement(newAnnouncement.trim(), currentUser?.name?.split(' ')[0] || 'Admin', announcementSeverity);
+        setNewAnnouncement('');
+        setAnnouncementSeverity('normal');
     };
 
     return (
@@ -263,6 +276,78 @@ export default function AdminDashboard() {
                                 {pendingSwaps === 0 && (
                                     <div className={styles.emptySwaps}>Sem pedidos pendentes</div>
                                 )}
+                            </div>
+                        </div>
+
+                        {/* Avisos Diários */}
+                        <div className={`${styles.card} ${styles.teamSection}`} style={{ gridColumn: '1 / -1' }}>
+                            <div className={styles.cardHeader}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                    <Bell size={20} color="#0284C7" />
+                                    <h2>Quadro de Avisos Diários</h2>
+                                </div>
+                            </div>
+
+                            <div style={{ padding: '16px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                                <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                                    <input
+                                        type="text"
+                                        placeholder="Novo aviso... (Dica: use '{nome}' para chamar pelo nome de quem está a ver)"
+                                        value={newAnnouncement}
+                                        onChange={(e) => setNewAnnouncement(e.target.value)}
+                                        style={{ flex: '1 1 300px', padding: '12px 16px', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', fontSize: '14px' }}
+                                        onKeyPress={(e) => e.key === 'Enter' && handleAddAnnouncement()}
+                                    />
+                                    <select
+                                        value={announcementSeverity}
+                                        onChange={(e) => setAnnouncementSeverity(e.target.value)}
+                                        style={{ padding: '12px 16px', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', fontSize: '14px', background: '#fff', cursor: 'pointer' }}
+                                    >
+                                        <option value="normal">Normal (Verde)</option>
+                                        <option value="grave">Grave (Amarelo)</option>
+                                        <option value="gravissimo">Gravíssimo (Vermelho)</option>
+                                    </select>
+                                    <button
+                                        onClick={handleAddAnnouncement}
+                                        disabled={!newAnnouncement.trim()}
+                                        style={{ background: newAnnouncement.trim() ? '#0284C7' : '#E2E8F0', color: newAnnouncement.trim() ? '#fff' : '#94A3B8', border: 'none', borderRadius: '12px', padding: '0 20px', display: 'flex', alignItems: 'center', gap: '8px', cursor: newAnnouncement.trim() ? 'pointer' : 'default', transition: 'all 0.2s', fontWeight: 'bold' }}
+                                    >
+                                        <Send size={16} /> Adicionar
+                                    </button>
+                                </div>
+
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                    {dailyAnnouncements && dailyAnnouncements.length > 0 ? (
+                                        dailyAnnouncements.map((announcement) => {
+                                            const sevColors = {
+                                                normal: { bg: '#F0FDF4', border: '#22C55E' },
+                                                grave: { bg: '#FEFCE8', border: '#EAB308' },
+                                                gravissimo: { bg: '#FEF2F2', border: '#EF4444' }
+                                            };
+                                            const colorInfo = sevColors[announcement.severity || 'normal'] || sevColors.normal;
+
+                                            return (
+                                                <div key={announcement.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: colorInfo.bg, padding: '12px 16px', borderRadius: '12px', borderLeft: `4px solid ${colorInfo.border}` }}>
+                                                    <div>
+                                                        <span style={{ fontSize: '14px', color: '#1E293B' }}>{announcement.text}</span>
+                                                        <div style={{ fontSize: '11px', color: '#64748B', marginTop: '4px' }}>Adicionado por {announcement.authorName} • {new Date(announcement.createdAt).toLocaleString('pt-PT')}</div>
+                                                    </div>
+                                                    <button
+                                                        onClick={() => removeDailyAnnouncement(announcement.id)}
+                                                        style={{ background: '#FEE2E2', color: '#EF4444', border: 'none', borderRadius: '8px', padding: '8px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                                                        title="Apagar Aviso"
+                                                    >
+                                                        <Trash2 size={16} />
+                                                    </button>
+                                                </div>
+                                            )
+                                        })
+                                    ) : (
+                                        <div style={{ textAlign: 'center', color: '#94A3B8', padding: '24px 0', fontSize: '14px' }}>
+                                            Nenhum aviso ativo. Adicione um aviso em cima.
+                                        </div>
+                                    )}
+                                </div>
                             </div>
                         </div>
 

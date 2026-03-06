@@ -3,6 +3,17 @@ export const planoDiarioTemplate = {
     name: "Plano Individual de Trabalho Diário",
     blocks: [
         {
+            id: "levante",
+            name: "Levante (Manhã 8h–16:30h)",
+            type: "group_assignment",
+            time: "Manhã",
+            columns: ["Responsável 1", "Responsável 2"],
+            predefinedColumns: {
+                0: ["António", "Simão", "Carlos A.", "Conceição", "M. Zélia", "Mário"],
+                1: ["Teresa", "Babixa", "Judite", "José Carlos", "Ventura", "Otílio"]
+            }
+        },
+        {
             id: "trocas_11",
             name: "Trocas das 11H",
             type: "group_assignment",
@@ -33,17 +44,6 @@ export const planoDiarioTemplate = {
             predefinedColumns: {
                 0: ["Lurdes N", "Fernanda", "Simão", "Mário", "Sofia", "Perpétua", "Amélia"],
                 1: ["Lurdes C", "Tina", "Luísa", "Ventura", "Babixa", "M. Rodrigues", "Carlos A."]
-            }
-        },
-        {
-            id: "levante",
-            name: "Levante (Manhã 8h–16:30h)",
-            type: "group_assignment",
-            time: "Manhã",
-            columns: ["Responsável 1", "Responsável 2"],
-            predefinedColumns: {
-                0: ["António", "Simão", "Carlos A.", "Conceição", "M. Zélia", "Mário"],
-                1: ["Teresa", "Babixa", "Judite", "José Carlos", "Ventura", "Otílio"]
             }
         },
         {

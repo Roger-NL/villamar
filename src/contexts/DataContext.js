@@ -19,6 +19,7 @@ const STORAGE_KEYS = {
     SCHEDULES: 'villamar_schedules',
     INVENTORY: 'villamar_inventory',
     DAILY_PLANS: 'villamar_daily_plans',
+    DAILY_ANNOUNCEMENTS: 'villamar_daily_announcements',
 };
 
 export function DataProvider({ children }) {
@@ -35,6 +36,7 @@ export function DataProvider({ children }) {
     const [diaperPatients, setDiaperPatients] = useState([]); // Utentes e as suas fraldas
     const [diaperLogs, setDiaperLogs] = useState([]); // Histórico de reposições
     const [dailyPlans, setDailyPlans] = useState({}); // Planos Diários de Tarefas (Assignments + Status)
+    const [dailyAnnouncements, setDailyAnnouncements] = useState([]); // Avisos Diários
     const [isHydrated, setIsHydrated] = useState(false);
 
     // Initial Sync from LocalStorage or Firebase
@@ -49,6 +51,7 @@ export function DataProvider({ children }) {
             const savedActiveSessions = localStorage.getItem(STORAGE_KEYS.ACTIVE_SESSIONS);
             const savedSchedulesData = localStorage.getItem(STORAGE_KEYS.SCHEDULES);
             const savedDailyPlans = localStorage.getItem(STORAGE_KEYS.DAILY_PLANS);
+            const savedDailyAnnouncements = localStorage.getItem(STORAGE_KEYS.DAILY_ANNOUNCEMENTS);
 
             let loadedEmployees = savedEmployees ? JSON.parse(savedEmployees) : initialEmployees;
             if (savedEmployees) {
@@ -78,6 +81,7 @@ export function DataProvider({ children }) {
             setSavedSchedules(savedSchedulesData ? JSON.parse(savedSchedulesData) : {});
             setLeaves(savedLeaves ? JSON.parse(savedLeaves) : []);
             setDailyPlans(savedDailyPlans ? JSON.parse(savedDailyPlans) : {});
+            setDailyAnnouncements(savedDailyAnnouncements ? JSON.parse(savedDailyAnnouncements) : []);
             setIsHydrated(true);
         } else if (db) {
             // WITH FIREBASE
@@ -126,6 +130,9 @@ export function DataProvider({ children }) {
                 snapshot.docs.forEach(doc => { plans[doc.id] = { ...doc.data(), id: doc.id }; });
                 setDailyPlans(plans);
             });
+            const unsubDailyAnnouncements = onSnapshot(collection(db, 'dailyAnnouncements'), (snapshot) => {
+                setDailyAnnouncements(snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id })).sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)));
+            });
 
             setIsHydrated(true);
 
@@ -141,6 +148,7 @@ export function DataProvider({ children }) {
                 unsubDiaperPatients();
                 unsubDiaperLogs();
                 unsubDailyPlans();
+                unsubDailyAnnouncements();
             };
         }
     }, []);
@@ -182,9 +190,9 @@ export function DataProvider({ children }) {
             localStorage.setItem(STORAGE_KEYS.ACTIVE_SESSIONS, JSON.stringify(activeSessions));
             localStorage.setItem(STORAGE_KEYS.SCHEDULES, JSON.stringify(savedSchedules));
             localStorage.setItem(STORAGE_KEYS.DAILY_PLANS, JSON.stringify(dailyPlans));
+            localStorage.setItem(STORAGE_KEYS.DAILY_ANNOUNCEMENTS, JSON.stringify(dailyAnnouncements));
         }
-    }, [employees, tasks, swapRequests, notifications, timeRecords, activeSessions, savedSchedules, dailyPlans, isHydrated]);
-
+    }, [employees, tasks, swapRequests, notifications, timeRecords, activeSessions, savedSchedules, dailyPlans, dailyAnnouncements, isHydrated]);
 
     // === TIME TRACKING / BANCO DE HORAS ===
     const clockIn = useCallback(async (employeeId) => {
@@ -626,9 +634,21 @@ export function DataProvider({ children }) {
         else await writeDB('dailyPlans', dateStr, newPlan);
     }, [db, dailyPlans]);
 
+    // === AVISOS DIÁRIOS ===
+    const addDailyAnnouncement = useCallback(async (text, authorName, severity = 'normal') => {
+        const newAnnouncement = { id: Date.now().toString(), text, authorName, severity, createdAt: new Date().toISOString() };
+        if (!db) setDailyAnnouncements(prev => [newAnnouncement, ...prev]);
+        else await writeDB('dailyAnnouncements', newAnnouncement.id, newAnnouncement);
+    }, [db]);
+
+    const removeDailyAnnouncement = useCallback(async (id) => {
+        if (!db) setDailyAnnouncements(prev => prev.filter(a => a.id !== id));
+        else await deleteDB('dailyAnnouncements', id);
+    }, [db]);
+
     const value = {
         employees, tasks, swapRequests, notifications, timeRecords, activeSessions, savedSchedules, isHydrated, leaves, inventoryItems,
-        diaperPatients, diaperLogs, dailyPlans,
+        diaperPatients, diaperLogs, dailyPlans, dailyAnnouncements,
         addEmployee, updateEmployee, removeEmployee, getEmployeeById,
         addTask, updateTask, removeTask, toggleTaskComplete, getTasksByEmployee, getTasksByDate,
         addSwapRequest, approveSwapRequest, rejectSwapRequest, removeSwapRequest, getPendingSwaps,
@@ -640,7 +660,8 @@ export function DataProvider({ children }) {
         addInventoryItem, updateInventoryItem, deleteInventoryItem,
         addDiaperPatient, updateDiaperPatient, deleteDiaperPatient,
         addDiaperLog, deleteDiaperLog,
-        updateDailyPlan, publishDailyPlan, toggleDailyTaskComplete
+        updateDailyPlan, publishDailyPlan, toggleDailyTaskComplete,
+        addDailyAnnouncement, removeDailyAnnouncement
     };
 
     return <DataContext.Provider value={value}>{children}</DataContext.Provider>;
