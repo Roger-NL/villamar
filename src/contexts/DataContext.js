@@ -86,7 +86,15 @@ export function DataProvider({ children }) {
         } else if (db) {
             // WITH FIREBASE
             const unsubEmployees = onSnapshot(collection(db, 'employees'), (snapshot) => {
-                const items = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id }));
+                let items = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id }));
+
+                // Resolver o problema de duas contas do "Roger": 
+                // Se existe uma conta do Firebase Auth para o Roger, remover o mock (Id 9)
+                const firebaseRoger = items.find(e => e.name?.toLowerCase().includes('roger') && e.id !== 9 && e.id !== '9');
+                if (firebaseRoger) {
+                    items = items.filter(e => !(e.name?.toLowerCase().includes('roger') && (e.id === 9 || e.id === '9')));
+                }
+
                 setEmployees(items);
             });
             const unsubTasks = onSnapshot(collection(db, 'tasks'), (snapshot) => {

@@ -17,7 +17,7 @@ import { Calendar, Sun, Sunset, Moon, Coffee, ChevronLeft, ChevronRight, X, Aler
 
 export default function EscalaPage() {
     const { isAdmin, toggleMode, currentUser } = useApp();
-    const { employees, getScheduleForMonth, addSwapRequest, addNotification } = useData();
+    const { employees, getScheduleForMonth, addSwapRequest, approveSwapRequest, addNotification } = useData();
 
     // Estado para mês/ano selecionado
     const today = new Date();
@@ -122,7 +122,7 @@ export default function EscalaPage() {
     };
 
     // Validar e enviar pedido de troca
-    const handleSwapRequest = () => {
+    const handleSwapRequest = async () => {
         if (!swapModal || !currentUser) return;
 
         const { targetEmployeeId, targetEmployeeName, targetDate, targetShift, myShift } = swapModal;
@@ -132,17 +132,6 @@ export default function EscalaPage() {
             // Ambos trabalham nesse dia - troca de turnos é válida
         }
 
-        // Validação: não pode pedir troca para o mesmo turno
-        if (myShift === targetShift) {
-            addNotification({
-                type: 'swap_error',
-                title: 'Troca Inválida',
-                message: `Não pode trocar - vocês já têm o mesmo turno (${myShift}).`,
-                forEmployee: currentUser.id,
-            });
-            setSwapModal(null);
-            return;
-        }
 
         // Criar pedido de troca
         const dateFormatted = new Date(targetDate).toLocaleDateString('pt-PT', {
@@ -151,7 +140,7 @@ export default function EscalaPage() {
             month: 'short'
         });
 
-        addSwapRequest({
+        const newRequest = await addSwapRequest({
             requestorId: currentUser.id,
             requestor: currentUser.name,
             swapWithId: targetEmployeeId,
@@ -161,6 +150,11 @@ export default function EscalaPage() {
             fromShift: myShift,
             toShift: targetShift,
         });
+
+        // Se é admin, aprova automaticamente a troca para refletir na escala de todos
+        if (isAdmin || currentUser?.role === 'Administrador' || currentUser?.isAdmin) {
+            await approveSwapRequest(newRequest.id);
+        }
 
         setSwapModal(null);
     };
@@ -246,19 +240,7 @@ export default function EscalaPage() {
                                                 const isMe = emp.id === currentUser?.id;
 
                                                 // Logica de trocas
-                                                const isCurrentUserAuxiliar = currentUser?.role === 'Auxiliar';
-
-                                                // Simplified role check without emp.role exactly as we only have emp.code and emp.id.
-                                                // Assuming employees in other sections aren't swappable for non-admins to keep it simple, OR using global employees array
-                                                const globalEmp = employees.find(e => e.id === emp.id) || {};
-                                                const isTargetAuxiliar = globalEmp.role === 'Auxiliar';
-
-                                                const isCurrentUserEnfermeiro = currentUser?.role === 'Enfermeira' || currentUser?.role === 'Enfermeiro';
-                                                const isTargetEnfermeiro = globalEmp.role === 'Enfermeira' || globalEmp.role === 'Enfermeiro';
-
-                                                const sameRoleGroup = isCurrentUserAuxiliar === isTargetAuxiliar;
-
-                                                const canSwap = !isMe && sameRoleGroup && !isCurrentUserEnfermeiro && !isTargetEnfermeiro;
+                                                const canSwap = !isMe;
 
                                                 return (
                                                     <tr key={`${si}-${ei}`} className={`${escStyles.empRow} ${isMe ? styles.myRowHighlight : ''}`}>
@@ -275,15 +257,7 @@ export default function EscalaPage() {
                                                             const formattedDate = `${selectedYear}-${String(selectedMonth + 1).padStart(2, '0')}-${String(d.num).padStart(2, '0')}`;
 
                                                             let titleMsg = code || 'Folga';
-                                                            if (!canSwap && !isMe) {
-                                                                if (isCurrentUserEnfermeiro || isTargetEnfermeiro) {
-                                                                    titleMsg = `O horário de Enfermagem é fixo`;
-                                                                } else {
-                                                                    titleMsg = isCurrentUserAuxiliar
-                                                                        ? `Apenas pode trocar com outros Auxiliares`
-                                                                        : `Não pode trocar horas com Auxiliares`;
-                                                                }
-                                                            } else if (canSwap) {
+                                                            if (canSwap) {
                                                                 titleMsg = `Clique para pedir troca com ${emp.name.split(' ')[0]} - Turno original: ${code || 'Folga'}`;
                                                             }
 
@@ -300,7 +274,7 @@ export default function EscalaPage() {
                                                                     `}
                                                                     style={(!canSwap && !isMe) ? { opacity: 0.7, cursor: 'not-allowed' } : { cursor: canSwap ? 'pointer' : 'default' }}
                                                                     title={titleMsg}
-                                                                    onClick={() => canSwap && handleCellClick(globalEmp, formattedDate, code || 'Folga')}
+                                                                    onClick={() => canSwap && handleCellClick(emp, formattedDate, code || 'Folga')}
                                                                 >
                                                                     {getCellText(code)}
                                                                 </td>
@@ -368,17 +342,9 @@ export default function EscalaPage() {
                                 })}
                             </div>
 
-                            {swapModal.myShift === swapModal.targetShift && (
-                                <div className={styles.swapWarning}>
-                                    <AlertCircle size={16} />
-                                    <span>Não pode trocar - vocês têm o mesmo turno!</span>
-                                </div>
-                            )}
-
                             <button
                                 className={styles.sendSwapBtn}
                                 onClick={handleSwapRequest}
-                                disabled={swapModal.myShift === swapModal.targetShift}
                             >
                                 <Send size={16} />
                                 Enviar Pedido ao Admin

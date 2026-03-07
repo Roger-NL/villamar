@@ -7,8 +7,8 @@ import Sidebar from '@/components/layout/Sidebar';
 import { useApp } from '../_app';
 import { useData } from '@/contexts/DataContext';
 import { getRealScheduleData } from '@/data/mockData';
-import { Calendar, ChevronLeft, ChevronRight, Save } from 'lucide-react';
-import { useState, useMemo } from 'react';
+import { Calendar, ChevronLeft, ChevronRight, Save, ArrowLeftRight, Check, X } from 'lucide-react';
+import { useState, useMemo, useEffect } from 'react';
 
 export default function AdminEscalasPage() {
     const { isAdmin, toggleMode, currentUser } = useApp();
@@ -19,10 +19,61 @@ export default function AdminEscalasPage() {
     const [selectedYear, setSelectedYear] = useState(today.getFullYear());
     const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
 
+    const [localSchedule, setLocalSchedule] = useState(null);
+    const [isSwapMode, setIsSwapMode] = useState(false);
+    const [swapOrigin, setSwapOrigin] = useState(null);
+    const [swapDest, setSwapDest] = useState(null);
+    const [showConfirmModal, setShowConfirmModal] = useState(false);
+
     // Buscar dados reais do mês
-    const scheduleData = useMemo(() => {
-        return getRealScheduleData(selectedYear, selectedMonth);
+    useEffect(() => {
+        setLocalSchedule(getRealScheduleData(selectedYear, selectedMonth));
+        setIsSwapMode(false);
+        setSwapOrigin(null);
+        setSwapDest(null);
+        setShowConfirmModal(false);
     }, [selectedYear, selectedMonth]);
+
+    const handleCellClick = (sectionIdx, empIdx, dayIdx, code, empName, dateStr) => {
+        if (!isSwapMode) return;
+
+        if (!swapOrigin) {
+            setSwapOrigin({ sectionIdx, empIdx, dayIdx, code, empName, dateStr });
+        } else if (!swapDest) {
+            // Não pode trocar a mesma célula
+            if (swapOrigin.sectionIdx === sectionIdx && swapOrigin.empIdx === empIdx && swapOrigin.dayIdx === dayIdx) return;
+
+            setSwapDest({ sectionIdx, empIdx, dayIdx, code, empName, dateStr });
+            setShowConfirmModal(true);
+        }
+    };
+
+    const confirmSwap = () => {
+        if (!localSchedule) return;
+        const newSchedule = { ...localSchedule };
+
+        newSchedule.sections = newSchedule.sections.map(s => ({
+            ...s,
+            employees: s.employees.map(e => ({
+                ...e,
+                days: [...e.days]
+            }))
+        }));
+
+        const oCode = swapOrigin.code;
+        const dCode = swapDest.code;
+
+        newSchedule.sections[swapOrigin.sectionIdx].employees[swapOrigin.empIdx].days[swapOrigin.dayIdx] = dCode;
+        newSchedule.sections[swapDest.sectionIdx].employees[swapDest.empIdx].days[swapDest.dayIdx] = oCode;
+
+        setLocalSchedule(newSchedule);
+        setHasUnsavedChanges(true); // Opcional
+
+        setIsSwapMode(false);
+        setSwapOrigin(null);
+        setSwapDest(null);
+        setShowConfirmModal(false);
+    };
 
     const goToPrevMonth = () => {
         if (selectedMonth === 0) { setSelectedMonth(11); setSelectedYear(y => y - 1); }
@@ -101,7 +152,26 @@ export default function AdminEscalasPage() {
                             <span className={escStyles.monthLabel}>{monthName}</span>
                             <button onClick={goToNextMonth} className={escStyles.navBtn}><ChevronRight size={18} /></button>
                         </div>
+
+                        <div style={{ marginLeft: 'auto' }}>
+                            <button
+                                onClick={() => { setIsSwapMode(!isSwapMode); setSwapOrigin(null); setSwapDest(null); setShowConfirmModal(false); }}
+                                style={{ background: isSwapMode ? '#EF4444' : '#E0F2FE', color: isSwapMode ? 'white' : '#0284C7', border: 'none', padding: '8px 16px', borderRadius: '12px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 'bold', transition: 'all 0.2s' }}
+                            >
+                                {isSwapMode ? <X size={18} /> : <ArrowLeftRight size={18} />}
+                                {isSwapMode ? 'Cancelar Troca' : 'Modo Troca Visual'}
+                            </button>
+                        </div>
                     </div>
+
+                    {isSwapMode && (
+                        <div style={{ background: '#DBEAFE', color: '#1E3A8A', padding: '16px 20px', borderRadius: '16px', marginBottom: '24px', display: 'flex', alignItems: 'center', gap: '12px', fontWeight: 'bold' }}>
+                            <ArrowLeftRight size={20} />
+                            {!swapOrigin
+                                ? 'Passo 1: Clique diretamente na grelha no turno que quer alterar.'
+                                : `Passo 2: Clique no turno pelo qual pretende trocar o turno de ${swapOrigin.empName.split(' ')[0]}.`}
+                        </div>
+                    )}
 
                     {/* Legenda compacta */}
                     <div className={escStyles.legend}>
@@ -118,7 +188,7 @@ export default function AdminEscalasPage() {
                         <span className={escStyles.folgaLegend}>— Folga</span>
                     </div>
 
-                    {scheduleData ? (
+                    {localSchedule ? (
                         <div className={escStyles.tableWrap}>
                             <table className={escStyles.table}>
                                 <thead>
@@ -136,7 +206,7 @@ export default function AdminEscalasPage() {
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    {scheduleData.sections.map((section, si) => (
+                                    {localSchedule.sections.map((section, si) => (
                                         <>
                                             {/* Section divider */}
                                             <tr key={`section-${si}`} className={escStyles.sectionRow}>
@@ -162,14 +232,33 @@ export default function AdminEscalasPage() {
                                                 return (
                                                     <tr key={`${si}-${ei}`} className={escStyles.empRow}>
                                                         <td className={escStyles.nameCell}>
-                                                            <span className={escStyles.empName}>{emp.name}</span>
+                                                            <span className={escStyles.empName}>{emp.name.split(' ')[0]}</span>
                                                             <span className={escStyles.empCode}>{emp.code}</span>
                                                         </td>
                                                         {codes.map((code, di) => {
                                                             const d = daysInMonth[di];
                                                             if (!d) return <td key={di} className={escStyles.cell}></td>;
+
+                                                            const isOrigin = swapOrigin && swapOrigin.sectionIdx === si && swapOrigin.empIdx === ei && swapOrigin.dayIdx === di;
+                                                            const formattedDate = `${selectedYear}-${String(selectedMonth + 1).padStart(2, '0')}-${String(d.num).padStart(2, '0')}`;
+
                                                             return (
-                                                                <td key={di} className={`${escStyles.cell} ${getCellClass(code)} ${d.isWeekend ? escStyles.weekendC : ''} ${d.isToday ? escStyles.todayC : ''} ${d.dow === 0 ? escStyles.sundayBorder : ''}`}>
+                                                                <td
+                                                                    key={di}
+                                                                    onClick={() => handleCellClick(si, ei, di, code, emp.name, formattedDate)}
+                                                                    className={`
+                                                                        ${escStyles.cell} 
+                                                                        ${getCellClass(code)} 
+                                                                        ${d.isWeekend ? escStyles.weekendC : ''} 
+                                                                        ${d.isToday ? escStyles.todayC : ''} 
+                                                                        ${d.dow === 0 ? escStyles.sundayBorder : ''}
+                                                                    `}
+                                                                    style={{
+                                                                        cursor: isSwapMode ? 'pointer' : 'default',
+                                                                        border: isOrigin ? '2px dashed #3B82F6' : undefined,
+                                                                        opacity: isSwapMode && !isOrigin && swapOrigin ? 0.7 : 1,
+                                                                    }}
+                                                                >
                                                                     {getCellText(code)}
                                                                 </td>
                                                             );
@@ -190,6 +279,41 @@ export default function AdminEscalasPage() {
                             <Calendar size={40} />
                             <h3>Sem escala para {monthName}</h3>
                             <p>Os meses de Fevereiro e Março de 2026 têm escala real carregada.</p>
+                        </div>
+                    )}
+
+                    {/* Modal de Confirmação de Troca Visual */}
+                    {showConfirmModal && swapOrigin && swapDest && (
+                        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center' }} onClick={() => { setSwapDest(null); setShowConfirmModal(false); }}>
+                            <div style={{ background: 'white', padding: '32px', borderRadius: '24px', maxWidth: '400px', width: '90%', boxShadow: '0 20px 40px rgba(0,0,0,0.2)' }} onClick={e => e.stopPropagation()}>
+                                <h2 style={{ display: 'flex', alignItems: 'center', gap: '12px', margin: '0 0 24px 0', fontSize: '20px', color: '#0F172A' }}>
+                                    <ArrowLeftRight color="#3B82F6" />
+                                    Confirmar Troca?
+                                </h2>
+
+                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '32px', padding: '16px', background: '#F8FAFC', borderRadius: '16px' }}>
+                                    <div style={{ textAlign: 'center', width: '40%' }}>
+                                        <div style={{ fontWeight: 'bold', color: '#1E293B', marginBottom: '4px' }}>{swapOrigin.empName.split(' ')[0]}</div>
+                                        <div style={{ fontSize: '12px', color: '#64748B', marginBottom: '8px' }}>Dia {parseInt(swapOrigin.dateStr.split('-')[2])}</div>
+                                        <div className={`${escStyles[getCellClass(swapOrigin.code)] || escStyles.folga}`} style={{ padding: '6px 12px', borderRadius: '8px', fontWeight: 'bold', display: 'inline-block', border: '1px solid #E2E8F0', background: !swapOrigin.code ? '#F1F5F9' : undefined }}>{swapOrigin.code || 'Folga'}</div>
+                                    </div>
+
+                                    <ArrowLeftRight size={24} color="#94A3B8" />
+
+                                    <div style={{ textAlign: 'center', width: '40%' }}>
+                                        <div style={{ fontWeight: 'bold', color: '#1E293B', marginBottom: '4px' }}>{swapDest.empName.split(' ')[0]}</div>
+                                        <div style={{ fontSize: '12px', color: '#64748B', marginBottom: '8px' }}>Dia {parseInt(swapDest.dateStr.split('-')[2])}</div>
+                                        <div className={`${escStyles[getCellClass(swapDest.code)] || escStyles.folga}`} style={{ padding: '6px 12px', borderRadius: '8px', fontWeight: 'bold', display: 'inline-block', border: '1px solid #E2E8F0', background: !swapDest.code ? '#F1F5F9' : undefined }}>{swapDest.code || 'Folga'}</div>
+                                    </div>
+                                </div>
+
+                                <div style={{ display: 'flex', gap: '12px' }}>
+                                    <button onClick={() => { setSwapDest(null); setShowConfirmModal(false); }} style={{ flex: 1, padding: '14px', borderRadius: '12px', border: 'none', background: '#F1F5F9', color: '#475569', fontWeight: 'bold', cursor: 'pointer' }}>Cancelar</button>
+                                    <button onClick={confirmSwap} style={{ flex: 1, padding: '14px', borderRadius: '12px', border: 'none', background: '#3B82F6', color: 'white', fontWeight: 'bold', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
+                                        <Check size={18} /> Trocar Turnos
+                                    </button>
+                                </div>
+                            </div>
                         </div>
                     )}
                 </div>
