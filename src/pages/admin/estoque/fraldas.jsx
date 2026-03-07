@@ -11,7 +11,7 @@ import { useApp } from '@/pages/_app';
 import { useData } from '@/contexts/DataContext';
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
-import { Baby, Plus, X, ArrowLeft, RefreshCw, Box, TableProperties, ChevronLeft, ChevronRight, CheckCircle2, Download } from 'lucide-react';
+import { Baby, Plus, X, ArrowLeft, RefreshCw, Box, TableProperties, ChevronLeft, ChevronRight, CheckCircle2, Download, Clock, User } from 'lucide-react';
 
 // Helper for local YYYY-MM-DD
 const toISODate = (d) => {
@@ -31,7 +31,7 @@ export default function FraldasPage() {
     } = useData();
 
     // TABS
-    const [activeTab, setActiveTab] = useState('tabela'); // tabela | deposito
+    const [activeTab, setActiveTab] = useState('tabela'); // tabela | deposito | diarias
 
     // Formulários e Modais
     const [showDepotForm, setShowDepotForm] = useState(false);
@@ -52,6 +52,13 @@ export default function FraldasPage() {
     // Gestão da Semana Visível
     const todayStr = toISODate(new Date());
     const [weekOffset, setWeekOffset] = useState(0);
+    const [dayOffset, setDayOffset] = useState(0); // Para a aba 'Diárias'
+
+    const selectedDay = useMemo(() => {
+        const d = new Date();
+        d.setDate(d.getDate() + dayOffset);
+        return d;
+    }, [dayOffset]);
 
     const weekDates = useMemo(() => {
         const d = new Date();
@@ -76,6 +83,10 @@ export default function FraldasPage() {
         if (diaperLogs) {
             diaperLogs.forEach(log => {
                 if (!log.date) return;
+                // Só consideramos refill de armazém paras as stats da tabela? 
+                // A tabela anterior funcionava com amountAdded. Vamos manter compatibility with usage and addition.
+                if (log.type === 'usage') return; // Os cartões de gasto total da tabela usavam o consumo mas agora temos usage real. Wait, a tabela conta os 10 que vão pro quarto.
+
                 const logMonthStr = log.date.slice(0, 7);
                 if (logMonthStr === focusMonthStr) {
                     if (!stats[log.patientId]) stats[log.patientId] = 0;
@@ -85,6 +96,13 @@ export default function FraldasPage() {
         }
         return { stats, focusMonthStr };
     }, [diaperLogs, weekDates]);
+
+    // Diaper usages of the selected day
+    const usagesForSelectedDay = useMemo(() => {
+        const dateStr = toISODate(selectedDay);
+        if (!diaperLogs) return [];
+        return diaperLogs.filter(l => l.type === 'usage' && l.date === dateStr).sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+    }, [diaperLogs, selectedDay]);
 
     // EXPORT PDF
     const exportPDF = (patient = null) => {
@@ -99,7 +117,7 @@ export default function FraldasPage() {
         doc.text(`Mês de Referência: ${focusMonthName}`, 14, 30);
         doc.text(`Data de Emissão: ${new Date().toLocaleDateString('pt-PT')} às ${new Date().toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' })}`, 14, 36);
 
-        let targetPatients = patient ? [patient] : diaperPatients;
+        let targetPatients = patient ? [patient] : [...new Map(diaperPatients.map(p => [p.name.toLowerCase().trim(), p])).values()].sort((a, b) => a.name.localeCompare(b.name));
         if (!targetPatients || targetPatients.length === 0) {
             alert("Não há dados para exportar.");
             return;
@@ -257,7 +275,13 @@ export default function FraldasPage() {
                             onClick={() => setActiveTab('tabela')}
                             style={{ padding: '12px 20px', border: 'none', background: 'transparent', cursor: 'pointer', borderBottom: activeTab === 'tabela' ? '3px solid #0071E3' : '3px solid transparent', fontWeight: activeTab === 'tabela' ? 700 : 500, color: activeTab === 'tabela' ? '#0071E3' : '#6B7280', display: 'flex', alignItems: 'center', gap: '8px' }}
                         >
-                            <TableProperties size={18} /> Grelha de Reposição Semanal
+                            <TableProperties size={18} /> Reposição Semanal
+                        </button>
+                        <button
+                            onClick={() => setActiveTab('diarias')}
+                            style={{ padding: '12px 20px', border: 'none', background: 'transparent', cursor: 'pointer', borderBottom: activeTab === 'diarias' ? '3px solid #0071E3' : '3px solid transparent', fontWeight: activeTab === 'diarias' ? 700 : 500, color: activeTab === 'diarias' ? '#0071E3' : '#6B7280', display: 'flex', alignItems: 'center', gap: '8px' }}
+                        >
+                            <Clock size={18} /> Fraldas Usadas no Dia
                         </button>
                         <button
                             onClick={() => setActiveTab('deposito')}
@@ -360,7 +384,7 @@ export default function FraldasPage() {
                                         </tr>
                                     </thead>
                                     <tbody>
-                                        {diaperPatients && diaperPatients.length > 0 ? diaperPatients.map(patient => {
+                                        {diaperPatients && diaperPatients.length > 0 ? [...new Map(diaperPatients.map(p => [p.name.toLowerCase().trim(), p])).values()].sort((a, b) => a.name.localeCompare(b.name)).map(patient => {
                                             const diaperType = diaperInventory.find(d => d.id === patient.diaperId);
 
                                             return (
@@ -448,6 +472,66 @@ export default function FraldasPage() {
                         </div>
                     )}
 
+                    {/* ---- ABA DIÁRIAS (USO) ---- */}
+                    {activeTab === 'diarias' && (
+                        <div>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', background: 'white', padding: '6px', borderRadius: '12px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
+                                    <button onClick={() => setDayOffset(w => w - 1)} style={{ background: 'transparent', border: 'none', padding: '6px', cursor: 'pointer', display: 'flex' }} title="Dia Anterior">
+                                        <ChevronLeft size={20} color="#4B5563" />
+                                    </button>
+                                    <span style={{ fontWeight: 600, fontSize: '14px', color: '#111827', minWidth: '150px', textAlign: 'center' }}>
+                                        {selectedDay.toLocaleDateString('pt-PT', { weekday: 'long', day: '2-digit', month: 'long' })}
+                                    </span>
+                                    <button onClick={() => setDayOffset(w => w + 1)} style={{ background: 'transparent', border: 'none', padding: '6px', cursor: 'pointer', display: 'flex' }} title="Dia Seguinte">
+                                        <ChevronRight size={20} color="#4B5563" />
+                                    </button>
+                                    <button onClick={() => setDayOffset(0)} style={{ background: '#F3F4F6', border: 'none', padding: '6px 12px', borderRadius: '8px', cursor: 'pointer', fontSize: '12px', fontWeight: 600, color: '#4B5563', marginLeft: '8px' }}>
+                                        Hoje
+                                    </button>
+                                </div>
+                            </div>
+
+                            {usagesForSelectedDay.length > 0 ? (
+                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '16px' }}>
+                                    {usagesForSelectedDay.map(log => {
+                                        const typeColor = diaperInventory.find(d => d.id === log.diaperId)?.origin === 'Própria' ? '#0369A1' : '#166534';
+                                        const typeBg = diaperInventory.find(d => d.id === log.diaperId)?.origin === 'Própria' ? '#E0F2FE' : '#DCFCE7';
+
+                                        return (
+                                            <div key={log.id} style={{ background: 'white', padding: '16px', borderRadius: '12px', border: '1px solid #E5E7EB', boxShadow: '0 1px 2px rgba(0,0,0,0.05)', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px dashed #E5E7EB', paddingBottom: '8px' }}>
+                                                    <span style={{ fontWeight: 800, color: '#111827', fontSize: '15px' }}>{log.patientName}</span>
+                                                    <span style={{ background: typeBg, color: typeColor, padding: '4px 8px', borderRadius: '8px', fontSize: '12px', fontWeight: 800 }}>
+                                                        {log.amountUsed} {log.amountUsed === 1 ? 'Fralda' : 'Fraldas'}
+                                                    </span>
+                                                </div>
+                                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '4px' }}>
+                                                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#6B7280', fontSize: '13px' }}>
+                                                        <Clock size={14} /> {log.time}
+                                                    </div>
+                                                    <div style={{ fontSize: '13px', color: '#4B5563', fontWeight: 500 }}>
+                                                        Por: <span style={{ color: '#0071E3' }}>{log.executorName || 'Equipa'}</span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        )
+                                    })}
+                                </div>
+                            ) : (
+                                <div className={formStyles.emptyState} style={{ background: 'white', border: '1px dashed #E5E7EB', marginTop: '16px' }}>
+                                    <Baby size={40} style={{ opacity: 0.3, marginBottom: '16px' }} />
+                                    <h3 style={{ margin: '0 0 8px 0', fontSize: '16px', color: '#374151' }}>Sem Mudas Registadas</h3>
+                                    <p style={{ margin: 0, color: '#6B7280', fontSize: '14px' }}>Não foram declaradas mudas de fraldas neste dia.</p>
+                                </div>
+                            )}
+
+                            <div style={{ marginTop: '24px', fontSize: '13px', color: '#6B7280', display: 'flex', gap: '16px' }}>
+                                <span>💡 <strong>Dica:</strong> Estas informações vêm do painel da equipa em tempo real.</span>
+                            </div>
+                        </div>
+                    )}
+
                     {/* ---- ABA DEPÓSITO ---- */}
                     {activeTab === 'deposito' && (
                         <div>
@@ -494,28 +578,27 @@ export default function FraldasPage() {
                                 </Card>
                             )}
 
-                            {/* Tabela de Deposito */}
-                            <div className={styles.tableWrapper}>
-                                {diaperInventory.length > 0 ? (
+                            {/* Tabela de Deposito - Estoque Casa */}
+                            <div className={styles.tableWrapper} style={{ marginBottom: '32px' }}>
+                                <h3 style={{ fontSize: '16px', color: '#166534', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '8px', padding: '0 10px' }}>
+                                    <Box size={18} /> Estoque Principal da Casa
+                                </h3>
+                                {diaperInventory.filter(i => i.origin === 'Casa').length > 0 ? (
                                     <table className={styles.table}>
                                         <thead>
                                             <tr>
                                                 <th>Nome da Fralda</th>
                                                 <th style={{ textAlign: 'center' }}>Restam no Depósito</th>
-                                                <th align="right">Atualização Rápida de Entradas e Saidas</th>
+                                                <th align="right">Atualização Rápida</th>
                                             </tr>
                                         </thead>
                                         <tbody>
-                                            {diaperInventory.map(item => (
+                                            {diaperInventory.filter(i => i.origin === 'Casa').map(item => (
                                                 <tr key={item.id}>
                                                     <td>
                                                         <span style={{ fontWeight: 600, fontSize: '15px', display: 'block' }}>{item.name}</span>
                                                         <span style={{ fontSize: '12px', color: '#6B7280', display: 'flex', alignItems: 'center', gap: '4px', marginTop: '4px' }}>
-                                                            {item.origin === 'Própria' ? (
-                                                                <span style={{ background: '#E0F2FE', color: '#0369A1', padding: '2px 6px', borderRadius: '4px', fontSize: '10px', fontWeight: 800 }}>PRÓPRIA: {item.patientName}</span>
-                                                            ) : (
-                                                                <span style={{ background: '#DCFCE7', color: '#166534', padding: '2px 6px', borderRadius: '4px', fontSize: '10px', fontWeight: 800 }}>DA CASA</span>
-                                                            )}
+                                                            <span style={{ background: '#DCFCE7', color: '#166534', padding: '2px 6px', borderRadius: '4px', fontSize: '10px', fontWeight: 800 }}>DA CASA</span>
                                                         </span>
                                                     </td>
                                                     <td style={{ textAlign: 'center' }}>
@@ -537,9 +620,56 @@ export default function FraldasPage() {
                                         </tbody>
                                     </table>
                                 ) : (
-                                    <div className={formStyles.emptyState}>
-                                        <Box size={40} style={{ opacity: 0.5, marginBottom: '16px' }} />
-                                        <h3>Sem Fraldas no Sistema</h3>
+                                    <div className={formStyles.emptyState} style={{ padding: '24px' }}>
+                                        <p style={{ margin: 0, color: '#6B7280' }}>Sem referências da casa.</p>
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* Tabela de Deposito - Estoque Próprio */}
+                            <div className={styles.tableWrapper}>
+                                <h3 style={{ fontSize: '16px', color: '#0369A1', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '8px', padding: '0 10px' }}>
+                                    <User size={18} /> Estoque de Fraldas Próprias
+                                </h3>
+                                {diaperInventory.filter(i => i.origin === 'Própria').length > 0 ? (
+                                    <table className={styles.table}>
+                                        <thead>
+                                            <tr>
+                                                <th>Nome da Fralda</th>
+                                                <th style={{ textAlign: 'center' }}>Restam no Depósito</th>
+                                                <th align="right">Atualização Rápida</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {diaperInventory.filter(i => i.origin === 'Própria').map(item => (
+                                                <tr key={item.id}>
+                                                    <td>
+                                                        <span style={{ fontWeight: 600, fontSize: '15px', display: 'block' }}>{item.name}</span>
+                                                        <span style={{ fontSize: '12px', color: '#6B7280', display: 'flex', alignItems: 'center', gap: '4px', marginTop: '4px' }}>
+                                                            <span style={{ background: '#E0F2FE', color: '#0369A1', padding: '2px 6px', borderRadius: '4px', fontSize: '10px', fontWeight: 800 }}>PRÓPRIA: {item.patientName}</span>
+                                                        </span>
+                                                    </td>
+                                                    <td style={{ textAlign: 'center' }}>
+                                                        <div style={{ display: 'inline-block', background: '#F3F4F6', padding: '6px 20px', borderRadius: '16px', fontWeight: 800, fontSize: '18px', color: item.stockDepot < 30 ? '#EF4444' : '#111827' }}>
+                                                            {item.stockDepot}
+                                                        </div>
+                                                    </td>
+                                                    <td align="right">
+                                                        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
+                                                            <button title="-10" onClick={() => handleUpdateDepot(item.id, -10)} style={{ border: 'none', background: '#FEE2E2', color: '#EF4444', height: '36px', width: '36px', borderRadius: '8px', cursor: 'pointer', fontWeight: 800 }}>-10</button>
+                                                            <button title="-1" onClick={() => handleUpdateDepot(item.id, -1)} style={{ border: 'none', background: '#FEE2E2', color: '#EF4444', height: '36px', width: '36px', borderRadius: '8px', cursor: 'pointer', fontWeight: 800 }}>-1</button>
+                                                            <button title="+1" onClick={() => handleUpdateDepot(item.id, 1)} style={{ border: 'none', background: '#E0F2FE', color: '#0284C7', height: '36px', width: '36px', borderRadius: '8px', cursor: 'pointer', fontWeight: 800 }}>+1</button>
+                                                            <button title="+10" onClick={() => handleUpdateDepot(item.id, 10)} style={{ border: 'none', background: '#E0F2FE', color: '#0284C7', height: '36px', width: '36px', borderRadius: '8px', cursor: 'pointer', fontWeight: 800 }}>+10</button>
+                                                            <button title="+Pacote (50)" onClick={() => handleUpdateDepot(item.id, 50)} style={{ border: 'none', background: '#E0F2FE', color: '#0369A1', padding: '0 16px', borderRadius: '8px', cursor: 'pointer', fontWeight: 800 }}>+Pacotão</button>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                ) : (
+                                    <div className={formStyles.emptyState} style={{ padding: '24px' }}>
+                                        <p style={{ margin: 0, color: '#6B7280' }}>Sem referências de fraldas próprias.</p>
                                     </div>
                                 )}
                             </div>

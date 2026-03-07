@@ -1,12 +1,15 @@
 import Link from 'next/link';
 import { useRouter } from 'next/router';
 import styles from './BottomNav.module.css';
-import { Home, Calendar, ClipboardList, Settings, Users, Clock, CalendarDays, CheckSquare } from 'lucide-react';
+import { Home, Calendar, ClipboardList, Settings, Users, Clock, CalendarDays, CheckSquare, Baby, Box } from 'lucide-react';
+import { useApp } from '@/pages/_app';
+import { useData } from '@/contexts/DataContext';
 
 const employeeNavItems = [
     { href: '/funcionario', icon: Home, label: 'Início' },
     { href: '/funcionario/presenca', icon: Clock, label: 'Ponto' },
     { href: '/funcionario/tarefas', icon: ClipboardList, label: 'Tarefas' },
+    { href: '/funcionario/fraldas', icon: Baby, label: 'Fraldas' },
     { href: '/funcionario/escala', icon: Calendar, label: 'Escala' },
 ];
 
@@ -19,7 +22,26 @@ const adminNavItems = [
 
 export default function BottomNav({ isAdmin = false }) {
     const router = useRouter();
-    const navItems = isAdmin ? adminNavItems : employeeNavItems;
+    const { currentUser } = useApp();
+    const { dailyPlans, isHydrated } = useData();
+
+    let currentEmployeeNavItems = [...employeeNavItems];
+
+    if (!isAdmin && currentUser && isHydrated && dailyPlans) {
+        const tzOffset = (new Date()).getTimezoneOffset() * 60000;
+        const todayStr = (new Date(Date.now() - tzOffset)).toISOString().slice(0, 10);
+        const todayPlan = dailyPlans[todayStr];
+
+        if (todayPlan && todayPlan.assignments && todayPlan.assignments['G_RepFraldas'] === currentUser.id) {
+            // Add "Reposição Fraldas" right after Fraldas
+            const fraldasIndex = currentEmployeeNavItems.findIndex(i => i.href === '/funcionario/fraldas');
+            if (fraldasIndex >= 0) {
+                currentEmployeeNavItems.splice(fraldasIndex + 1, 0, { href: '/funcionario/reposicao-fraldas', icon: Box, label: 'Repor' });
+            }
+        }
+    }
+
+    const navItems = isAdmin ? adminNavItems : currentEmployeeNavItems;
 
     return (
         <nav className={styles.nav}>

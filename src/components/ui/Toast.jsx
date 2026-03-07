@@ -67,6 +67,9 @@ export default function ToastNotifications() {
                     setShownIds(prev => new Set([...prev, notif.id]));
                     setVisibleToasts(prev => [...prev, { ...notif, showing: true }]);
 
+                    // Marcar como lida na BD
+                    markNotificationRead(notif.id, userId);
+
                     // Auto-remove após duração
                     setTimeout(() => {
                         setVisibleToasts(prev => prev.filter(t => t.id !== notif.id));

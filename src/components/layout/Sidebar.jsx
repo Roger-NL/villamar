@@ -3,8 +3,10 @@ import { useRouter } from 'next/router';
 import styles from './Sidebar.module.css';
 import {
     Home, Clock, CalendarDays, CheckSquare, Users,
-    Settings, BarChart3, ArrowLeftRight, FileText, CalendarRange, Package
+    Settings, BarChart3, ArrowLeftRight, FileText, CalendarRange, Package, Baby, Box
 } from 'lucide-react';
+import { useApp } from '@/pages/_app';
+import { useData } from '@/contexts/DataContext';
 
 const adminSidebarItems = [
     {
@@ -36,6 +38,7 @@ const employeeSidebarItems = [
     {
         section: 'Minha Área', items: [
             { href: '/funcionario', icon: Home, label: 'Início' },
+            { href: '/funcionario/fraldas', icon: Baby, label: 'Muda de Fraldas' },
             { href: '/funcionario/escala', icon: CalendarDays, label: 'Minha Escala' },
             { href: '/funcionario/tarefas', icon: CheckSquare, label: 'Minhas Tarefas' },
             { href: '/funcionario/presenca', icon: Clock, label: 'Meu Ponto' },
@@ -50,7 +53,33 @@ const employeeSidebarItems = [
 
 export default function Sidebar({ isAdmin = false }) {
     const router = useRouter();
-    const sidebarItems = isAdmin ? adminSidebarItems : employeeSidebarItems;
+    const { currentUser } = useApp();
+    const { dailyPlans, isHydrated } = useData();
+
+    // Dynamically build employee items
+    let currentEmployeeItems = employeeSidebarItems.map(section => ({
+        section: section.section,
+        items: [...section.items]
+    }));
+
+    if (!isAdmin && currentUser && isHydrated && dailyPlans) {
+        const tzOffset = (new Date()).getTimezoneOffset() * 60000;
+        const todayStr = (new Date(Date.now() - tzOffset)).toISOString().slice(0, 10);
+        const todayPlan = dailyPlans[todayStr];
+
+        if (todayPlan && todayPlan.assignments && todayPlan.assignments['G_RepFraldas'] === currentUser.id) {
+            // Add "Reposição Fraldas" right after Muda de Fraldas
+            const minArea = currentEmployeeItems.find(s => s.section === 'Minha Área');
+            if (minArea) {
+                const fraldasIndex = minArea.items.findIndex(i => i.href === '/funcionario/fraldas');
+                minArea.items.splice(fraldasIndex + 1, 0, {
+                    href: '/funcionario/reposicao-fraldas', icon: Box, label: 'Repor Fraldas'
+                });
+            }
+        }
+    }
+
+    const sidebarItems = isAdmin ? adminSidebarItems : currentEmployeeItems;
 
     return (
         <aside className={styles.sidebar}>

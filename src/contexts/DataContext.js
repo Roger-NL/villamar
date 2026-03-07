@@ -458,7 +458,23 @@ export function DataProvider({ children }) {
     const getScheduleForMonth = (year, month) => {
         const key = `${year}-${String(month + 1).padStart(2, '0')}`;
         // Retorna escala guardada, ou escala real pré-construída do Excel, ou null
-        return savedSchedules[key] || getPrebuiltSchedule(year, month) || null;
+        let schedule = savedSchedules[key] || getPrebuiltSchedule(year, month) || null;
+
+        // Mapear escala do Roger (ID 9 fake) para o Roger real (Firebase UID)
+        if (schedule && schedule.schedules) {
+            const firebaseRoger = employees?.find(e => e.name?.toLowerCase().includes('roger') && e.id !== 9 && e.id !== '9');
+            if (firebaseRoger && schedule.schedules[9] && !schedule.schedules[firebaseRoger.id]) {
+                schedule = {
+                    ...schedule,
+                    schedules: {
+                        ...schedule.schedules,
+                        [firebaseRoger.id]: schedule.schedules[9]
+                    }
+                };
+            }
+        }
+
+        return schedule;
     };
 
     const updateShift = async (year, month, employeeId, dateStr, newShift) => {
