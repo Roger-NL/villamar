@@ -15,7 +15,6 @@ const adminSidebarItems = [
             { href: '/admin/presencas', icon: Clock, label: 'Presenças' },
             { href: '/admin/escalas', icon: CalendarDays, label: 'Escalas' },
             { href: '/admin/tarefas', icon: CalendarDays, label: 'Plano Tarefas' },
-            { href: '/funcionario/tarefas', icon: CheckSquare, label: 'Minhas Tarefas' },
         ]
     },
     {
