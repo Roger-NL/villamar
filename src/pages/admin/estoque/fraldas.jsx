@@ -83,14 +83,16 @@ export default function FraldasPage() {
         if (diaperLogs) {
             diaperLogs.forEach(log => {
                 if (!log.date) return;
-                // Só consideramos refill de armazém paras as stats da tabela? 
-                // A tabela anterior funcionava com amountAdded. Vamos manter compatibility with usage and addition.
-                if (log.type === 'usage') return; // Os cartões de gasto total da tabela usavam o consumo mas agora temos usage real. Wait, a tabela conta os 10 que vão pro quarto.
 
                 const logMonthStr = log.date.slice(0, 7);
                 if (logMonthStr === focusMonthStr) {
-                    if (!stats[log.patientId]) stats[log.patientId] = 0;
-                    stats[log.patientId] += Number(log.amountAdded || 0);
+                    if (!stats[log.patientId]) stats[log.patientId] = { added: 0, used: 0 };
+
+                    if (log.type === 'usage') {
+                        stats[log.patientId].used += Number(log.amountUsed || 0);
+                    } else {
+                        stats[log.patientId].added += Number(log.amountAdded || 0);
+                    }
                 }
             });
         }
@@ -128,9 +130,8 @@ export default function FraldasPage() {
 
         targetPatients.forEach(p => {
             const diaperType = diaperInventory.find(d => d.id === p.diaperId);
-            const total = monthStats.stats[p.id] || 0;
-            const fraldaNome = diaperType ? diaperType.name : 'Sem fralda';
-            const prop = p.origin === 'Própria' ? 'Própria do Utente' : 'Fornecido pela Casa';
+            const patientStats = monthStats.stats[p.id] || { added: 0, used: 0 };
+            const total = Math.max(patientStats.added, patientStats.used); // Use whichever is higher, or just show used if they don't do refills.
 
             tableRows.push([
                 p.name,
@@ -402,45 +403,59 @@ export default function FraldasPage() {
                                                     {weekDates.map(d => {
                                                         const dateStr = toISODate(d);
                                                         const isFuture = dateStr > todayStr;
-                                                        const log = diaperLogs?.find(l => l.patientId === patient.id && l.date === dateStr);
+
+                                                        const dayLogs = diaperLogs?.filter(l => l.patientId === patient.id && l.date === dateStr) || [];
+                                                        const refillLog = dayLogs.find(l => l.type !== 'usage' && l.amountAdded !== undefined);
+                                                        const usageLogs = dayLogs.filter(l => l.type === 'usage');
+                                                        const totalUsed = usageLogs.reduce((sum, l) => sum + Number(l.amountUsed || 0), 0);
 
                                                         return (
                                                             <td key={dateStr} style={{ padding: '12px 8px', textAlign: 'center', background: dateStr === todayStr ? '#FEFCE8' : 'transparent', borderRight: '1px solid #F3F4F6', verticalAlign: 'middle' }}>
-                                                                {log ? (
-                                                                    <div title={`Confirmado por ${log.executorName || 'Admin'}`} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', cursor: 'pointer' }}>
-                                                                        {log.amountAdded > 0 ? (
-                                                                            <div style={{ display: 'flex', alignItems: 'center', gap: '2px', background: '#DCFCE7', color: '#166534', padding: '4px 10px', borderRadius: '12px', fontWeight: 800, fontSize: '14px' }}>
-                                                                                +{log.amountAdded}
-                                                                            </div>
-                                                                        ) : (
-                                                                            <div style={{ display: 'flex', alignItems: 'center', gap: '2px', background: '#E5E7EB', color: '#4B5563', padding: '4px 10px', borderRadius: '12px', fontWeight: 600, fontSize: '14px' }}>
-                                                                                OK (10)
-                                                                            </div>
-                                                                        )}
-                                                                        <span style={{ fontSize: '11px', color: '#6B7280', marginTop: '6px', fontWeight: 500, display: 'flex', alignItems: 'center', gap: '2px' }}>
-                                                                            <CheckCircle2 size={10} color="#166534" />
-                                                                            {new Date(log.timestamp).toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' })}
-                                                                        </span>
-                                                                    </div>
-                                                                ) : isFuture ? (
-                                                                    <span style={{ color: '#D1D5DB' }}>-</span>
-                                                                ) : (
-                                                                    <button
-                                                                        onClick={() => setReplaceModal({ patient, date: dateStr })}
-                                                                        style={{ border: '1px dashed #9CA3AF', background: 'white', color: '#4B5563', padding: '6px', borderRadius: '6px', cursor: 'pointer', fontSize: '12px', width: '100%', transition: 'all 0.2s' }}
-                                                                        onMouseEnter={e => { e.currentTarget.style.borderColor = '#0071E3'; e.currentTarget.style.color = '#0071E3'; }}
-                                                                        onMouseLeave={e => { e.currentTarget.style.borderColor = '#9CA3AF'; e.currentTarget.style.color = '#4B5563'; }}
-                                                                    >
-                                                                        {dateStr === todayStr ? 'Repor' : 'Atrasado'}
-                                                                    </button>
-                                                                )}
+                                                                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
+                                                                    {refillLog ? (
+                                                                        <div title={`Confirmado por ${refillLog.executorName || 'Admin'}`} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', cursor: 'pointer' }}>
+                                                                            {refillLog.amountAdded > 0 ? (
+                                                                                <div style={{ display: 'flex', alignItems: 'center', gap: '2px', background: '#DCFCE7', color: '#166534', padding: '4px 10px', borderRadius: '12px', fontWeight: 800, fontSize: '14px' }}>
+                                                                                    +{refillLog.amountAdded}
+                                                                                </div>
+                                                                            ) : (
+                                                                                <div style={{ display: 'flex', alignItems: 'center', gap: '2px', background: '#E5E7EB', color: '#4B5563', padding: '4px 10px', borderRadius: '12px', fontWeight: 600, fontSize: '14px' }}>
+                                                                                    OK (10)
+                                                                                </div>
+                                                                            )}
+                                                                            <span style={{ fontSize: '11px', color: '#6B7280', marginTop: '6px', fontWeight: 500, display: 'flex', alignItems: 'center', gap: '2px' }}>
+                                                                                <CheckCircle2 size={10} color="#166534" />
+                                                                                {refillLog.timestamp ? new Date(refillLog.timestamp).toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' }) : (refillLog.time || '')}
+                                                                            </span>
+                                                                        </div>
+                                                                    ) : isFuture ? (
+                                                                        <span style={{ color: '#D1D5DB' }}>{totalUsed === 0 ? '-' : ''}</span>
+                                                                    ) : (
+                                                                        <button
+                                                                            onClick={() => setReplaceModal({ patient, date: dateStr })}
+                                                                            style={{ border: '1px dashed #9CA3AF', background: 'white', color: '#4B5563', padding: '6px', borderRadius: '6px', cursor: 'pointer', fontSize: '12px', width: '100%', transition: 'all 0.2s' }}
+                                                                            onMouseEnter={e => { e.currentTarget.style.borderColor = '#0071E3'; e.currentTarget.style.color = '#0071E3'; }}
+                                                                            onMouseLeave={e => { e.currentTarget.style.borderColor = '#9CA3AF'; e.currentTarget.style.color = '#4B5563'; }}
+                                                                        >
+                                                                            {dateStr === todayStr ? 'Repor' : 'Atrasado'}
+                                                                        </button>
+                                                                    )}
+
+                                                                    {totalUsed > 0 && (
+                                                                        <div style={{ display: 'flex', alignItems: 'center', gap: '2px', background: '#FEE2E2', color: '#EF4444', padding: '4px 10px', borderRadius: '12px', fontWeight: 800, fontSize: '14px' }} title={`${totalUsed} fraldas usadas`}>
+                                                                            -{totalUsed}
+                                                                        </div>
+                                                                    )}
+                                                                </div>
                                                             </td>
                                                         )
                                                     })}
 
                                                     <td style={{ padding: '16px', textAlign: 'center', background: '#F9FAFB', borderLeft: '1px solid #E5E7EB', verticalAlign: 'middle' }}>
                                                         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%' }}>
-                                                            <span style={{ fontSize: '20px', fontWeight: 800, color: '#111827' }}>{monthStats.stats[patient.id] || 0}</span>
+                                                            <span style={{ fontSize: '20px', fontWeight: 800, color: '#111827' }}>
+                                                                {Math.max((monthStats.stats[patient.id]?.added || 0), (monthStats.stats[patient.id]?.used || 0))}
+                                                            </span>
                                                             <span style={{ fontSize: '11px', color: '#6B7280', marginBottom: '8px' }}>gastas</span>
                                                             <button
                                                                 onClick={() => exportPDF(patient)}
