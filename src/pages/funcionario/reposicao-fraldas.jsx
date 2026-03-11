@@ -17,6 +17,7 @@ export default function FraldasReposicaoFuncionarioPage() {
 
     const [toast, setToast] = useState('');
     const [replaceModal, setReplaceModal] = useState(null);
+    const [selectedReplenishDiaperId, setSelectedReplenishDiaperId] = useState('');
     const [currentRoomStock, setCurrentRoomStock] = useState('');
 
     const hasAccess = useMemo(() => {
@@ -49,7 +50,7 @@ export default function FraldasReposicaoFuncionarioPage() {
 
         const requiredAmount = 10 - currentInRoom;
         const inventory = diaperInventory || [];
-        const diaperType = inventory.find(d => d.id === patient.diaperId);
+        const diaperType = inventory.find(d => d.id === selectedReplenishDiaperId);
         const todayStr = new Date().toISOString().split('T')[0];
 
         // Se houve divergência entre sistema e físico (vistoria)
@@ -164,7 +165,10 @@ export default function FraldasReposicaoFuncionarioPage() {
                             return (
                                 <button
                                     key={p.id}
-                                    onClick={() => setReplaceModal(p)}
+                                    onClick={() => {
+                                        setReplaceModal(p);
+                                        setSelectedReplenishDiaperId(p.diaperId);
+                                    }}
                                     style={{
                                         background: 'white', padding: '16px', borderRadius: '16px', border: '1px solid #E5E7EB', display: 'flex', flexDirection: 'column', alignItems: 'center',
                                         boxShadow: '0 2px 4px rgba(0,0,0,0.05)', cursor: 'pointer', transition: 'all 0.2s', textAlign: 'center'
@@ -250,11 +254,34 @@ export default function FraldasReposicaoFuncionarioPage() {
                                     autoFocus
                                 />
                                 {currentRoomStock !== '' && (
-                                    <div style={{ marginTop: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', color: '#0284c7', background: '#f0f9ff', padding: '12px', borderRadius: '12px' }}>
-                                        <AlertCircle size={20} />
-                                        <span style={{ fontSize: '15px' }}>O sistema vai repor: </span>
-                                        <span style={{ fontWeight: 800, fontSize: '24px' }}>+{10 - Number(currentRoomStock)} uni.</span>
-                                    </div>
+                                    <>
+                                        <div style={{ marginTop: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', color: '#0284c7', background: '#f0f9ff', padding: '12px', borderRadius: '12px' }}>
+                                            <AlertCircle size={20} />
+                                            <span style={{ fontSize: '15px' }}>O sistema vai repor: </span>
+                                            <span style={{ fontWeight: 800, fontSize: '24px' }}>+{10 - Number(currentRoomStock)} uni.</span>
+                                        </div>
+
+                                        {10 - Number(currentRoomStock) > 0 && (
+                                            <div style={{ marginTop: '20px', textAlign: 'left', padding: '16px', borderRadius: '16px', border: '1px solid #e2e8f0', background: '#f8fafc' }}>
+                                                <label style={{ display: 'block', fontSize: '13px', fontWeight: 'bold', color: '#64748b', marginBottom: '8px', textTransform: 'uppercase' }}>
+                                                    Qual fralda colocou no armário?
+                                                </label>
+                                                <select
+                                                    value={selectedReplenishDiaperId}
+                                                    onChange={e => setSelectedReplenishDiaperId(e.target.value)}
+                                                    style={{ width: '100%', padding: '14px', borderRadius: '12px', border: '1px solid #cbd5e1', fontSize: '15px', fontWeight: 'bold', color: '#0f172a', background: 'white', cursor: 'pointer' }}
+                                                    required
+                                                >
+                                                    {replaceModal.origin === 'Própria' && (
+                                                        <option value={replaceModal.diaperId}>Fraldas Próprias (do Utente)</option>
+                                                    )}
+                                                    {diaperInventory?.filter(d => d.origin === 'Casa').map(d => (
+                                                        <option key={d.id} value={d.id}>Fralda da Casa: {d.name}</option>
+                                                    ))}
+                                                </select>
+                                            </div>
+                                        )}
+                                    </>
                                 )}
                             </div>
 

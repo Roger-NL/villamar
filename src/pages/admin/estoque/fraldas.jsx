@@ -35,7 +35,7 @@ export default function FraldasPage() {
 
     // Formulários e Modais
     const [showDepotForm, setShowDepotForm] = useState(false);
-    const [depotForm, setDepotForm] = useState({ name: '', initialStock: 0, origin: 'Casa', patientName: '' });
+    const [depotForm, setDepotForm] = useState({ name: '', stockDepot: 0, origin: 'Casa', patientName: '' });
 
     const [showPatientForm, setShowPatientForm] = useState(false);
     const [patientForm, setPatientForm] = useState({ name: '', diaperId: '', origin: 'Casa' });
@@ -167,11 +167,11 @@ export default function FraldasPage() {
         addInventoryItem({
             name: depotForm.name.trim(),
             category: 'fralda',
-            stockDepot: Number(depotForm.initialStock) || 0,
+            stockDepot: 0,
             origin: depotForm.origin || 'Casa',
-            patientName: depotForm.origin === 'Própria' ? depotForm.patientName.trim() : null
+            patientName: depotForm.origin === 'Própria' ? depotForm.patientName : null
         });
-        setDepotForm({ name: '', initialStock: 0, origin: 'Casa', patientName: '' });
+        setDepotForm({ name: '', stockDepot: 0, origin: 'Casa', patientName: '' });
         setShowDepotForm(false);
     };
 
@@ -607,7 +607,12 @@ export default function FraldasPage() {
                                         <div className={formStyles.rowFormGroup}>
                                             <div className={formStyles.formGroup} style={{ flex: 1 }}>
                                                 <label>Nome do Tamanho/Modelo *</label>
-                                                <input type="text" value={depotForm.name} onChange={e => setDepotForm({ ...depotForm, name: e.target.value })} required placeholder="Ex: Fralda Cueca TAM M" />
+                                                <select value={depotForm.name} onChange={e => setDepotForm({ ...depotForm, name: e.target.value })} required>
+                                                    <option value="">Selecione o tamanho...</option>
+                                                    <option value="cuecas P pequena">cuecas P pequena</option>
+                                                    <option value="cuecas M média">cuecas M média</option>
+                                                    <option value="cuecas L larga">cuecas L larga</option>
+                                                </select>
                                             </div>
                                             <div className={formStyles.formGroup} style={{ flex: 1 }}>
                                                 <label>Propriedade *</label>
@@ -617,19 +622,24 @@ export default function FraldasPage() {
                                                 </select>
                                             </div>
                                         </div>
-                                        <div className={formStyles.rowFormGroup}>
-                                            <div className={formStyles.formGroup} style={{ flex: 1 }}>
-                                                <label>Estoque Atual na Prateleira *</label>
-                                                <input type="number" min="0" value={depotForm.initialStock} onChange={e => setDepotForm({ ...depotForm, initialStock: e.target.value })} required />
-                                            </div>
-                                            {depotForm.origin === 'Própria' && (
+
+                                        {depotForm.origin === 'Própria' && (
+                                            <div className={formStyles.rowFormGroup}>
                                                 <div className={formStyles.formGroup} style={{ flex: 1 }}>
                                                     <label>Nome do Utente *</label>
-                                                    <input type="text" value={depotForm.patientName} onChange={e => setDepotForm({ ...depotForm, patientName: e.target.value })} required placeholder="Ex: Sr. Joaquim" />
+                                                    <select value={depotForm.patientName} onChange={e => setDepotForm({ ...depotForm, patientName: e.target.value })} required>
+                                                        <option value="">Selecione o utente...</option>
+                                                        {diaperPatients && [...new Map(diaperPatients.map(p => [p.name.toLowerCase().trim(), p])).values()]
+                                                            .sort((a, b) => a.name.localeCompare(b.name))
+                                                            .map(p => (
+                                                                <option key={p.id} value={p.name}>{p.name}</option>
+                                                            ))}
+                                                    </select>
                                                 </div>
-                                            )}
-                                        </div>
-                                        <button type="submit" className={formStyles.btnPrimary} style={{ width: '100%', justifyContent: 'center', background: '#34C759' }}>Guardar no Site</button>
+                                            </div>
+                                        )}
+
+                                        <button type="submit" className={formStyles.btnPrimary} style={{ width: '100%', justifyContent: 'center', background: '#34C759' }}>Guardar Nova Referência</button>
                                     </form>
                                 </Card>
                             )}
