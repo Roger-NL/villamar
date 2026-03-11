@@ -634,98 +634,82 @@ export default function FraldasPage() {
                                 </Card>
                             )}
 
-                            {/* Tabela de Deposito - Estoque Casa */}
-                            <div className={styles.tableWrapper} style={{ marginBottom: '32px' }}>
-                                <h3 style={{ fontSize: '16px', color: '#166534', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '8px', padding: '0 10px' }}>
-                                    <Box size={18} /> Estoque Principal da Casa
+                            {/* Cards de Deposito - Estoque Casa */}
+                            <div style={{ marginBottom: '40px' }}>
+                                <h3 style={{ fontSize: '18px', color: '#166534', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                    <Box size={22} /> Fraldas da Casa
                                 </h3>
                                 {diaperInventory.filter(i => i.origin === 'Casa').length > 0 ? (
-                                    <table className={styles.table}>
-                                        <thead>
-                                            <tr>
-                                                <th>Nome da Fralda</th>
-                                                <th style={{ textAlign: 'center' }}>Restam no Depósito</th>
-                                                <th align="right">Atualização Rápida</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            {diaperInventory.filter(i => i.origin === 'Casa').map(item => (
-                                                <tr key={item.id}>
-                                                    <td>
-                                                        <span style={{ fontWeight: 600, fontSize: '15px', display: 'block' }}>{item.name}</span>
-                                                        <span style={{ fontSize: '12px', color: '#6B7280', display: 'flex', alignItems: 'center', gap: '4px', marginTop: '4px' }}>
-                                                            <span style={{ background: '#DCFCE7', color: '#166534', padding: '2px 6px', borderRadius: '4px', fontSize: '10px', fontWeight: 800 }}>DA CASA</span>
-                                                        </span>
-                                                    </td>
-                                                    <td style={{ textAlign: 'center' }}>
-                                                        <div style={{ display: 'inline-block', background: '#F3F4F6', padding: '6px 20px', borderRadius: '16px', fontWeight: 800, fontSize: '18px', color: item.stockDepot < 30 ? '#EF4444' : '#111827' }}>
-                                                            {item.stockDepot}
-                                                        </div>
-                                                    </td>
-                                                    <td align="right">
-                                                        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
-                                                            <button title="-10" onClick={() => handleUpdateDepot(item.id, -10)} style={{ border: 'none', background: '#FEE2E2', color: '#EF4444', height: '36px', width: '36px', borderRadius: '8px', cursor: 'pointer', fontWeight: 800 }}>-10</button>
-                                                            <button title="-1" onClick={() => handleUpdateDepot(item.id, -1)} style={{ border: 'none', background: '#FEE2E2', color: '#EF4444', height: '36px', width: '36px', borderRadius: '8px', cursor: 'pointer', fontWeight: 800 }}>-1</button>
-                                                            <button title="+1" onClick={() => handleUpdateDepot(item.id, 1)} style={{ border: 'none', background: '#DCFCE7', color: '#22C55E', height: '36px', width: '36px', borderRadius: '8px', cursor: 'pointer', fontWeight: 800 }}>+1</button>
-                                                            <button title="+10" onClick={() => handleUpdateDepot(item.id, 10)} style={{ border: 'none', background: '#DCFCE7', color: '#22C55E', height: '36px', width: '36px', borderRadius: '8px', cursor: 'pointer', fontWeight: 800 }}>+10</button>
-                                                            <button title="+Pacote (50)" onClick={() => handleUpdateDepot(item.id, 50)} style={{ border: 'none', background: '#DCFCE7', color: '#166534', padding: '0 16px', borderRadius: '8px', cursor: 'pointer', fontWeight: 800 }}>+Pacotão</button>
-                                                        </div>
-                                                    </td>
-                                                </tr>
-                                            ))}
-                                        </tbody>
-                                    </table>
+                                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '20px' }}>
+                                        {diaperInventory.filter(i => i.origin === 'Casa').map(item => (
+                                            <div key={item.id} style={{ background: 'white', padding: '20px', border: '1px solid #E5E7EB', borderRadius: '20px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)', display: 'flex', flexDirection: 'column' }}>
+                                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '20px' }}>
+                                                    <div>
+                                                        <h4 style={{ margin: '0 0 6px 0', fontSize: '18px', color: '#111827', fontWeight: '800' }}>{item.name}</h4>
+                                                        <span style={{ background: '#DCFCE7', color: '#166534', padding: '4px 10px', borderRadius: '8px', fontSize: '11px', fontWeight: 800 }}>ESTOQUE DA CASA</span>
+                                                    </div>
+                                                    <div style={{ background: item.stockDepot < 30 ? '#FEF2F2' : '#F3F4F6', border: item.stockDepot < 30 ? '1px solid #FECACA' : '1px solid transparent', padding: '12px 16px', borderRadius: '16px', textAlign: 'center', minWidth: '80px' }}>
+                                                        <span style={{ display: 'block', fontSize: '28px', fontWeight: 900, color: item.stockDepot < 30 ? '#EF4444' : '#111827', lineHeight: 1 }}>{item.stockDepot}</span>
+                                                        <span style={{ fontSize: '10px', color: '#6B7280', fontWeight: 800, marginTop: '4px', display: 'block' }}>UNIDADES</span>
+                                                    </div>
+                                                </div>
+
+                                                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', borderTop: '1px dashed #E5E7EB', paddingTop: '20px', marginTop: 'auto' }}>
+                                                    <button title="-10" onClick={() => handleUpdateDepot(item.id, -10)} style={{ border: 'none', background: '#FEE2E2', color: '#EF4444', flex: 1, padding: '12px 0', borderRadius: '10px', cursor: 'pointer', fontWeight: 800, fontSize: '15px', transition: '0.2s' }}>-10</button>
+                                                    <button title="-1" onClick={() => handleUpdateDepot(item.id, -1)} style={{ border: 'none', background: '#FEE2E2', color: '#EF4444', flex: 1, padding: '12px 0', borderRadius: '10px', cursor: 'pointer', fontWeight: 800, fontSize: '15px', transition: '0.2s' }}>-1</button>
+                                                    <button title="+1" onClick={() => handleUpdateDepot(item.id, 1)} style={{ border: 'none', background: '#DCFCE7', color: '#16A34A', flex: 1, padding: '12px 0', borderRadius: '10px', cursor: 'pointer', fontWeight: 800, fontSize: '15px', transition: '0.2s' }}>+1</button>
+                                                    <button title="+10" onClick={() => handleUpdateDepot(item.id, 10)} style={{ border: 'none', background: '#DCFCE7', color: '#16A34A', flex: 1, padding: '12px 0', borderRadius: '10px', cursor: 'pointer', fontWeight: 800, fontSize: '15px', transition: '0.2s' }}>+10</button>
+                                                    <button title="+Pacote (50)" onClick={() => handleUpdateDepot(item.id, 50)} style={{ border: 'none', background: '#166534', color: 'white', width: '100%', padding: '12px 0', borderRadius: '10px', cursor: 'pointer', fontWeight: 800, fontSize: '15px', marginTop: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
+                                                        <Plus size={16} /> Adicionar Pacote (+50)
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
                                 ) : (
-                                    <div className={formStyles.emptyState} style={{ padding: '24px' }}>
-                                        <p style={{ margin: 0, color: '#6B7280' }}>Sem referências da casa.</p>
+                                    <div className={formStyles.emptyState} style={{ padding: '32px', background: 'white', borderRadius: '20px', border: '1px dashed #D1D5DB' }}>
+                                        <Box size={32} color="#9CA3AF" style={{ marginBottom: '12px' }} />
+                                        <p style={{ margin: 0, color: '#4B5563', fontSize: '16px', fontWeight: 600 }}>Sem fraldas da casa configuradas.</p>
                                     </div>
                                 )}
                             </div>
 
-                            {/* Tabela de Deposito - Estoque Próprio */}
-                            <div className={styles.tableWrapper}>
-                                <h3 style={{ fontSize: '16px', color: '#0369A1', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '8px', padding: '0 10px' }}>
-                                    <User size={18} /> Estoque de Fraldas Próprias
+                            {/* Cards de Deposito - Estoque Próprio */}
+                            <div style={{ marginBottom: '40px' }}>
+                                <h3 style={{ fontSize: '18px', color: '#0369A1', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                    <User size={22} /> Fraldas Próprias (Família)
                                 </h3>
                                 {diaperInventory.filter(i => i.origin === 'Própria').length > 0 ? (
-                                    <table className={styles.table}>
-                                        <thead>
-                                            <tr>
-                                                <th>Nome da Fralda</th>
-                                                <th style={{ textAlign: 'center' }}>Restam no Depósito</th>
-                                                <th align="right">Atualização Rápida</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            {diaperInventory.filter(i => i.origin === 'Própria').map(item => (
-                                                <tr key={item.id}>
-                                                    <td>
-                                                        <span style={{ fontWeight: 600, fontSize: '15px', display: 'block' }}>{item.name}</span>
-                                                        <span style={{ fontSize: '12px', color: '#6B7280', display: 'flex', alignItems: 'center', gap: '4px', marginTop: '4px' }}>
-                                                            <span style={{ background: '#E0F2FE', color: '#0369A1', padding: '2px 6px', borderRadius: '4px', fontSize: '10px', fontWeight: 800 }}>PRÓPRIA: {item.patientName}</span>
-                                                        </span>
-                                                    </td>
-                                                    <td style={{ textAlign: 'center' }}>
-                                                        <div style={{ display: 'inline-block', background: '#F3F4F6', padding: '6px 20px', borderRadius: '16px', fontWeight: 800, fontSize: '18px', color: item.stockDepot < 30 ? '#EF4444' : '#111827' }}>
-                                                            {item.stockDepot}
-                                                        </div>
-                                                    </td>
-                                                    <td align="right">
-                                                        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
-                                                            <button title="-10" onClick={() => handleUpdateDepot(item.id, -10)} style={{ border: 'none', background: '#FEE2E2', color: '#EF4444', height: '36px', width: '36px', borderRadius: '8px', cursor: 'pointer', fontWeight: 800 }}>-10</button>
-                                                            <button title="-1" onClick={() => handleUpdateDepot(item.id, -1)} style={{ border: 'none', background: '#FEE2E2', color: '#EF4444', height: '36px', width: '36px', borderRadius: '8px', cursor: 'pointer', fontWeight: 800 }}>-1</button>
-                                                            <button title="+1" onClick={() => handleUpdateDepot(item.id, 1)} style={{ border: 'none', background: '#E0F2FE', color: '#0284C7', height: '36px', width: '36px', borderRadius: '8px', cursor: 'pointer', fontWeight: 800 }}>+1</button>
-                                                            <button title="+10" onClick={() => handleUpdateDepot(item.id, 10)} style={{ border: 'none', background: '#E0F2FE', color: '#0284C7', height: '36px', width: '36px', borderRadius: '8px', cursor: 'pointer', fontWeight: 800 }}>+10</button>
-                                                            <button title="+Pacote (50)" onClick={() => handleUpdateDepot(item.id, 50)} style={{ border: 'none', background: '#E0F2FE', color: '#0369A1', padding: '0 16px', borderRadius: '8px', cursor: 'pointer', fontWeight: 800 }}>+Pacotão</button>
-                                                        </div>
-                                                    </td>
-                                                </tr>
-                                            ))}
-                                        </tbody>
-                                    </table>
+                                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '20px' }}>
+                                        {diaperInventory.filter(i => i.origin === 'Própria').map(item => (
+                                            <div key={item.id} style={{ background: 'white', padding: '20px', border: '1px solid #E5E7EB', borderRadius: '20px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)', display: 'flex', flexDirection: 'column' }}>
+                                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '20px' }}>
+                                                    <div>
+                                                        <h4 style={{ margin: '0 0 6px 0', fontSize: '18px', color: '#111827', fontWeight: '800' }}>{item.name}</h4>
+                                                        <span style={{ background: '#E0F2FE', color: '#0369A1', padding: '4px 10px', borderRadius: '8px', fontSize: '11px', fontWeight: 800 }}>FAMÍLIA: {item.patientName || 'Desconhecido'}</span>
+                                                    </div>
+                                                    <div style={{ background: item.stockDepot < 30 ? '#FEF2F2' : '#F3F4F6', border: item.stockDepot < 30 ? '1px solid #FECACA' : '1px solid transparent', padding: '12px 16px', borderRadius: '16px', textAlign: 'center', minWidth: '80px' }}>
+                                                        <span style={{ display: 'block', fontSize: '28px', fontWeight: 900, color: item.stockDepot < 30 ? '#EF4444' : '#111827', lineHeight: 1 }}>{item.stockDepot}</span>
+                                                        <span style={{ fontSize: '10px', color: '#6B7280', fontWeight: 800, marginTop: '4px', display: 'block' }}>UNIDADES</span>
+                                                    </div>
+                                                </div>
+
+                                                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', borderTop: '1px dashed #E5E7EB', paddingTop: '20px', marginTop: 'auto' }}>
+                                                    <button title="-10" onClick={() => handleUpdateDepot(item.id, -10)} style={{ border: 'none', background: '#FEE2E2', color: '#EF4444', flex: 1, padding: '12px 0', borderRadius: '10px', cursor: 'pointer', fontWeight: 800, fontSize: '15px' }}>-10</button>
+                                                    <button title="-1" onClick={() => handleUpdateDepot(item.id, -1)} style={{ border: 'none', background: '#FEE2E2', color: '#EF4444', flex: 1, padding: '12px 0', borderRadius: '10px', cursor: 'pointer', fontWeight: 800, fontSize: '15px' }}>-1</button>
+                                                    <button title="+1" onClick={() => handleUpdateDepot(item.id, 1)} style={{ border: 'none', background: '#E0F2FE', color: '#0284C7', flex: 1, padding: '12px 0', borderRadius: '10px', cursor: 'pointer', fontWeight: 800, fontSize: '15px' }}>+1</button>
+                                                    <button title="+10" onClick={() => handleUpdateDepot(item.id, 10)} style={{ border: 'none', background: '#E0F2FE', color: '#0284C7', flex: 1, padding: '12px 0', borderRadius: '10px', cursor: 'pointer', fontWeight: 800, fontSize: '15px' }}>+10</button>
+                                                    <button title="+Pacote (50)" onClick={() => handleUpdateDepot(item.id, 50)} style={{ border: 'none', background: '#0284C7', color: 'white', width: '100%', padding: '12px 0', borderRadius: '10px', cursor: 'pointer', fontWeight: 800, fontSize: '15px', marginTop: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
+                                                        <Plus size={16} /> Adicionar Pacote (+50)
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
                                 ) : (
-                                    <div className={formStyles.emptyState} style={{ padding: '24px' }}>
-                                        <p style={{ margin: 0, color: '#6B7280' }}>Sem referências de fraldas próprias.</p>
+                                    <div className={formStyles.emptyState} style={{ padding: '32px', background: 'white', borderRadius: '20px', border: '1px dashed #D1D5DB' }}>
+                                        <User size={32} color="#9CA3AF" style={{ marginBottom: '12px' }} />
+                                        <p style={{ margin: 0, color: '#4B5563', fontSize: '16px', fontWeight: 600 }}>Sem fraldas da família registadas.</p>
                                     </div>
                                 )}
                             </div>
