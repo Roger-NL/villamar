@@ -414,8 +414,18 @@ export default function FraldasPage() {
                                                 <tr key={patient.id} style={{ borderBottom: '1px solid #E5E7EB' }}>
                                                     <td style={{ padding: '16px', borderRight: '1px solid #F3F4F6' }}>
                                                         <strong style={{ display: 'block', fontSize: '15px', color: '#111827' }}>{patient.name}</strong>
-                                                        <span style={{ fontSize: '12px', color: '#6B7280', display: 'flex', alignItems: 'center', gap: '4px', marginTop: '4px' }}>
-                                                            {diaperType ? <><Baby size={12} />{diaperType.name}</> : <span style={{ color: '#EF4444' }}>Sem Fralda</span>}
+                                                        <span style={{ fontSize: '12px', color: '#6B7280', display: 'flex', alignItems: 'center', gap: '4px', marginTop: '4px', flexWrap: 'wrap' }}>
+                                                            {diaperType ? (
+                                                                <>
+                                                                    <Baby size={12} />
+                                                                    <span>{diaperType.name}</span>
+                                                                    <span style={{ fontWeight: 800, color: diaperType.stockDepot < 20 ? '#EF4444' : '#16A34A', marginLeft: '4px' }}>
+                                                                        ({diaperType.stockDepot} no depósito)
+                                                                    </span>
+                                                                </>
+                                                            ) : (
+                                                                <span style={{ color: '#EF4444', fontWeight: 600 }}>Falta Configurar Fralda</span>
+                                                            )}
                                                             {patient.origin === 'Própria' && (
                                                                 <span style={{ background: '#E0F2FE', color: '#0369A1', padding: '2px 6px', borderRadius: '4px', fontSize: '10px', fontWeight: 800, marginLeft: '4px' }}>PRÓPRIA</span>
                                                             )}
