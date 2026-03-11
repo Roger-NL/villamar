@@ -16,7 +16,7 @@ const defaultNames = ["Amélia", "António", "Babixa", "Carlos A.", "Conceição
 export default function FraldasFuncionarioPage() {
     const { isAdmin, toggleMode, currentUser } = useApp();
     const router = useRouter();
-    const { diaperPatients, diaperLogs, addDiaperLog, isHydrated, addDiaperPatient, deleteDiaperPatient } = useData();
+    const { diaperPatients, diaperLogs, addDiaperLog, isHydrated, addDiaperPatient, deleteDiaperPatient, updateDiaperPatient } = useData();
 
     const [selectedPatient, setSelectedPatient] = useState('');
     const [amount, setAmount] = useState(1);
@@ -58,6 +58,20 @@ export default function FraldasFuncionarioPage() {
         const patient = diaperPatients.find(p => p.id === selectedPatient);
         if (!patient) return;
 
+        const isOwn = patient.origin === 'Própria';
+        let currentStock = patient.wardrobeStock !== undefined ? patient.wardrobeStock : 10;
+        let anomalyAmount = 0;
+
+        if (!isOwn) {
+            if (amount > currentStock) {
+                anomalyAmount = amount - currentStock;
+                currentStock = 0;
+            } else {
+                currentStock -= amount;
+            }
+            updateDiaperPatient(patient.id, { wardrobeStock: currentStock, hasAnomaly: anomalyAmount > 0 ? true : patient.hasAnomaly });
+        }
+
         addDiaperLog({
             type: 'usage',
             patientId: patient.id,
@@ -66,6 +80,7 @@ export default function FraldasFuncionarioPage() {
             date: new Date().toISOString().split('T')[0],
             time: new Date().toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' }),
             amountUsed: Number(amount),
+            anomaly: anomalyAmount,
             executorId: currentUser?.id,
             executorName: currentUser?.name || 'Membro da Equipa'
         });

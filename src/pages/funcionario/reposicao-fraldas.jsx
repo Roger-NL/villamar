@@ -13,7 +13,7 @@ import { Box, CheckCircle2, AlertCircle, Baby } from 'lucide-react';
 export default function FraldasReposicaoFuncionarioPage() {
     const { isAdmin, toggleMode, currentUser } = useApp();
     const router = useRouter();
-    const { diaperPatients, diaperInventory, diaperLogs, updateInventoryItem, addDiaperLog, isHydrated, dailyPlans } = useData();
+    const { diaperPatients, diaperInventory, diaperLogs, updateInventoryItem, addDiaperLog, isHydrated, dailyPlans, updateDiaperPatient } = useData();
 
     const [toast, setToast] = useState('');
     const [replaceModal, setReplaceModal] = useState(null);
@@ -44,21 +44,34 @@ export default function FraldasReposicaoFuncionarioPage() {
             return;
         }
 
-        const requiredAmount = 10 - currentInRoom;
+        const systemExpectedStock = patient.wardrobeStock !== undefined ? patient.wardrobeStock : 10;
+        const anomalyAmount = systemExpectedStock - currentInRoom;
 
+        const requiredAmount = 10 - currentInRoom;
         const inventory = diaperInventory || [];
         const diaperType = inventory.find(d => d.id === patient.diaperId);
+        const todayStr = new Date().toISOString().split('T')[0];
 
-        // Subtrai do depósito se for preciso adicionar & houver tipo
-        if (requiredAmount > 0 && diaperType && diaperType.stockDepot >= requiredAmount) {
-            updateInventoryItem(diaperType.id, { stockDepot: diaperType.stockDepot - requiredAmount });
-        } else if (requiredAmount > 0 && diaperType) {
-            // Se houver tipo mas não houver stock suficiente, pode ficar negativo ou apenas deduzir o que consegue/avisar.
-            // Para já deduzimos permitindo stock negativo, pois o físico foi reposto:
-            updateInventoryItem(diaperType.id, { stockDepot: diaperType.stockDepot - requiredAmount });
+        // Se houve divergência entre sistema e físico (vistoria)
+        if (anomalyAmount !== 0) {
+            addDiaperLog({
+                type: 'audit',
+                patientId: patient.id,
+                patientName: patient.name,
+                date: todayStr,
+                time: new Date().toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' }),
+                expectedStock: systemExpectedStock,
+                actualStock: currentInRoom,
+                deviance: anomalyAmount,
+                executorId: currentUser?.id,
+                executorName: currentUser?.name || 'Funcionário'
+            });
         }
 
-        const todayStr = new Date().toISOString().split('T')[0];
+        // Subtrai do depósito se for preciso adicionar & houver tipo
+        if (requiredAmount > 0 && diaperType) {
+            updateInventoryItem(diaperType.id, { stockDepot: Math.max(0, diaperType.stockDepot - requiredAmount) });
+        }
 
         // Log the refill
         addDiaperLog({
@@ -68,11 +81,18 @@ export default function FraldasReposicaoFuncionarioPage() {
             diaperId: diaperType ? diaperType.id : '',
             diaperName: diaperType ? diaperType.name : '',
             date: todayStr,
+            time: new Date().toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' }),
             amountAdded: requiredAmount,
             previousStock: currentInRoom,
             newStock: 10,
             executorId: currentUser?.id,
             executorName: currentUser?.name || 'Funcionário',
+        });
+
+        // Atualizar estado de armário
+        updateDiaperPatient(patient.id, {
+            wardrobeStock: 10,
+            hasAnomaly: anomalyAmount > 0 ? true : false // Reseta a anomalia grave na vistoria
         });
 
         setToast(`Foram repostas ${requiredAmount} fraldas no quarto de ${patient.name}`);
@@ -89,33 +109,27 @@ export default function FraldasReposicaoFuncionarioPage() {
         : [];
 
     const getRoomStockInfo = (patientId) => {
-        let pLogs = diaperLogs ? diaperLogs.filter(l => l.patientId === patientId) : [];
-        // Ordenar os logs temporalmente para garantir que o último replenishment é realmente o último
-        pLogs.sort((a, b) => new Date(a.timestamp || a.createdAt || 0) - new Date(b.timestamp || b.createdAt || 0));
+        const p = diaperPatients?.find(p => p.id === patientId);
+        if (!p) return { text: 'Desconhecido', value: 0, color: '#94a3b8', ext: '' };
 
-        const lastRepIndex = pLogs.map(l => l.type).lastIndexOf('replenishment');
-        const todayStr2 = new Date().toISOString().split('T')[0];
-
-        if (lastRepIndex !== -1) {
-            const lastRep = pLogs[lastRepIndex];
-            let stock = lastRep.newStock || 10;
-            for (let i = lastRepIndex + 1; i < pLogs.length; i++) {
-                if (pLogs[i].type === 'usage') {
-                    stock -= (pLogs[i].amountUsed || 1);
-                }
-            }
-            stock = Math.max(0, stock);
-            const isToday = lastRep.date === todayStr2;
-            return {
-                text: 'No Armário',
-                value: stock,
-                color: isToday ? '#16A34A' : '#0284c7',
-                ext: isToday ? `(+${lastRep.amountAdded})` : ''
-            };
-        } else {
-            const usedToday = pLogs.filter(l => l.type === 'usage' && l.date === todayStr2).reduce((acc, l) => acc + (l.amountUsed || 1), 0);
-            return { text: 'Usadas Hoje', value: usedToday, color: usedToday > 0 ? '#ea580c' : '#94a3b8', ext: '' };
+        if (p.origin === 'Própria') {
+            return { text: 'Fornecimento', value: 'Próprio', color: '#0284c7', ext: '' };
         }
+
+        // Vistoria directa ao nosso controlo central
+        const stock = p.wardrobeStock !== undefined ? p.wardrobeStock : 10;
+
+        let color = '#16A34A'; // Verde se 10
+        if (stock < 5) color = '#ea580c'; // Laranja se abaixo de 5
+        if (stock === 0) color = '#ef4444'; // Vermelho se 0
+        if (p.hasAnomaly) color = '#ef4444'; // Vermelho se teve anomalia
+
+        return {
+            text: p.hasAnomaly ? 'Armário com Desvio' : 'No Armário',
+            value: stock,
+            color: color,
+            ext: ''
+        };
     };
 
     return (

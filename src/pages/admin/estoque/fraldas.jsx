@@ -25,7 +25,7 @@ export default function FraldasPage() {
     const router = useRouter();
     const {
         diaperPatients, diaperLogs, inventoryItems,
-        addDiaperPatient, deleteDiaperPatient,
+        addDiaperPatient, deleteDiaperPatient, updateDiaperPatient,
         addDiaperLog,
         addInventoryItem, updateInventoryItem
     } = useData();
@@ -135,8 +135,8 @@ export default function FraldasPage() {
 
             tableRows.push([
                 p.name,
-                fraldaNome,
-                prop,
+                diaperType ? diaperType.name : 'Sem Fralda',
+                p.origin === 'Própria' ? 'Própria' : 'Casa',
                 total + " uni."
             ]);
         });
@@ -219,6 +219,24 @@ export default function FraldasPage() {
             return;
         }
 
+        const systemExpectedStock = patient.wardrobeStock !== undefined ? patient.wardrobeStock : 10;
+        const anomalyAmount = systemExpectedStock - currentInRoom;
+
+        if (anomalyAmount !== 0) {
+            addDiaperLog({
+                type: 'audit',
+                patientId: patient.id,
+                patientName: patient.name,
+                date: actionDateStr,
+                time: new Date().toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' }),
+                expectedStock: systemExpectedStock,
+                actualStock: currentInRoom,
+                deviance: anomalyAmount,
+                executorId: currentUser?.id || 'admin',
+                executorName: currentUser?.name || 'Admin'
+            });
+        }
+
         // Subtrai do depósito se for preciso adicionar
         if (requiredAmount > 0) {
             updateInventoryItem(diaperType.id, { stockDepot: diaperType.stockDepot - requiredAmount });
@@ -226,17 +244,21 @@ export default function FraldasPage() {
 
         // Log the refill
         addDiaperLog({
+            type: 'replenishment',
             patientId: patient.id,
             patientName: patient.name,
             diaperId: diaperType.id,
             diaperName: diaperType.name,
             date: actionDateStr,
+            time: new Date().toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' }),
             amountAdded: requiredAmount,
             previousStock: currentInRoom,
             newStock: 10,
             executorId: currentUser?.id || 'admin',
             executorName: currentUser?.name || 'Admin',
         });
+
+        updateDiaperPatient(patient.id, { wardrobeStock: 10, hasAnomaly: anomalyAmount > 0 ? true : false });
 
         setReplaceModal(null);
         setCurrentRoomStock('');
@@ -405,12 +427,15 @@ export default function FraldasPage() {
                                                         const isFuture = dateStr > todayStr;
 
                                                         const dayLogs = diaperLogs?.filter(l => l.patientId === patient.id && l.date === dateStr) || [];
-                                                        const refillLog = dayLogs.find(l => l.type !== 'usage' && l.amountAdded !== undefined);
+                                                        const refillLog = dayLogs.find(l => l.type === 'replenishment');
                                                         const usageLogs = dayLogs.filter(l => l.type === 'usage');
+                                                        const anomalyLogs = dayLogs.filter(l => l.type === 'audit' || (l.type === 'usage' && l.anomaly > 0));
+
                                                         const totalUsed = usageLogs.reduce((sum, l) => sum + Number(l.amountUsed || 0), 0);
+                                                        const totalAnomaly = anomalyLogs.reduce((sum, l) => sum + Number(l.deviance || l.anomaly || 0), 0);
 
                                                         return (
-                                                            <td key={dateStr} style={{ padding: '12px 8px', textAlign: 'center', background: dateStr === todayStr ? '#FEFCE8' : 'transparent', borderRight: '1px solid #F3F4F6', verticalAlign: 'middle' }}>
+                                                            <td key={dateStr} style={{ padding: '12px 8px', textAlign: 'center', background: dateStr === todayStr ? '#FEFCE8' : (totalAnomaly > 0 ? '#FEF2F2' : 'transparent'), borderRight: '1px solid #F3F4F6', verticalAlign: 'middle' }}>
                                                                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
                                                                     {refillLog ? (
                                                                         <div title={`Confirmado por ${refillLog.executorName || 'Admin'}`} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', cursor: 'pointer' }}>
@@ -429,7 +454,7 @@ export default function FraldasPage() {
                                                                             </span>
                                                                         </div>
                                                                     ) : isFuture ? (
-                                                                        <span style={{ color: '#D1D5DB' }}>{totalUsed === 0 ? '-' : ''}</span>
+                                                                        <span style={{ color: '#D1D5DB' }}>{totalUsed === 0 && totalAnomaly === 0 ? '-' : ''}</span>
                                                                     ) : (
                                                                         <button
                                                                             onClick={() => setReplaceModal({ patient, date: dateStr })}
@@ -444,6 +469,12 @@ export default function FraldasPage() {
                                                                     {totalUsed > 0 && (
                                                                         <div style={{ display: 'flex', alignItems: 'center', gap: '2px', background: '#FEE2E2', color: '#EF4444', padding: '4px 10px', borderRadius: '12px', fontWeight: 800, fontSize: '14px' }} title={`${totalUsed} fraldas usadas`}>
                                                                             -{totalUsed}
+                                                                        </div>
+                                                                    )}
+
+                                                                    {totalAnomaly !== 0 && (
+                                                                        <div style={{ display: 'flex', alignItems: 'center', gap: '2px', background: '#991B1B', color: 'white', padding: '2px 8px', borderRadius: '8px', fontWeight: 800, fontSize: '11px', marginTop: '4px' }} title={`Desvio de Stock Identificado: ${totalAnomaly}`}>
+                                                                            ⚠️ Desvio: {totalAnomaly}
                                                                         </div>
                                                                     )}
                                                                 </div>
