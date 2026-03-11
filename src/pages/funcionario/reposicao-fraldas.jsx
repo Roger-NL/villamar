@@ -34,10 +34,10 @@ export default function FraldasReposicaoFuncionarioPage() {
         }
     }, [isHydrated, currentUser, hasAccess, router, isAdmin]);
 
-    const handleSaveReplace = async (e) => {
-        e.preventDefault();
+    const handleSaveReplace = async (e, directValue = null) => {
+        if (e) e.preventDefault();
         const patient = replaceModal;
-        const currentInRoom = Number(currentRoomStock);
+        const currentInRoom = directValue !== null ? directValue : Number(currentRoomStock);
 
         if (currentInRoom < 0 || currentInRoom > 10) {
             alert("A quantidade no quarto deve ser entre 0 e 10.");
@@ -268,6 +268,17 @@ export default function FraldasReposicaoFuncionarioPage() {
                                     }}
                                 >
                                     Confirmar Reposição
+                                </button>
+
+                                <button
+                                    type="button"
+                                    onClick={() => handleSaveReplace(null, 10)}
+                                    style={{
+                                        width: '100%', padding: '16px', background: '#e2e8f0', color: '#334155',
+                                        border: '1px solid #cbd5e1', borderRadius: '16px', fontWeight: '800', fontSize: '16px', cursor: 'pointer'
+                                    }}
+                                >
+                                    Já Estão Completas (10 Fraldas)
                                 </button>
                             </div>
                         </form>
