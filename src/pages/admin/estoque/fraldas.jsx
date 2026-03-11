@@ -612,6 +612,9 @@ export default function FraldasPage() {
                                                     <option value="cuecas P pequena">cuecas P pequena</option>
                                                     <option value="cuecas M média">cuecas M média</option>
                                                     <option value="cuecas L larga">cuecas L larga</option>
+                                                    <option value="fralda P pequena">fralda P pequena</option>
+                                                    <option value="fralda M média">fralda M média</option>
+                                                    <option value="fralda L larga">fralda L larga</option>
                                                 </select>
                                             </div>
                                             <div className={formStyles.formGroup} style={{ flex: 1 }}>
