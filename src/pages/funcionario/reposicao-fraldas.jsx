@@ -210,12 +210,23 @@ export default function FraldasReposicaoFuncionarioPage() {
                     .map((name) => patients.find((patient) => patient.name === name))
                     .filter(Boolean);
                 items.forEach((patient) => usedIds.add(patient.id));
-                return { ...floor, patients: items };
+                return {
+                    ...floor,
+                    patients: items,
+                    replenishedToday: items.reduce((sum, patient) => sum + Number(patientDayState[patient.id]?.replenishedToday || 0), 0),
+                    currentStockTotal: items.reduce((sum, patient) => sum + Number(patientDayState[patient.id]?.currentStock || 0), 0)
+                };
             }).filter((floor) => floor.patients.length > 0);
 
             const extras = patients.filter((patient) => !usedIds.has(patient.id));
             if (extras.length > 0) {
-                floorGroups.push({ id: 'sem-piso', label: 'Sem piso definido', patients: extras });
+                floorGroups.push({
+                    id: 'sem-piso',
+                    label: 'Sem piso definido',
+                    patients: extras,
+                    replenishedToday: extras.reduce((sum, patient) => sum + Number(patientDayState[patient.id]?.replenishedToday || 0), 0),
+                    currentStockTotal: extras.reduce((sum, patient) => sum + Number(patientDayState[patient.id]?.currentStock || 0), 0)
+                });
             }
 
             return floorGroups;
@@ -226,7 +237,7 @@ export default function FraldasReposicaoFuncionarioPage() {
             ready: buildGroups(patientSections.ready, true),
             done: buildGroups(patientSections.done, true)
         };
-    }, [patientSections]);
+    }, [patientSections, patientDayState]);
 
     const openPatientModal = (patient) => {
         const state = patientDayState[patient.id];
@@ -480,6 +491,19 @@ export default function FraldasReposicaoFuncionarioPage() {
                     </div>
                 </div>
 
+                {state?.checkedToday && (
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '10px' }}>
+                        <div style={{ borderRadius: '16px', background: '#eff6ff', padding: '12px' }}>
+                            <div style={{ fontSize: '11px', fontWeight: 800, color: '#64748b', textTransform: 'uppercase' }}>Tem agora</div>
+                            <div style={{ fontSize: '24px', fontWeight: 900, color: '#1d4ed8' }}>{state?.currentStock ?? 0}</div>
+                        </div>
+                        <div style={{ borderRadius: '16px', background: '#f0fdf4', padding: '12px' }}>
+                            <div style={{ fontSize: '11px', fontWeight: 800, color: '#64748b', textTransform: 'uppercase' }}>Repostas hoje</div>
+                            <div style={{ fontSize: '24px', fontWeight: 900, color: '#15803d' }}>{state?.replenishedToday ?? 0}</div>
+                        </div>
+                    </div>
+                )}
+
                 <div style={{ fontSize: '15px', fontWeight: 800, color: '#0f172a' }}>
                     {!state?.checkedToday && 'Abrir para conferir'}
                     {state?.checkedToday && missing > 0 && (isDirectFamilySupplyPatient(patient) ? 'Abrir para confirmar' : `Abrir para repor ${missing}`)}
@@ -494,7 +518,12 @@ export default function FraldasReposicaoFuncionarioPage() {
             {groups.map((group) => (
                 <div key={group.id}>
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', marginBottom: '12px' }}>
-                        <div style={{ fontSize: '18px', fontWeight: 900, color: '#0f172a' }}>{group.label}</div>
+                        <div>
+                            <div style={{ fontSize: '18px', fontWeight: 900, color: '#0f172a' }}>{group.label}</div>
+                            <div style={{ marginTop: '4px', fontSize: '12px', fontWeight: 800, color: '#64748b' }}>
+                                Tem agora: {group.currentStockTotal} | Repostas hoje: {group.replenishedToday}
+                            </div>
+                        </div>
                         <div style={{ padding: '6px 10px', borderRadius: '999px', background: accent.badgeBg, color: accent.badgeColor, fontSize: '12px', fontWeight: 800 }}>
                             {group.patients.length} utentes
                         </div>
