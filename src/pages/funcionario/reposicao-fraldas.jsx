@@ -147,13 +147,24 @@ export default function FraldasReposicaoFuncionarioPage() {
                 id: key,
                 name: diaperType?.name || 'Modelo não associado',
                 amount: 0,
-                stockDepot: diaperType?.stockDepot ?? null
+                stockDepot: diaperType?.stockDepot ?? null,
+                patients: []
             };
             existing.amount += state.missingToTarget;
+            existing.patients.push({
+                id: patient.id,
+                name: patient.name,
+                amount: state.missingToTarget
+            });
             summary.set(key, existing);
         });
 
-        return [...summary.values()].sort((a, b) => b.amount - a.amount);
+        return [...summary.values()]
+            .map((item) => ({
+                ...item,
+                patients: item.patients.sort((a, b) => a.name.localeCompare(b.name))
+            }))
+            .sort((a, b) => b.amount - a.amount);
     }, [orderedPatients, patientDayState, diaperInventoryById]);
 
     const ownSupplySummary = useMemo(() => (
@@ -501,6 +512,20 @@ export default function FraldasReposicaoFuncionarioPage() {
                                             </div>
                                             <div style={{ fontSize: '12px', color: '#64748b', fontWeight: 700 }}>
                                                 Depósito: {item.stockDepot ?? '-'}
+                                            </div>
+                                        </div>
+
+                                        <div style={{ marginTop: '14px', paddingTop: '12px', borderTop: '1px solid #e2e8f0' }}>
+                                            <div style={{ fontSize: '12px', fontWeight: 900, color: '#475569', textTransform: 'uppercase', marginBottom: '8px' }}>
+                                                Fraldas da casa
+                                            </div>
+                                            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                                                {item.patients.map((patient) => (
+                                                    <div key={patient.id} style={{ display: 'flex', justifyContent: 'space-between', gap: '12px', fontSize: '13px', fontWeight: 800, color: '#0f172a' }}>
+                                                        <span>{patient.name}</span>
+                                                        <span style={{ color: '#15803d' }}>{patient.amount}</span>
+                                                    </div>
+                                                ))}
                                             </div>
                                         </div>
                                     </div>
