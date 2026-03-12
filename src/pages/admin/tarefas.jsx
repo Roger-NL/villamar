@@ -198,7 +198,10 @@ function InlineEditableExtra({ id, defaultLabel, customLabels, onUpdateLabel }) 
 function ResidentDropZone({ id, residents, sourceId, residentStatuses, customResidentNames, onCycleStatus, onUpdateName, onDelete }) {
     const { isOver, setNodeRef } = useDroppable({ id });
     return (
-        <div ref={setNodeRef} style={{ display: 'flex', flexDirection: 'column', minHeight: '80px', background: isOver ? '#f0f9ff' : 'transparent', border: '1px dashed transparent', ...(isOver ? { borderColor: '#38bdf8', borderRadius: '8px' } : {}) }}>
+        <div
+            ref={setNodeRef}
+            className={`${planStyles.residentDropZone} ${isOver ? planStyles.residentDropZoneOver : ''}`}
+        >
             {residents.map((r, idx) => (
                 <DraggableResident
                     key={`${id}_${idx}`}
@@ -211,7 +214,7 @@ function ResidentDropZone({ id, residents, sourceId, residentStatuses, customRes
                     onDelete={(rName) => onDelete && onDelete(sourceId, rName)}
                 />
             ))}
-            {residents.length === 0 && <div style={{ color: '#94a3b8', fontSize: '0.85rem', fontStyle: 'italic', textAlign: 'center', padding: '20px 0' }}>Arraste utentes para aqui...</div>}
+            {residents.length === 0 && <div className={planStyles.residentEmpty}>Arraste utentes para aqui...</div>}
         </div>
     );
 }
@@ -489,7 +492,7 @@ export default function AdminTarefasPage() {
 
             <main className={styles.main}>
                 <div className={styles.container}>
-                    <div className={styles.pageHeader} style={{ marginBottom: '20px' }}>
+                    <div className={styles.pageHeader} style={{ marginBottom: '20px', flexWrap: 'wrap', gap: '16px', alignItems: 'flex-start' }}>
                         <h1 className={styles.pageTitle} style={{ fontSize: '1.4rem' }}>
                             <ClipboardList size={28} />
                             Plano de Trabalho Diário
@@ -504,23 +507,23 @@ export default function AdminTarefasPage() {
                                     className={planStyles.dateInput}
                                 />
                             </div>
-                            <div className={planStyles.datePickerContainer} style={{ padding: '4px', gap: '2px' }}>
+                            <div className={planStyles.periodSwitch}>
                                 <button
                                     onClick={() => setPeriod('DAY')}
-                                    style={{ padding: '6px 12px', borderRadius: '4px', border: 'none', background: period === 'DAY' ? '#0077b6' : 'transparent', color: period === 'DAY' ? 'white' : '#64748b', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}
+                                    className={`${planStyles.periodBtn} ${period === 'DAY' ? planStyles.periodBtnActiveDay : ''}`}
                                 >
                                     <Sun size={16} /> Diurno
                                 </button>
                                 <button
                                     onClick={() => setPeriod('NIGHT')}
-                                    style={{ padding: '6px 12px', borderRadius: '4px', border: 'none', background: period === 'NIGHT' ? '#1e293b' : 'transparent', color: period === 'NIGHT' ? 'white' : '#64748b', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}
+                                    className={`${planStyles.periodBtn} ${period === 'NIGHT' ? planStyles.periodBtnActiveNight : ''}`}
                                 >
                                     <Moon size={16} /> Noturno
                                 </button>
                             </div>
                             <button
                                 onClick={handleClearPlan}
-                                style={{ padding: '8px 12px', borderRadius: '8px', border: '1px solid #ef4444', background: '#fef2f2', color: '#ef4444', fontWeight: 'bold', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}
+                                className={planStyles.dangerBtn}
                             >
                                 <RotateCcw size={16} />
                                 Limpar
@@ -551,22 +554,22 @@ export default function AdminTarefasPage() {
 
                             {/* Plan Canvas */}
                             <div className={planStyles.planCol}>
-                                <div style={{ display: 'flex', flexDirection: 'column', gap: '32px' }}>
+                                <div className={planStyles.blocksStack}>
                                     {currentTemplate.blocks.map(block => {
                                         if (block.type === 'group_assignment') {
                                             return (
                                                 <div key={block.id} className={planStyles.block} style={{ margin: 0, display: 'flex', flexDirection: 'column' }}>
-                                                    <h3 className={planStyles.blockTitle} style={{ textAlign: 'center', backgroundColor: '#f1f5f9', fontWeight: 'bold' }}>
+                                                    <h3 className={planStyles.blockTitle}>
                                                         {block.name}
                                                     </h3>
-                                                    <div style={{ padding: '20px', flex: 1, display: 'flex', flexDirection: 'column', gap: '24px' }}>
+                                                    <div className={planStyles.groupBlockBody}>
 
                                                         {/* Unassigned Pool */}
                                                         {localGroupResidents?.[block.id]?.unassigned?.length > 0 && (
-                                                            <div style={{ background: '#fff', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
-                                                                <div style={{ padding: '12px 16px', background: '#f8fafc', borderBottom: '1px solid #e2e8f0', fontWeight: '600', color: '#334155', fontSize: '0.9rem', display: 'flex', justifyContent: 'space-between' }}>
+                                                            <div className={planStyles.unassignedCard}>
+                                                                <div className={planStyles.unassignedHeader}>
                                                                     <span>Utentes Não Atribuídos</span>
-                                                                    <button onClick={() => handleAddNewResident(block.id, 'unassigned')} style={{ background: 'none', border: 'none', color: '#0077b6', cursor: 'pointer', fontSize: '0.85rem', fontWeight: 'bold' }}>+ Adicionar à Lista</button>
+                                                                    <button onClick={() => handleAddNewResident(block.id, 'unassigned')} className={planStyles.actionLink}>+ Adicionar à Lista</button>
                                                                 </div>
                                                                 <ResidentDropZone
                                                                     id={`resident_drop:${block.id}:unassigned`}
@@ -582,12 +585,12 @@ export default function AdminTarefasPage() {
                                                         )}
 
                                                         {/* Employee Assignment Slots & Assigned Residents */}
-                                                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px', alignItems: 'start' }}>
+                                                        <div className={planStyles.assignmentMatrix}>
                                                             {block.columns.map((colName, colIdx) => {
                                                                 const taskId = `${block.id}_${colIdx}`;
                                                                 return (
-                                                                    <div key={colIdx} style={{ display: 'flex', flexDirection: 'column', gap: '16px', background: '#f8fafc', padding: '16px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
-                                                                        <h4 style={{ margin: '0', fontSize: '0.95rem', color: '#0f172a', fontWeight: 'bold', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                                                                    <div key={colIdx} className={planStyles.assignmentColumn}>
+                                                                        <h4 className={planStyles.columnTitle}>
                                                                             <span>{colName}</span>
                                                                         </h4>
                                                                         <TaskSlot
@@ -597,8 +600,8 @@ export default function AdminTarefasPage() {
                                                                             employees={employees}
                                                                             onAssign={(empId) => handleAssign(taskId, empId)}
                                                                         />
-                                                                        <div style={{ background: '#fff', borderRadius: '8px', border: '1px solid #e2e8f0', overflow: 'hidden' }}>
-                                                                            <div style={{ padding: '10px 12px', background: '#f1f5f9', borderBottom: '1px solid #e2e8f0', fontWeight: '600', color: '#475569', fontSize: '0.85rem' }}>
+                                                                        <div className={planStyles.columnCard}>
+                                                                            <div className={planStyles.residentsHeader}>
                                                                                 Utentes ({colName})
                                                                             </div>
                                                                             <ResidentDropZone
@@ -611,10 +614,10 @@ export default function AdminTarefasPage() {
                                                                                 onUpdateName={handleUpdateResidentName}
                                                                                 onDelete={handleDeleteResident}
                                                                             />
-                                                                            <div style={{ padding: '8px 16px', borderTop: '1px dashed #cbd5e1' }}>
+                                                                            <div className={planStyles.residentsFooter}>
                                                                                 <button
                                                                                     onClick={() => handleAddNewResident(block.id, colIdx)}
-                                                                                    style={{ background: 'none', border: 'none', color: '#0077b6', cursor: 'pointer', fontSize: '0.85rem', fontWeight: 'bold' }}
+                                                                                    className={planStyles.actionLink}
                                                                                 >
                                                                                     + Adicionar Pessoa Extra
                                                                                 </button>
@@ -632,11 +635,11 @@ export default function AdminTarefasPage() {
                                         // SINGLE ASSIGNMENT (Gerais, etc) OR legacy backwards compatibility
                                         return (
                                             <div key={block.id} className={planStyles.block} style={{ margin: 0 }}>
-                                                <h3 className={planStyles.blockTitle} style={{ textAlign: 'center', backgroundColor: '#f1f5f9', fontWeight: 'bold' }}>
+                                                <h3 className={planStyles.blockTitle}>
                                                     {block.name}
                                                 </h3>
                                                 {block.columns ? (
-                                                    <div className={planStyles.blockColumns} style={{ padding: '20px' }}>
+                                                    <div className={`${planStyles.blockColumns} ${planStyles.blockColumnsPadded}`}>
                                                         {block.columns.map((colName, colIdx) => (
                                                             <div key={colName} className={planStyles.colData}>
                                                                 <h4>{colName}</h4>
@@ -657,10 +660,10 @@ export default function AdminTarefasPage() {
                                                         ))}
                                                     </div>
                                                 ) : (
-                                                    <div className={planStyles.blockList} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', padding: '20px' }}>
+                                                    <div className={planStyles.simpleTasksGrid}>
                                                         {block.items?.map(item => (
-                                                            <div key={item.id} style={{ background: '#f8fafc', padding: '16px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
-                                                                <div style={{ fontWeight: 500, color: '#334155', marginBottom: '12px' }}>{item.label}</div>
+                                                            <div key={item.id} className={planStyles.simpleTaskCard}>
+                                                                <div className={planStyles.simpleTaskTitle}>{item.label}</div>
                                                                 <TaskSlot
                                                                     taskId={item.id}
                                                                     label="Atribuir Responsável"
@@ -692,7 +695,7 @@ export default function AdminTarefasPage() {
                                 </div>
                             ) : null}
                             {activeDragItem?.type === 'resident' && activeResidentName ? (
-                                <div style={{ display: 'flex', alignItems: 'center', padding: '10px 16px', background: '#fff', borderBottom: '1px solid #e2e8f0', borderRadius: '8px', color: '#475569', fontSize: '0.95rem', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)', zIndex: 999 }}>
+                                <div className={planStyles.residentDragPreview}>
                                     {activeResidentName}
                                 </div>
                             ) : null}

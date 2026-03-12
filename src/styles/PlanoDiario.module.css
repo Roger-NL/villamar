@@ -1,11 +1,11 @@
 .grid {
     display: grid;
-    grid-template-columns: 280px 1fr;
-    gap: 24px;
+    grid-template-columns: minmax(240px, 270px) minmax(0, 1fr);
+    gap: 28px;
     align-items: start;
 }
 
-@media (max-width: 768px) {
+@media (max-width: 1180px) {
     .grid {
         grid-template-columns: 1fr;
     }
@@ -15,24 +15,85 @@
     display: flex;
     gap: 12px;
     align-items: center;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+}
+
+.periodSwitch {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px;
+    border-radius: 18px;
+    background: rgba(255, 255, 255, 0.94);
+    border: 1px solid rgba(148, 163, 184, 0.2);
+    box-shadow: 0 16px 32px rgba(15, 23, 42, 0.06);
+}
+
+.periodBtn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 9px 14px;
+    border-radius: 14px;
+    border: none;
+    background: transparent;
+    color: #64748b;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.periodBtnActiveDay {
+    background: linear-gradient(135deg, #0f5fd7 0%, #0ea5e9 100%);
+    color: #fff;
+    box-shadow: 0 14px 24px rgba(14, 116, 217, 0.22);
+}
+
+.periodBtnActiveNight {
+    background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
+    color: #fff;
+    box-shadow: 0 14px 24px rgba(30, 41, 59, 0.22);
+}
+
+.dangerBtn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 11px 14px;
+    border-radius: 16px;
+    border: 1px solid rgba(239, 68, 68, 0.2);
+    background: linear-gradient(135deg, #fff5f5 0%, #fef2f2 100%);
+    color: #dc2626;
+    font-weight: 800;
+    cursor: pointer;
+    box-shadow: 0 16px 28px rgba(239, 68, 68, 0.08);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.dangerBtn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 20px 34px rgba(239, 68, 68, 0.12);
 }
 
 .datePickerContainer {
     display: flex;
     align-items: center;
     gap: 8px;
-    background: #fff;
-    border: 1px solid #e2e8f0;
-    padding: 8px 12px;
-    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.95);
+    border: 1px solid rgba(148, 163, 184, 0.22);
+    padding: 10px 14px;
+    border-radius: 16px;
     color: #475569;
+    box-shadow: 0 16px 32px rgba(15, 23, 42, 0.06);
 }
 
 .dateInput {
     border: none;
     outline: none;
     font-family: inherit;
-    font-size: 1rem;
+    font-size: 0.98rem;
+    font-weight: 600;
     color: #1e293b;
     background: transparent;
 }
@@ -41,30 +102,34 @@
     display: flex;
     align-items: center;
     gap: 8px;
-    background: #0077b6;
+    background: linear-gradient(135deg, #0f5fd7 0%, #0ea5e9 100%);
     color: white;
-    padding: 10px 20px;
+    padding: 12px 18px;
     border: none;
-    border-radius: 8px;
+    border-radius: 16px;
     font-size: 0.95rem;
-    font-weight: 500;
+    font-weight: 700;
     cursor: pointer;
-    transition: background 0.2s;
+    box-shadow: 0 18px 30px rgba(14, 116, 217, 0.22);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
 .publishBtn:hover {
-    background: #00b4d8;
+    transform: translateY(-1px);
+    box-shadow: 0 22px 34px rgba(14, 116, 217, 0.28);
 }
 
 .publishBtn.published {
-    background: #10b981;
+    background: linear-gradient(135deg, #0f9f68 0%, #10b981 100%);
+    box-shadow: 0 18px 30px rgba(16, 185, 129, 0.2);
 }
 
 .employeesCol {
-    background: white;
-    padding: 20px;
-    border-radius: 12px;
-    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.99) 0%, rgba(248, 250, 252, 0.99) 100%);
+    padding: 24px;
+    border-radius: 24px;
+    box-shadow: 0 26px 70px rgba(15, 23, 42, 0.08);
+    border: 1px solid rgba(148, 163, 184, 0.14);
     position: sticky;
     top: 80px;
     max-height: calc(100vh - 100px);
@@ -72,43 +137,47 @@
 }
 
 .employeesCol h2 {
-    font-size: 1.25rem;
+    font-size: 1.35rem;
     color: #1e293b;
-    margin-bottom: 4px;
+    margin-bottom: 6px;
+    letter-spacing: -0.02em;
 }
 
 .helperText {
-    font-size: 0.85rem;
+    font-size: 0.92rem;
     color: #64748b;
-    margin-bottom: 16px;
+    margin-bottom: 20px;
+    line-height: 1.5;
 }
 
 .employeesList {
     display: flex;
     flex-direction: column;
-    gap: 10px;
+    gap: 12px;
 }
 
 .draggableEmployee {
     display: flex;
     align-items: center;
     gap: 12px;
-    background: #f8fafc;
-    border: 1px solid #e2e8f0;
-    padding: 12px;
-    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.98);
+    border: 1px solid rgba(148, 163, 184, 0.18);
+    padding: 14px;
+    border-radius: 18px;
     cursor: grab;
-    transition: all 0.2s;
+    transition: all 0.2s ease;
+    box-shadow: 0 12px 26px rgba(15, 23, 42, 0.05);
 }
 
 .draggableEmployee:hover {
-    background: #f1f5f9;
-    border-color: #cbd5e1;
+    transform: translateY(-1px);
+    border-color: rgba(59, 130, 246, 0.2);
+    box-shadow: 0 16px 32px rgba(15, 23, 42, 0.08);
 }
 
 .draggableEmployee.dragging {
     background: #fff;
-    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 18px 38px rgba(15, 23, 42, 0.16);
     cursor: grabbing;
 }
 
@@ -118,52 +187,64 @@
 }
 
 .empName {
-    font-weight: 600;
+    font-weight: 700;
     color: #334155;
-    font-size: 0.95rem;
+    font-size: 0.96rem;
 }
 
 .empRole {
-    font-size: 0.8rem;
+    font-size: 0.82rem;
     color: #64748b;
 }
 
 .planCol {
     display: flex;
     flex-direction: column;
-    gap: 24px;
+    gap: 28px;
+    min-width: 0;
+}
+
+.blocksStack {
+    display: flex;
+    flex-direction: column;
+    gap: 32px;
 }
 
 .block {
-    background: white;
-    border-radius: 12px;
-    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.99) 0%, rgba(250, 252, 255, 0.99) 100%);
+    border-radius: 24px;
+    box-shadow: 0 28px 70px rgba(15, 23, 42, 0.08);
+    border: 1px solid rgba(148, 163, 184, 0.14);
     overflow: hidden;
 }
 
 .blockTitle {
-    background: #f8fafc;
-    padding: 16px 20px;
+    background: linear-gradient(135deg, #f8fbff 0%, #eef5ff 100%);
+    padding: 18px 24px;
     color: #1e293b;
-    font-size: 1.1rem;
-    border-bottom: 1px solid #e2e8f0;
+    font-size: 1.08rem;
+    border-bottom: 1px solid rgba(148, 163, 184, 0.16);
     margin: 0;
+    letter-spacing: -0.01em;
+    text-align: center;
+    font-weight: 800;
 }
 
 .blockColumns {
     display: grid;
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
-@media (max-width: 640px) {
+@media (max-width: 900px) {
     .blockColumns {
         grid-template-columns: 1fr;
     }
 }
 
 .colData {
-    padding: 20px;
-    border-right: 1px solid #f1f5f9;
+    padding: 24px;
+    border-right: 1px solid rgba(226, 232, 240, 0.8);
+    min-width: 0;
 }
 
 .colData:last-child {
@@ -173,22 +254,31 @@
 .colData h4 {
     margin-top: 0;
     margin-bottom: 16px;
-    color: #475569;
-    font-size: 0.95rem;
+    color: #334155;
+    font-size: 0.9rem;
     text-transform: uppercase;
-    letter-spacing: 0.05em;
+    letter-spacing: 0.08em;
 }
 
 .blockList {
-    padding: 20px;
+    padding: 24px;
+}
+
+.blockColumnsPadded {
+    padding: 24px;
 }
 
 .taskRow {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 8px 0;
-    border-bottom: 1px solid #f1f5f9;
+    gap: 16px;
+    padding: 12px 0;
+    border-bottom: 1px solid rgba(241, 245, 249, 0.95);
+}
+
+.taskRow > * {
+    min-width: 0;
 }
 
 .taskRow:last-child {
@@ -196,7 +286,7 @@
 }
 
 .taskLabel {
-    font-weight: 500;
+    font-weight: 600;
     color: #334155;
     font-size: 0.95rem;
     flex: 1;
@@ -205,15 +295,18 @@
 .taskSlot {
     display: flex;
     align-items: center;
-    background: #f8fafc;
-    border: 1px dashed #cbd5e1;
-    border-radius: 6px;
-    padding: 6px 12px;
-    min-width: 140px;
-    min-height: 36px;
+    background: linear-gradient(180deg, #fbfdff 0%, #f2f7ff 100%);
+    border: 1px dashed rgba(148, 163, 184, 0.44);
+    border-radius: 16px;
+    padding: 9px 14px;
+    min-width: 0;
+    width: 100%;
+    max-width: 220px;
+    min-height: 44px;
     justify-content: space-between;
-    transition: all 0.2s;
+    transition: all 0.2s ease;
     position: relative;
+    box-sizing: border-box;
 }
 
 .slotOver {
@@ -223,13 +316,14 @@
 
 .assignedName {
     font-size: 0.9rem;
-    font-weight: 600;
-    color: #0077b6;
+    font-weight: 700;
+    color: #0f5fd7;
 }
 
 .unassignedName {
     font-size: 0.85rem;
     color: #94a3b8;
+    font-weight: 600;
 }
 
 .slotSelect {
@@ -240,6 +334,144 @@
     width: 100%;
     height: 100%;
     cursor: pointer;
+}
+
+.groupBlockBody {
+    padding: 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+}
+
+.unassignedCard,
+.columnCard,
+.simpleTaskCard {
+    background: rgba(255, 255, 255, 0.98);
+    border: 1px solid rgba(148, 163, 184, 0.18);
+    border-radius: 20px;
+    box-shadow: 0 14px 30px rgba(15, 23, 42, 0.05);
+}
+
+.unassignedHeader,
+.residentsHeader {
+    padding: 14px 18px;
+    background: linear-gradient(135deg, #f8fafc 0%, #eef4fb 100%);
+    border-bottom: 1px solid rgba(148, 163, 184, 0.16);
+    font-weight: 700;
+    color: #334155;
+    font-size: 0.92rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.actionLink {
+    background: none;
+    border: none;
+    color: #0f5fd7;
+    cursor: pointer;
+    font-size: 0.82rem;
+    font-weight: 800;
+    letter-spacing: 0.01em;
+}
+
+.assignmentMatrix {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 24px;
+    align-items: start;
+}
+
+.assignmentColumn {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    background: linear-gradient(180deg, #fbfdff 0%, #f6f9ff 100%);
+    padding: 18px;
+    border-radius: 22px;
+    border: 1px solid rgba(148, 163, 184, 0.14);
+    min-width: 0;
+}
+
+.columnTitle {
+    margin: 0;
+    font-size: 0.96rem;
+    color: #0f172a;
+    font-weight: 800;
+}
+
+.residentsFooter {
+    padding: 10px 16px 12px;
+    border-top: 1px dashed rgba(148, 163, 184, 0.24);
+}
+
+.simpleTasksGrid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 18px;
+    padding: 24px;
+}
+
+.simpleTaskTitle {
+    font-weight: 700;
+    color: #334155;
+    margin-bottom: 14px;
+    font-size: 0.95rem;
+}
+
+.residentDropZone {
+    display: flex;
+    flex-direction: column;
+    min-height: 88px;
+    background: transparent;
+    border: 1px dashed transparent;
+    border-radius: 16px;
+    transition: all 0.2s ease;
+}
+
+.residentDropZoneOver {
+    background: #eff8ff;
+    border-color: #38bdf8;
+}
+
+.residentEmpty {
+    color: #94a3b8;
+    font-size: 0.86rem;
+    font-style: italic;
+    text-align: center;
+    padding: 22px 0;
+}
+
+.residentDragPreview {
+    display: flex;
+    align-items: center;
+    padding: 12px 16px;
+    background: #fff;
+    border: 1px solid rgba(148, 163, 184, 0.2);
+    border-radius: 16px;
+    color: #475569;
+    font-size: 0.95rem;
+    font-weight: 600;
+    box-shadow: 0 18px 34px rgba(15, 23, 42, 0.14);
+    z-index: 999;
+}
+
+@media (max-width: 900px) {
+    .assignmentMatrix,
+    .simpleTasksGrid {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 1280px) {
+    .taskRow {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .taskSlot {
+        max-width: none;
+    }
 }
 
 /* Modal Styles */
