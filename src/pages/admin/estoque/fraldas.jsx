@@ -57,6 +57,7 @@ export default function FraldasPage() {
 
     const [showPatientForm, setShowPatientForm] = useState(false);
     const [patientForm, setPatientForm] = useState({ name: '', diaperId: '', origin: 'Casa' });
+    const [expandedArrivalItemId, setExpandedArrivalItemId] = useState('');
 
     const [replaceModal, setReplaceModal] = useState(null); // { patient, date: YYYY-MM-DD }
     const [currentRoomStock, setCurrentRoomStock] = useState('');
@@ -122,6 +123,7 @@ export default function FraldasPage() {
     const [weekOffset, setWeekOffset] = useState(0);
     const [dayOffset, setDayOffset] = useState(0); // Para a aba 'Diárias'
     const [depositUsageDate, setDepositUsageDate] = useState(todayStr);
+    const [arrivalForm, setArrivalForm] = useState({ itemId: '', date: todayStr, quantity: '' });
 
     const selectedDay = useMemo(() => {
         const d = new Date();
@@ -188,6 +190,45 @@ export default function FraldasPage() {
 
         return totals;
     }, [diaperLogs, depositUsageDate]);
+
+    const getArrivalHistory = (item) => (
+        [...(item?.arrivalHistory || [])]
+            .sort((a, b) => new Date(b.date || b.timestamp || 0) - new Date(a.date || a.timestamp || 0))
+    );
+
+    const openArrivalHistory = (item) => {
+        setExpandedArrivalItemId((current) => current === item.id ? '' : item.id);
+        setArrivalForm({
+            itemId: item.id,
+            date: todayStr,
+            quantity: ''
+        });
+    };
+
+    const handleSaveArrival = async (item) => {
+        const quantity = Number(arrivalForm.quantity);
+        if (!arrivalForm.date || Number.isNaN(quantity) || quantity <= 0) {
+            alert('Indique a data e a quantidade recebida.');
+            return;
+        }
+
+        const arrivalEntry = {
+            id: Date.now().toString(),
+            date: arrivalForm.date,
+            quantity,
+            createdAt: new Date().toISOString(),
+            createdBy: currentUser?.name || 'Admin'
+        };
+
+        await updateInventoryItem(item.id, {
+            stockDepot: Number(item.stockDepot || 0) + quantity,
+            arrivalHistory: [...(item.arrivalHistory || []), arrivalEntry]
+        });
+
+        setToast(`Chegada registada em ${item.name}: +${quantity}`);
+        setTimeout(() => setToast(''), 3000);
+        setArrivalForm({ itemId: item.id, date: todayStr, quantity: '' });
+    };
 
     // EXPORT PDF
     const exportPDF = (patient = null) => {
@@ -923,6 +964,48 @@ export default function FraldasPage() {
                                                     </div>
                                                 </div>
 
+                                                <div style={{ marginBottom: '14px', borderTop: '1px dashed #E5E7EB', paddingTop: '14px' }}>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => openArrivalHistory(item)}
+                                                        style={{ width: '100%', padding: '12px 14px', borderRadius: '12px', border: '1px solid #BFDBFE', background: expandedArrivalItemId === item.id ? '#EFF6FF' : 'white', color: '#1D4ED8', fontWeight: 800, cursor: 'pointer' }}
+                                                    >
+                                                        {expandedArrivalItemId === item.id ? 'Fechar histórico de chegadas' : 'Histórico de chegadas'}
+                                                    </button>
+
+                                                    {expandedArrivalItemId === item.id && (
+                                                        <div style={{ marginTop: '12px', display: 'flex', flexDirection: 'column', gap: '10px', background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: '14px', padding: '12px' }}>
+                                                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr auto', gap: '8px', alignItems: 'end' }}>
+                                                                <label style={{ fontSize: '12px', fontWeight: 800, color: '#475569' }}>
+                                                                    Data
+                                                                    <input type="date" value={arrivalForm.itemId === item.id ? arrivalForm.date : todayStr} max={todayStr} onChange={(e) => setArrivalForm({ itemId: item.id, date: e.target.value, quantity: arrivalForm.itemId === item.id ? arrivalForm.quantity : '' })} style={{ width: '100%', marginTop: '6px', padding: '10px', borderRadius: '10px', border: '1px solid #CBD5E1' }} />
+                                                                </label>
+                                                                <label style={{ fontSize: '12px', fontWeight: 800, color: '#475569' }}>
+                                                                    Quantidade recebida
+                                                                    <input type="number" min="1" placeholder="Ex: 104" value={arrivalForm.itemId === item.id ? arrivalForm.quantity : ''} onChange={(e) => setArrivalForm({ itemId: item.id, date: arrivalForm.itemId === item.id ? arrivalForm.date : todayStr, quantity: e.target.value })} style={{ width: '100%', marginTop: '6px', padding: '10px', borderRadius: '10px', border: '1px solid #CBD5E1' }} />
+                                                                </label>
+                                                                <button type="button" onClick={() => handleSaveArrival(item)} style={{ padding: '10px 14px', borderRadius: '10px', border: 'none', background: '#16A34A', color: 'white', fontWeight: 900, cursor: 'pointer' }}>
+                                                                    Guardar
+                                                                </button>
+                                                            </div>
+
+                                                            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                                                {getArrivalHistory(item).length > 0 ? getArrivalHistory(item).map((entry) => (
+                                                                    <div key={entry.id || `${entry.date}-${entry.quantity}`} style={{ display: 'flex', justifyContent: 'space-between', gap: '12px', background: 'white', border: '1px solid #E2E8F0', borderRadius: '12px', padding: '10px 12px' }}>
+                                                                        <div>
+                                                                            <div style={{ fontWeight: 900, color: '#0F172A' }}>{new Date(`${entry.date}T00:00:00`).toLocaleDateString('pt-PT')}</div>
+                                                                            <div style={{ fontSize: '12px', color: '#64748B', fontWeight: 700 }}>Registado por {entry.createdBy || 'Admin'}</div>
+                                                                        </div>
+                                                                        <div style={{ fontWeight: 900, color: '#166534' }}>+{entry.quantity}</div>
+                                                                    </div>
+                                                                )) : (
+                                                                    <div style={{ fontSize: '13px', color: '#64748B', fontWeight: 700 }}>Ainda não há chegadas registadas.</div>
+                                                                )}
+                                                            </div>
+                                                        </div>
+                                                    )}
+                                                </div>
+
                                                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', borderTop: '1px dashed #E5E7EB', paddingTop: '20px', marginTop: 'auto' }}>
                                                     <button title="-10" onClick={() => handleUpdateDepot(item.id, -10)} style={{ border: 'none', background: '#FEE2E2', color: '#EF4444', flex: 1, padding: '12px 0', borderRadius: '10px', cursor: 'pointer', fontWeight: 800, fontSize: '15px', transition: '0.2s' }}>-10</button>
                                                     <button title="-1" onClick={() => handleUpdateDepot(item.id, -1)} style={{ border: 'none', background: '#FEE2E2', color: '#EF4444', flex: 1, padding: '12px 0', borderRadius: '10px', cursor: 'pointer', fontWeight: 800, fontSize: '15px', transition: '0.2s' }}>-1</button>
@@ -972,6 +1055,48 @@ export default function FraldasPage() {
                                                     <div style={{ marginTop: '6px', fontSize: '24px', fontWeight: 900, color: '#0F172A' }}>
                                                         {usageByInventoryForDepositDate.get(item.id) || 0}
                                                     </div>
+                                                </div>
+
+                                                <div style={{ marginBottom: '14px', borderTop: '1px dashed #E5E7EB', paddingTop: '14px' }}>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => openArrivalHistory(item)}
+                                                        style={{ width: '100%', padding: '12px 14px', borderRadius: '12px', border: '1px solid #BFDBFE', background: expandedArrivalItemId === item.id ? '#EFF6FF' : 'white', color: '#1D4ED8', fontWeight: 800, cursor: 'pointer' }}
+                                                    >
+                                                        {expandedArrivalItemId === item.id ? 'Fechar histórico de chegadas' : 'Histórico de chegadas'}
+                                                    </button>
+
+                                                    {expandedArrivalItemId === item.id && (
+                                                        <div style={{ marginTop: '12px', display: 'flex', flexDirection: 'column', gap: '10px', background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: '14px', padding: '12px' }}>
+                                                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr auto', gap: '8px', alignItems: 'end' }}>
+                                                                <label style={{ fontSize: '12px', fontWeight: 800, color: '#475569' }}>
+                                                                    Data
+                                                                    <input type="date" value={arrivalForm.itemId === item.id ? arrivalForm.date : todayStr} max={todayStr} onChange={(e) => setArrivalForm({ itemId: item.id, date: e.target.value, quantity: arrivalForm.itemId === item.id ? arrivalForm.quantity : '' })} style={{ width: '100%', marginTop: '6px', padding: '10px', borderRadius: '10px', border: '1px solid #CBD5E1' }} />
+                                                                </label>
+                                                                <label style={{ fontSize: '12px', fontWeight: 800, color: '#475569' }}>
+                                                                    Quantidade recebida
+                                                                    <input type="number" min="1" placeholder="Ex: 104" value={arrivalForm.itemId === item.id ? arrivalForm.quantity : ''} onChange={(e) => setArrivalForm({ itemId: item.id, date: arrivalForm.itemId === item.id ? arrivalForm.date : todayStr, quantity: e.target.value })} style={{ width: '100%', marginTop: '6px', padding: '10px', borderRadius: '10px', border: '1px solid #CBD5E1' }} />
+                                                                </label>
+                                                                <button type="button" onClick={() => handleSaveArrival(item)} style={{ padding: '10px 14px', borderRadius: '10px', border: 'none', background: '#0284C7', color: 'white', fontWeight: 900, cursor: 'pointer' }}>
+                                                                    Guardar
+                                                                </button>
+                                                            </div>
+
+                                                            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                                                {getArrivalHistory(item).length > 0 ? getArrivalHistory(item).map((entry) => (
+                                                                    <div key={entry.id || `${entry.date}-${entry.quantity}`} style={{ display: 'flex', justifyContent: 'space-between', gap: '12px', background: 'white', border: '1px solid #E2E8F0', borderRadius: '12px', padding: '10px 12px' }}>
+                                                                        <div>
+                                                                            <div style={{ fontWeight: 900, color: '#0F172A' }}>{new Date(`${entry.date}T00:00:00`).toLocaleDateString('pt-PT')}</div>
+                                                                            <div style={{ fontSize: '12px', color: '#64748B', fontWeight: 700 }}>Registado por {entry.createdBy || 'Admin'}</div>
+                                                                        </div>
+                                                                        <div style={{ fontWeight: 900, color: '#0284C7' }}>+{entry.quantity}</div>
+                                                                    </div>
+                                                                )) : (
+                                                                    <div style={{ fontSize: '13px', color: '#64748B', fontWeight: 700 }}>Ainda não há chegadas registadas.</div>
+                                                                )}
+                                                            </div>
+                                                        </div>
+                                                    )}
                                                 </div>
 
                                                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', borderTop: '1px dashed #E5E7EB', paddingTop: '20px', marginTop: 'auto' }}>
