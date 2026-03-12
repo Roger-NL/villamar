@@ -11,8 +11,6 @@ import { useApp } from '@/pages/_app';
 import { useData } from '@/contexts/DataContext';
 import { Baby, Clock, CheckCircle2, User, HelpCircle, Plus, Trash2, Edit2 } from 'lucide-react';
 
-const defaultNames = ["Amélia", "António", "Babixa", "Carlos A.", "Conceição", "Emília", "Fernanda", "Fernanda C.", "José Carlos", "Judite", "Júlio", "Luísa", "Lurdes C.", "Lurdes N.", "M. Rodrigues", "M. Zélia", "Maria", "Mário", "Otílio", "Perpétua", "Simão", "Sofia", "Teresa", "Tina", "Ventura"];
-
 export default function FraldasFuncionarioPage() {
     const { isAdmin, toggleMode, currentUser } = useApp();
     const router = useRouter();
@@ -24,17 +22,6 @@ export default function FraldasFuncionarioPage() {
     const [editMode, setEditMode] = useState(false);
     const [showAddModal, setShowAddModal] = useState(false);
     const [newPatientName, setNewPatientName] = useState('');
-
-    useEffect(() => {
-        if (isHydrated && diaperPatients.length === 0) {
-            const seed = async () => {
-                for (const name of defaultNames) {
-                    await addDiaperPatient({ name, origin: 'Casa', diaperId: '' });
-                }
-            };
-            seed();
-        }
-    }, [isHydrated, diaperPatients.length, addDiaperPatient]);
 
     const handleAddPatientModal = () => {
         if (!newPatientName.trim()) return;

@@ -568,7 +568,7 @@ export function DataProvider({ children }) {
 
     // === ESTOQUE ===
     const addInventoryItem = useCallback(async (item) => {
-        const newItem = { id: Date.now().toString(), ...item, createdAt: new Date().toISOString() };
+        const newItem = { id: Date.now().toString() + Math.random().toString().slice(2, 6), ...item, createdAt: new Date().toISOString() };
         if (!db) setInventoryItems(prev => [...prev, newItem]);
         else await writeDB('inventoryItems', newItem.id, newItem);
     }, [db]);
@@ -588,7 +588,7 @@ export function DataProvider({ children }) {
 
     // === FRALDAS (Pacientes e Logs) ===
     const addDiaperPatient = useCallback(async (patient) => {
-        const newPatient = { id: Date.now().toString(), ...patient, createdAt: new Date().toISOString() };
+        const newPatient = { id: Date.now().toString() + Math.random().toString().slice(2, 6), ...patient, createdAt: new Date().toISOString() };
         if (!db) setDiaperPatients(prev => [...prev, newPatient]);
         else await writeDB('diaperPatients', newPatient.id, newPatient);
     }, [db]);
@@ -607,7 +607,7 @@ export function DataProvider({ children }) {
     }, [db]);
 
     const addDiaperLog = useCallback(async (log) => {
-        const newLog = { id: Date.now().toString(), ...log, timestamp: new Date().toISOString() };
+        const newLog = { id: Date.now().toString() + Math.random().toString().slice(2, 6), ...log, timestamp: new Date().toISOString() };
         if (!db) setDiaperLogs(prev => [...prev, newLog]);
         else await writeDB('diaperLogs', newLog.id, newLog);
     }, [db]);
@@ -660,7 +660,7 @@ export function DataProvider({ children }) {
 
     // === AVISOS DIÁRIOS ===
     const addDailyAnnouncement = useCallback(async (text, authorName, severity = 'normal') => {
-        const newAnnouncement = { id: Date.now().toString(), text, authorName, severity, createdAt: new Date().toISOString() };
+        const newAnnouncement = { id: Date.now().toString() + Math.random().toString().slice(2, 6), text, authorName, severity, createdAt: new Date().toISOString() };
         if (!db) setDailyAnnouncements(prev => [newAnnouncement, ...prev]);
         else await writeDB('dailyAnnouncements', newAnnouncement.id, newAnnouncement);
     }, [db]);
