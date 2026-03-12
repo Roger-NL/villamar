@@ -9,7 +9,7 @@ import Sidebar from '@/components/layout/Sidebar';
 import Card from '@/components/ui/Card';
 import { useApp } from '@/pages/_app';
 import { useData } from '@/contexts/DataContext';
-import { DIAPER_INVENTORY_CATALOG, getInventoryItemConfig, getPackSize, getPatientDiaperAssignment, sortDiaperPatientsByPlan, isDirectFamilySupplyPatient } from '@/data/diaperConfig.mjs';
+import { DIAPER_INVENTORY_CATALOG, getInventoryItemConfig, getPackSize, getPatientDiaperAssignment, hasExplicitDiaperAssignment, sortDiaperPatientsByPlan, isDirectFamilySupplyPatient } from '@/data/diaperConfig.mjs';
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
 import { Baby, Plus, X, ArrowLeft, RefreshCw, Box, TableProperties, ChevronLeft, ChevronRight, CheckCircle2, Download, Clock, User } from 'lucide-react';
@@ -97,13 +97,14 @@ export default function FraldasPage() {
             ? sortDiaperPatientsByPlan(
                 [...new Map(diaperPatients.map((patient) => {
                     const assignment = getPatientDiaperAssignment(patient.name);
+                    const useExplicitAssignment = hasExplicitDiaperAssignment(patient.name);
                     return [
                         patient.name.toLowerCase().trim(),
                         {
                             ...patient,
-                            diaperId: patient.diaperId ?? assignment.diaperId,
-                            origin: patient.origin ?? assignment.origin,
-                            backupDiaperId: patient.backupDiaperId ?? assignment.backupDiaperId ?? ''
+                            diaperId: useExplicitAssignment ? assignment.diaperId : (patient.diaperId ?? assignment.diaperId),
+                            origin: useExplicitAssignment ? assignment.origin : (patient.origin ?? assignment.origin),
+                            backupDiaperId: useExplicitAssignment ? (assignment.backupDiaperId ?? '') : (patient.backupDiaperId ?? assignment.backupDiaperId ?? '')
                         }
                     ];
                 })).values()]

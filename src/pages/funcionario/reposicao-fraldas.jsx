@@ -8,7 +8,7 @@ import BottomNav from '@/components/layout/BottomNav';
 import Sidebar from '@/components/layout/Sidebar';
 import { useApp } from '@/pages/_app';
 import { useData } from '@/contexts/DataContext';
-import { DIAPER_FLOOR_PLAN, DIAPER_INVENTORY_CATALOG, getInventoryItemConfig, getPatientDiaperAssignment, sortDiaperPatientsByPlan, isDirectFamilySupplyPatient } from '@/data/diaperConfig.mjs';
+import { DIAPER_FLOOR_PLAN, DIAPER_INVENTORY_CATALOG, getInventoryItemConfig, getPatientDiaperAssignment, hasExplicitDiaperAssignment, sortDiaperPatientsByPlan, isDirectFamilySupplyPatient } from '@/data/diaperConfig.mjs';
 import { Box, CheckCircle2, ClipboardList, Package2, AlertCircle, X } from 'lucide-react';
 
 const TARGET_STOCK = 10;
@@ -56,13 +56,14 @@ export default function FraldasReposicaoFuncionarioPage() {
             ? sortDiaperPatientsByPlan(
                 [...new Map(diaperPatients.map((patient) => {
                     const assignment = getPatientDiaperAssignment(patient.name);
+                    const useExplicitAssignment = hasExplicitDiaperAssignment(patient.name);
                     return [
                         patient.name.toLowerCase().trim(),
                         {
                             ...patient,
-                            diaperId: patient.diaperId ?? assignment.diaperId,
-                            origin: patient.origin ?? assignment.origin,
-                            backupDiaperId: patient.backupDiaperId ?? assignment.backupDiaperId ?? ''
+                            diaperId: useExplicitAssignment ? assignment.diaperId : (patient.diaperId ?? assignment.diaperId),
+                            origin: useExplicitAssignment ? assignment.origin : (patient.origin ?? assignment.origin),
+                            backupDiaperId: useExplicitAssignment ? (assignment.backupDiaperId ?? '') : (patient.backupDiaperId ?? assignment.backupDiaperId ?? '')
                         }
                     ];
                 })).values()]
@@ -543,17 +544,41 @@ export default function FraldasReposicaoFuncionarioPage() {
                         {ownSupplySummary.length > 0 && (
                             <div style={{ marginTop: '16px', background: '#fff7ed', borderRadius: '18px', padding: '16px', border: '1px solid #fed7aa' }}>
                                 <div style={{ fontSize: '14px', fontWeight: 900, color: '#c2410c', marginBottom: '8px' }}>Fraldas próprias do utente</div>
-                                <div style={{ color: '#9a3412', fontWeight: 700, lineHeight: 1.5 }}>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                                     {ownSupplySummary.map(({ patient, state }) => {
                                         const ownModel = diaperInventoryById.get(patient.diaperId)?.name || getInventoryItemConfig(patient.diaperId)?.name || 'Fralda própria';
                                         const backupModel = patient.backupDiaperId
                                             ? (diaperInventoryById.get(patient.backupDiaperId)?.name || getInventoryItemConfig(patient.backupDiaperId)?.name || '')
                                             : '';
-                                        if (isDirectFamilySupplyPatient(patient)) return `${patient.name}: confirmar com a família`;
+                                        if (isDirectFamilySupplyPatient(patient)) {
+                                            return (
+                                                <div key={patient.id} style={{ display: 'flex', justifyContent: 'space-between', gap: '12px', background: '#fffbeb', border: '1px solid #fed7aa', borderRadius: '14px', padding: '10px 12px' }}>
+                                                    <div style={{ color: '#7c2d12', fontWeight: 900 }}>{patient.name}</div>
+                                                    <div style={{ color: '#9a3412', fontWeight: 800 }}>Confirmar com a família</div>
+                                                </div>
+                                            );
+                                        }
                                         return backupModel
-                                            ? `${patient.name}: faltam ${state.missingToTarget} (${ownModel}; se faltar, usar ${backupModel})`
-                                            : `${patient.name}: faltam ${state.missingToTarget} (${ownModel})`;
-                                    }).join(' | ')}
+                                            ? (
+                                                <div key={patient.id} style={{ display: 'flex', justifyContent: 'space-between', gap: '12px', background: '#fffbeb', border: '1px solid #fed7aa', borderRadius: '14px', padding: '10px 12px' }}>
+                                                    <div>
+                                                        <div style={{ color: '#7c2d12', fontWeight: 900 }}>{patient.name}</div>
+                                                        <div style={{ color: '#9a3412', fontWeight: 700, fontSize: '12px', marginTop: '2px' }}>{ownModel}</div>
+                                                        <div style={{ color: '#b45309', fontWeight: 700, fontSize: '12px', marginTop: '2px' }}>Se faltar, usar {backupModel}</div>
+                                                    </div>
+                                                    <div style={{ color: '#c2410c', fontWeight: 900, fontSize: '18px', whiteSpace: 'nowrap' }}>Faltam {state.missingToTarget}</div>
+                                                </div>
+                                            )
+                                            : (
+                                                <div key={patient.id} style={{ display: 'flex', justifyContent: 'space-between', gap: '12px', background: '#fffbeb', border: '1px solid #fed7aa', borderRadius: '14px', padding: '10px 12px' }}>
+                                                    <div>
+                                                        <div style={{ color: '#7c2d12', fontWeight: 900 }}>{patient.name}</div>
+                                                        <div style={{ color: '#9a3412', fontWeight: 700, fontSize: '12px', marginTop: '2px' }}>{ownModel}</div>
+                                                    </div>
+                                                    <div style={{ color: '#c2410c', fontWeight: 900, fontSize: '18px', whiteSpace: 'nowrap' }}>Faltam {state.missingToTarget}</div>
+                                                </div>
+                                            );
+                                    })}
                                 </div>
                             </div>
                         )}

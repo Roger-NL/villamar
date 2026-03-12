@@ -174,6 +174,10 @@ export function getPatientDiaperAssignment(patientName) {
     return DIAPER_ASSIGNMENT_OVERRIDES[patientName] || { diaperId: 'casa-fraldas-m', origin: 'Casa' };
 }
 
+export function hasExplicitDiaperAssignment(patientName) {
+    return Object.prototype.hasOwnProperty.call(DIAPER_ASSIGNMENT_OVERRIDES, patientName);
+}
+
 export function getInventoryItemConfig(inventoryId) {
     return DIAPER_INVENTORY_CATALOG.find((item) => item.id === inventoryId) || null;
 }
