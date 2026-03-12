@@ -157,6 +157,8 @@ const DIAPER_ASSIGNMENT_OVERRIDES = {
     'Otílio Guerreiro': { diaperId: '', origin: 'Própria' },
     'Mário Almeida': { diaperId: '', origin: 'Própria' },
     'Zélia Oliveira': { diaperId: '', origin: 'Própria' },
+    'Lourdes Correia': { diaperId: '', origin: 'Própria' },
+    'Maria Emília': { diaperId: '', origin: 'Própria' },
     'Babicha': { diaperId: 'casa-fraldas-l', origin: 'Casa' },
     'Amélia Marinho': { diaperId: 'propria-amelia-fraldas-l', origin: 'Própria' },
     'Luísa Reis': { diaperId: 'casa-cueca-fralda-m', origin: 'Casa' },
