@@ -318,7 +318,10 @@ export default function FraldasReposicaoFuncionarioPage() {
 
             await updateDiaperPatient(patient.id, {
                 wardrobeStock: newStock,
-                hasAnomaly: false
+                hasAnomaly: false,
+                currentWardrobeDiaperId: diaperType.id,
+                currentWardrobeDiaperName: diaperType.name,
+                currentWardrobeOrigin: diaperType.origin || 'Casa'
             });
         }
 
@@ -359,7 +362,10 @@ export default function FraldasReposicaoFuncionarioPage() {
 
             await updateDiaperPatient(patient.id, {
                 wardrobeStock: stockValue,
-                hasAnomaly: directSupplyStatus !== 'ok'
+                hasAnomaly: directSupplyStatus !== 'ok',
+                currentWardrobeDiaperId: '',
+                currentWardrobeDiaperName: '',
+                currentWardrobeOrigin: 'Própria'
             });
 
             setToast(directSupplyStatus === 'ok'
@@ -419,7 +425,10 @@ export default function FraldasReposicaoFuncionarioPage() {
 
         await updateDiaperPatient(patient.id, {
             wardrobeStock: finalStock,
-            hasAnomaly: false
+            hasAnomaly: false,
+            currentWardrobeDiaperId: diaperType ? diaperType.id : (patient.currentWardrobeDiaperId || patient.diaperId || ''),
+            currentWardrobeDiaperName: diaperType ? diaperType.name : (patient.currentWardrobeDiaperName || ''),
+            currentWardrobeOrigin: diaperType ? (diaperType.origin || patient.origin || '') : (patient.currentWardrobeOrigin || patient.origin || '')
         });
 
         setToast(amountToReplenish > 0

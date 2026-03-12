@@ -1,5 +1,5 @@
 import Head from 'next/head';
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo } from 'react';
 import { useRouter } from 'next/router';
 import styles from '@/styles/Dashboard.module.css';
 import formStyles from '@/styles/Forms.module.css';
@@ -9,12 +9,13 @@ import Sidebar from '@/components/layout/Sidebar';
 import Card from '@/components/ui/Card';
 import { useApp } from '@/pages/_app';
 import { useData } from '@/contexts/DataContext';
-import { Baby, Clock, CheckCircle2, User, HelpCircle, Plus, Trash2, Edit2 } from 'lucide-react';
+import { DIAPER_INVENTORY_CATALOG, getInventoryItemConfig, getPatientDiaperAssignment, hasExplicitDiaperAssignment, isDirectFamilySupplyPatient, sortDiaperPatientsByPlan } from '@/data/diaperConfig.mjs';
+import { Baby, Clock, CheckCircle2, HelpCircle, Plus, Trash2, Edit2 } from 'lucide-react';
 
 export default function FraldasFuncionarioPage() {
     const { isAdmin, toggleMode, currentUser } = useApp();
     const router = useRouter();
-    const { diaperPatients, diaperLogs, addDiaperLog, isHydrated, addDiaperPatient, deleteDiaperPatient, updateDiaperPatient } = useData();
+    const { diaperPatients, diaperLogs, inventoryItems, addDiaperLog, updateInventoryItem, isHydrated, addDiaperPatient, deleteDiaperPatient, updateDiaperPatient } = useData();
 
     const [selectedPatient, setSelectedPatient] = useState('');
     const [amount, setAmount] = useState(1);
@@ -23,11 +24,46 @@ export default function FraldasFuncionarioPage() {
     const [showAddModal, setShowAddModal] = useState(false);
     const [newPatientName, setNewPatientName] = useState('');
 
+    const diaperInventoryById = useMemo(() => {
+        const byId = new Map(
+            DIAPER_INVENTORY_CATALOG.map((item) => [item.id, { ...item }])
+        );
+
+        (inventoryItems || [])
+            .filter((item) => item.category === 'fralda')
+            .forEach((item) => {
+                byId.set(item.id, { ...byId.get(item.id), ...item });
+            });
+
+        return byId;
+    }, [inventoryItems]);
+
+    const orderedPatients = useMemo(() => (
+        diaperPatients && diaperPatients.length > 0
+            ? sortDiaperPatientsByPlan(
+                [...new Map(diaperPatients.map((patient) => {
+                    const assignment = getPatientDiaperAssignment(patient.name);
+                    const useExplicitAssignment = hasExplicitDiaperAssignment(patient.name);
+
+                    return [
+                        patient.name.toLowerCase().trim(),
+                        {
+                            ...patient,
+                            diaperId: useExplicitAssignment ? assignment.diaperId : (patient.diaperId ?? assignment.diaperId),
+                            origin: useExplicitAssignment ? assignment.origin : (patient.origin ?? assignment.origin),
+                            backupDiaperId: useExplicitAssignment ? (assignment.backupDiaperId ?? '') : (patient.backupDiaperId ?? assignment.backupDiaperId ?? '')
+                        }
+                    ];
+                })).values()]
+            )
+            : []
+    ), [diaperPatients]);
+
     const handleAddPatientModal = () => {
         if (!newPatientName.trim()) return;
 
         // Prevent adding visually similar duplicates
-        if (diaperPatients.some(p => p.name.toLowerCase() === newPatientName.trim().toLowerCase())) {
+        if (orderedPatients.some(p => p.name.toLowerCase() === newPatientName.trim().toLowerCase())) {
             setToast('Utente já está na lista.');
             setTimeout(() => setToast(''), 3000);
             return;
@@ -38,16 +74,21 @@ export default function FraldasFuncionarioPage() {
         setShowAddModal(false);
     };
 
-    const handleLogUsage = (e) => {
+    const handleLogUsage = async (e) => {
         e.preventDefault();
         if (!selectedPatient || amount < 1) return;
 
-        const patient = diaperPatients.find(p => p.id === selectedPatient);
+        const patient = orderedPatients.find(p => p.id === selectedPatient);
         if (!patient) return;
 
         let currentStock = patient.wardrobeStock !== undefined ? patient.wardrobeStock : 10;
         const amountUsed = Number(amount);
         const previousStock = currentStock;
+        const activeDiaperId = patient.currentWardrobeDiaperId || patient.diaperId || '';
+        const activeDiaper = activeDiaperId
+            ? (diaperInventoryById.get(activeDiaperId) || getInventoryItemConfig(activeDiaperId))
+            : null;
+        const isDirectSupply = isDirectFamilySupplyPatient(patient);
 
         if (amountUsed > currentStock) {
             currentStock = 0;
@@ -55,21 +96,37 @@ export default function FraldasFuncionarioPage() {
             currentStock -= amountUsed;
         }
 
-        updateDiaperPatient(patient.id, {
+        const inventoryAmountDeducted = !isDirectSupply && activeDiaper
+            ? Math.min(Number(activeDiaper.stockDepot || 0), amountUsed)
+            : 0;
+
+        await updateDiaperPatient(patient.id, {
             wardrobeStock: currentStock,
-            hasAnomaly: false
+            hasAnomaly: false,
+            currentWardrobeDiaperId: isDirectSupply ? '' : activeDiaperId,
+            currentWardrobeDiaperName: isDirectSupply ? '' : (activeDiaper?.name || patient.currentWardrobeDiaperName || ''),
+            currentWardrobeOrigin: isDirectSupply ? 'Própria' : (activeDiaper?.origin || patient.currentWardrobeOrigin || patient.origin || '')
         });
 
-        addDiaperLog({
+        if (inventoryAmountDeducted > 0) {
+            await updateInventoryItem(activeDiaper.id, {
+                stockDepot: Math.max(0, Number(activeDiaper.stockDepot || 0) - inventoryAmountDeducted)
+            });
+        }
+
+        await addDiaperLog({
             type: 'usage',
             patientId: patient.id,
             patientName: patient.name,
-            diaperId: patient.diaperId,
+            diaperId: activeDiaperId,
+            diaperName: activeDiaper?.name || '',
             date: new Date().toISOString().split('T')[0],
             time: new Date().toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' }),
             amountUsed,
             previousStock,
             newStock: currentStock,
+            inventoryAmountDeducted,
+            inventoryAdjusted: !isDirectSupply && Boolean(activeDiaper),
             executorId: currentUser?.id,
             executorName: currentUser?.name || 'Membro da Equipa'
         });
@@ -124,7 +181,7 @@ export default function FraldasFuncionarioPage() {
                             Nova Mudança <span style={{ fontSize: '12px', fontWeight: 'normal', color: '#64748b' }}>(Automático: {new Date().toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' })})</span>
                         </h2>
 
-                        {diaperPatients && diaperPatients.length > 0 ? (
+                        {orderedPatients && orderedPatients.length > 0 ? (
                             <form onSubmit={handleLogUsage} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
                                 <div className={formStyles.formGroup}>
                                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
@@ -138,7 +195,7 @@ export default function FraldasFuncionarioPage() {
                                         </button>
                                     </div>
                                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(90px, 1fr))', gap: '10px' }}>
-                                        {[...new Map(diaperPatients.map(p => [p.name, p])).values()].sort((a, b) => a.name.localeCompare(b.name)).map(p => (
+                                        {[...new Map(orderedPatients.map(p => [p.name, p])).values()].map(p => (
                                             <div key={p.id} style={{ position: 'relative' }}>
                                                 <button
                                                     type="button"

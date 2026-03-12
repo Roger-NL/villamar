@@ -495,7 +495,13 @@ export default function FraldasPage() {
             } else {
                 addDiaperLog(logPayload);
             }
-            updateDiaperPatient(patient.id, { wardrobeStock: stockValue, hasAnomaly: directSupplyStatus !== 'ok' });
+            updateDiaperPatient(patient.id, {
+                wardrobeStock: stockValue,
+                hasAnomaly: directSupplyStatus !== 'ok',
+                currentWardrobeDiaperId: '',
+                currentWardrobeDiaperName: '',
+                currentWardrobeOrigin: 'Própria'
+            });
             closeReplaceModal();
             return;
         }
@@ -589,7 +595,13 @@ export default function FraldasPage() {
             addDiaperLog(logPayload);
         }
 
-        updateDiaperPatient(patient.id, { wardrobeStock: finalStock, hasAnomaly: false });
+        updateDiaperPatient(patient.id, {
+            wardrobeStock: finalStock,
+            hasAnomaly: false,
+            currentWardrobeDiaperId: diaperType?.id || (patient.currentWardrobeDiaperId || patient.diaperId || ''),
+            currentWardrobeDiaperName: diaperType?.name || patient.currentWardrobeDiaperName || '',
+            currentWardrobeOrigin: diaperType?.origin || patient.currentWardrobeOrigin || patient.origin || ''
+        });
 
         closeReplaceModal();
     };
