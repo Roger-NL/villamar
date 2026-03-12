@@ -22,6 +22,24 @@ export const OFFICIAL_DIAPER_PATIENTS = [
     'Fernanda Costa'
 ];
 
+export const DIAPER_FLOOR_PLAN = [
+    {
+        id: 'piso-0',
+        label: 'Piso 0',
+        names: ['Otílio Guerreiro', 'Mário Almeida', 'Zélia Oliveira', 'Luísa Reis']
+    },
+    {
+        id: 'piso-1',
+        label: 'Piso 1',
+        names: ['Amélia Marinho', 'Maria Rodrigues', 'Lourdes Correia', 'Simão', 'Babicha', 'Zulmira Teixeira', 'Carlos Almeida (Fraldas)', 'Carlos Almeida (Cueca-fralda)', 'Domingos Ventura']
+    },
+    {
+        id: 'piso-2',
+        label: 'Piso 2',
+        names: ['Judite', 'Teresa Almendra', 'Lourdes Nunes', 'Sofia Delgado', 'Perpétua Pinto', 'Maria Emília', 'Ernestina Borges', 'Fernanda Costa']
+    }
+];
+
 export const DIAPER_INVENTORY_CATALOG = [
     {
         id: 'casa-fraldas-l',
@@ -125,6 +143,9 @@ export const DIAPER_INVENTORY_CATALOG = [
 ];
 
 const DIAPER_ASSIGNMENT_OVERRIDES = {
+    'Otílio Guerreiro': { diaperId: '', origin: 'Própria' },
+    'Mário Almeida': { diaperId: '', origin: 'Própria' },
+    'Zélia Oliveira': { diaperId: '', origin: 'Própria' },
     'Babicha': { diaperId: 'casa-fraldas-l', origin: 'Casa' },
     'Amélia Marinho': { diaperId: 'propria-amelia-fraldas-l', origin: 'Própria' },
     'Luísa Reis': { diaperId: 'casa-cueca-fralda-m', origin: 'Casa' },
@@ -147,4 +168,19 @@ export function getInventoryItemConfig(inventoryId) {
 
 export function getPackSize(item) {
     return Number(item?.packSize || 20);
+}
+
+export function isDirectFamilySupplyPatient(patient) {
+    return patient?.origin === 'Própria' && !patient?.diaperId;
+}
+
+export function sortDiaperPatientsByPlan(patients = []) {
+    const plannedNames = DIAPER_FLOOR_PLAN.flatMap((floor) => floor.names);
+    const byName = new Map(patients.map((patient) => [patient.name, patient]));
+    const plannedPatients = plannedNames.map((name) => byName.get(name)).filter(Boolean);
+    const extraPatients = patients
+        .filter((patient) => !plannedNames.includes(patient.name))
+        .sort((a, b) => a.name.localeCompare(b.name));
+
+    return [...plannedPatients, ...extraPatients];
 }

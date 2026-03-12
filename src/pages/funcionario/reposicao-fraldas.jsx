@@ -8,26 +8,10 @@ import BottomNav from '@/components/layout/BottomNav';
 import Sidebar from '@/components/layout/Sidebar';
 import { useApp } from '@/pages/_app';
 import { useData } from '@/contexts/DataContext';
+import { DIAPER_FLOOR_PLAN, sortDiaperPatientsByPlan, isDirectFamilySupplyPatient } from '@/data/diaperConfig.mjs';
 import { Box, CheckCircle2, ClipboardList, Package2, AlertCircle, X } from 'lucide-react';
 
 const TARGET_STOCK = 10;
-const FLOOR_PLAN = [
-    {
-        id: 'piso-0',
-        label: 'Piso 0',
-        names: ['Otílio Guerreiro', 'Mário Almeida', 'Zélia Oliveira', 'Luísa Reis']
-    },
-    {
-        id: 'piso-1',
-        label: 'Piso 1',
-        names: ['Amélia Marinho', 'Maria Rodrigues', 'Lourdes Correia', 'Simão', 'Babicha', 'Zulmira Teixeira', 'Carlos Almeida (Fraldas)', 'Carlos Almeida (Cueca-fralda)', 'Domingos Ventura']
-    },
-    {
-        id: 'piso-2',
-        label: 'Piso 2',
-        names: ['Judite', 'Teresa Almendra', 'Lourdes Nunes', 'Sofia Delgado', 'Perpétua Pinto', 'Maria Emília', 'Ernestina Borges', 'Fernanda Costa']
-    }
-];
 
 export default function FraldasReposicaoFuncionarioPage() {
     const { isAdmin, toggleMode, currentUser } = useApp();
@@ -39,6 +23,7 @@ export default function FraldasReposicaoFuncionarioPage() {
     const [selectedReplenishDiaperId, setSelectedReplenishDiaperId] = useState('');
     const [currentRoomStock, setCurrentRoomStock] = useState('');
     const [replenishAmount, setReplenishAmount] = useState('0');
+    const [directSupplyStatus, setDirectSupplyStatus] = useState('ok');
     const [todayStr] = useState(() => new Date().toISOString().split('T')[0]);
     const [todayPlanStr] = useState(() => {
         const now = new Date();
@@ -63,17 +48,18 @@ export default function FraldasReposicaoFuncionarioPage() {
         setCurrentRoomStock('');
         setReplenishAmount('0');
         setSelectedReplenishDiaperId('');
+        setDirectSupplyStatus('ok');
     };
 
     const dedupedPatients = useMemo(() => (
         diaperPatients && diaperPatients.length > 0
-            ? [...new Map(diaperPatients.map((p) => [p.name.toLowerCase().trim(), p])).values()].sort((a, b) => a.name.localeCompare(b.name))
+            ? sortDiaperPatientsByPlan([...new Map(diaperPatients.map((p) => [p.name.toLowerCase().trim(), p])).values()])
             : []
     ), [diaperPatients]);
 
     const orderedPatients = useMemo(() => {
         const byName = new Map(dedupedPatients.map((patient) => [patient.name, patient]));
-        const plannedNames = FLOOR_PLAN.flatMap((floor) => floor.names);
+        const plannedNames = DIAPER_FLOOR_PLAN.flatMap((floor) => floor.names);
         const plannedPatients = plannedNames.map((name) => byName.get(name)).filter(Boolean);
         const extraPatients = dedupedPatients.filter((patient) => !plannedNames.includes(patient.name));
         return [...plannedPatients, ...extraPatients];
@@ -173,7 +159,7 @@ export default function FraldasReposicaoFuncionarioPage() {
     const groupedSections = useMemo(() => {
         const buildGroups = (patients) => {
             const usedIds = new Set();
-            const floorGroups = FLOOR_PLAN.map((floor) => {
+            const floorGroups = DIAPER_FLOOR_PLAN.map((floor) => {
                 const items = floor.names
                     .map((name) => patients.find((patient) => patient.name === name))
                     .filter(Boolean);
@@ -202,6 +188,7 @@ export default function FraldasReposicaoFuncionarioPage() {
         setCurrentRoomStock(state ? String(state.currentStock) : '');
         setReplenishAmount('0');
         setSelectedReplenishDiaperId(patient.diaperId || '');
+        setDirectSupplyStatus('ok');
     };
 
     const handleSaveReplace = async (e) => {
@@ -209,8 +196,40 @@ export default function FraldasReposicaoFuncionarioPage() {
         if (!replaceModal) return;
 
         const patient = replaceModal;
+        const isDirectSupply = isDirectFamilySupplyPatient(patient);
         const currentInRoom = Number(currentRoomStock);
         const amountToReplenish = Number(replenishAmount);
+
+        if (isDirectSupply) {
+            const stockValue = directSupplyStatus === 'ok' ? TARGET_STOCK : 0;
+            await addDiaperLog({
+                type: 'replenishment',
+                patientId: patient.id,
+                patientName: patient.name,
+                diaperId: '',
+                diaperName: 'Fralda própria no quarto',
+                date: todayStr,
+                time: new Date().toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' }),
+                amountAdded: 0,
+                previousStock: stockValue,
+                newStock: stockValue,
+                directSupplyStatus,
+                executorId: currentUser?.id,
+                executorName: currentUser?.name || 'Funcionário'
+            });
+
+            await updateDiaperPatient(patient.id, {
+                wardrobeStock: stockValue,
+                hasAnomaly: directSupplyStatus !== 'ok'
+            });
+
+            setToast(directSupplyStatus === 'ok'
+                ? `${patient.name}: confirmado com fralda própria`
+                : `${patient.name}: marcado sem fralda`);
+            setTimeout(() => setToast(''), 3000);
+            closeReplaceModal();
+            return;
+        }
 
         if (Number.isNaN(currentInRoom) || currentInRoom < 0) {
             alert('A quantidade no quarto deve ser 0 ou superior.');
@@ -340,7 +359,7 @@ export default function FraldasReposicaoFuncionarioPage() {
                         <div style={{ fontSize: '11px', fontWeight: 800, color: '#64748b', textTransform: 'uppercase' }}>Modelo</div>
                         <div style={{ fontSize: '14px', fontWeight: 800, color: '#0f172a' }}>
                             {patient.origin === 'Própria'
-                                ? 'Própria'
+                                ? (isDirectFamilySupplyPatient(patient) ? 'No quarto' : 'Própria')
                                 : diaperInventory?.find((item) => item.id === patient.diaperId)?.name || 'Sem modelo'}
                         </div>
                     </div>
@@ -348,7 +367,7 @@ export default function FraldasReposicaoFuncionarioPage() {
 
                 <div style={{ fontSize: '15px', fontWeight: 800, color: '#0f172a' }}>
                     {!state?.checkedToday && 'Abrir para conferir'}
-                    {state?.checkedToday && missing > 0 && `Abrir para repor ${missing}`}
+                    {state?.checkedToday && missing > 0 && (isDirectFamilySupplyPatient(patient) ? 'Abrir para confirmar' : `Abrir para repor ${missing}`)}
                     {state?.checkedToday && missing === 0 && 'Abrir para confirmar'}
                 </div>
             </button>
@@ -458,7 +477,7 @@ export default function FraldasReposicaoFuncionarioPage() {
                             <div style={{ marginTop: '16px', background: '#fff7ed', borderRadius: '18px', padding: '16px', border: '1px solid #fed7aa' }}>
                                 <div style={{ fontSize: '14px', fontWeight: 900, color: '#c2410c', marginBottom: '8px' }}>Fraldas próprias do utente</div>
                                 <div style={{ color: '#9a3412', fontWeight: 700, lineHeight: 1.5 }}>
-                                    {ownSupplySummary.map(({ patient, state }) => `${patient.name}: faltam ${state.missingToTarget}`).join(' | ')}
+                                    {ownSupplySummary.map(({ patient, state }) => `${patient.name}: ${isDirectFamilySupplyPatient(patient) ? 'confirmar com a família' : `faltam ${state.missingToTarget}`}`).join(' | ')}
                                 </div>
                             </div>
                         )}
@@ -572,51 +591,40 @@ export default function FraldasReposicaoFuncionarioPage() {
                         </div>
 
                         <form onSubmit={handleSaveReplace}>
-                            <div className={formStyles.formGroup} style={{ marginBottom: '18px' }}>
-                                <label style={{ display: 'block', fontSize: '13px', fontWeight: 900, color: '#475569', marginBottom: '8px', textTransform: 'uppercase' }}>
-                                    1. Quantas estão no armário?
-                                </label>
-                                <input
-                                    type="number"
-                                    min="0"
-                                    required
-                                    value={currentRoomStock}
-                                    onChange={(e) => setCurrentRoomStock(e.target.value)}
-                                    style={{
-                                        width: '100%',
-                                        padding: '18px',
-                                        fontSize: '36px',
-                                        textAlign: 'center',
-                                        fontWeight: '900',
-                                        borderRadius: '18px',
-                                        border: '2px solid #cbd5e1',
-                                        background: '#f8fafc',
-                                        color: '#0f172a'
-                                    }}
-                                    autoFocus
-                                />
-                            </div>
-
-                            {currentRoomStock !== '' && (
-                                <>
-                                    <div style={{ marginBottom: '18px', background: '#f8fafc', borderRadius: '18px', padding: '14px', border: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', gap: '10px' }}>
-                                        <AlertCircle size={20} color="#0284c7" />
-                                        <div style={{ fontSize: '15px', fontWeight: 800, color: '#0f172a' }}>
-                                            {Number(currentRoomStock) >= TARGET_STOCK
-                                                ? 'Já está com 10 ou mais.'
-                                                : `Faltam ${Math.max(0, TARGET_STOCK - Number(currentRoomStock))} para chegar a 10.`}
-                                        </div>
+                            {isDirectFamilySupplyPatient(replaceModal) ? (
+                                <div className={formStyles.formGroup} style={{ marginBottom: '18px' }}>
+                                    <label style={{ display: 'block', fontSize: '13px', fontWeight: 900, color: '#475569', marginBottom: '8px', textTransform: 'uppercase' }}>
+                                        Fralda própria no quarto
+                                    </label>
+                                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '12px' }}>
+                                        <button
+                                            type="button"
+                                            onClick={() => setDirectSupplyStatus('ok')}
+                                            style={{ padding: '18px', borderRadius: '14px', border: directSupplyStatus === 'ok' ? '2px solid #16A34A' : '1px solid #CBD5E1', background: directSupplyStatus === 'ok' ? '#DCFCE7' : 'white', color: '#166534', fontWeight: '900', cursor: 'pointer' }}
+                                        >
+                                            OK, tem fralda
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => setDirectSupplyStatus('missing')}
+                                            style={{ padding: '18px', borderRadius: '14px', border: directSupplyStatus === 'missing' ? '2px solid #DC2626' : '1px solid #CBD5E1', background: directSupplyStatus === 'missing' ? '#FEE2E2' : 'white', color: '#B91C1C', fontWeight: '900', cursor: 'pointer' }}
+                                        >
+                                            Sem fralda
+                                        </button>
                                     </div>
-
+                                </div>
+                            ) : (
+                                <>
                                     <div className={formStyles.formGroup} style={{ marginBottom: '18px' }}>
                                         <label style={{ display: 'block', fontSize: '13px', fontWeight: 900, color: '#475569', marginBottom: '8px', textTransform: 'uppercase' }}>
-                                            2. Quantas vai repor agora?
+                                            1. Quantas estão no armário?
                                         </label>
                                         <input
                                             type="number"
                                             min="0"
-                                            value={replenishAmount}
-                                            onChange={(e) => setReplenishAmount(e.target.value)}
+                                            required
+                                            value={currentRoomStock}
+                                            onChange={(e) => setCurrentRoomStock(e.target.value)}
                                             style={{
                                                 width: '100%',
                                                 padding: '18px',
@@ -625,51 +633,88 @@ export default function FraldasReposicaoFuncionarioPage() {
                                                 fontWeight: '900',
                                                 borderRadius: '18px',
                                                 border: '2px solid #cbd5e1',
-                                                background: '#fff',
+                                                background: '#f8fafc',
                                                 color: '#0f172a'
                                             }}
+                                            autoFocus
                                         />
-
-                                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: '8px', marginTop: '10px' }}>
-                                            {[0, Math.max(0, TARGET_STOCK - (Number(currentRoomStock) || 0)), Math.max(0, Math.ceil((TARGET_STOCK - (Number(currentRoomStock) || 0)) / 2))].filter((value, index, arr) => arr.indexOf(value) === index).map((value) => (
-                                                <button
-                                                    key={value}
-                                                    type="button"
-                                                    onClick={() => setReplenishAmount(String(value))}
-                                                    style={{
-                                                        padding: '12px',
-                                                        borderRadius: '14px',
-                                                        border: '1px solid #cbd5e1',
-                                                        background: Number(replenishAmount) === value ? '#0f172a' : '#fff',
-                                                        color: Number(replenishAmount) === value ? '#fff' : '#0f172a',
-                                                        fontWeight: 800,
-                                                        cursor: 'pointer'
-                                                    }}
-                                                >
-                                                    {value}
-                                                </button>
-                                            ))}
-                                        </div>
                                     </div>
 
-                                    {Number(replenishAmount) > 0 && (
-                                        <div className={formStyles.formGroup} style={{ marginBottom: '18px' }}>
-                                            <label style={{ display: 'block', fontSize: '13px', fontWeight: 900, color: '#475569', marginBottom: '8px', textTransform: 'uppercase' }}>
-                                                3. Que fralda vai usar?
-                                            </label>
-                                            <select
-                                                value={selectedReplenishDiaperId}
-                                                onChange={(e) => setSelectedReplenishDiaperId(e.target.value)}
-                                                style={{ width: '100%', padding: '14px', borderRadius: '14px', border: '1px solid #cbd5e1', fontSize: '16px', fontWeight: '800', color: '#0f172a', background: 'white', cursor: 'pointer' }}
-                                            >
-                                                {replaceModal.origin === 'Própria' && (
-                                                    <option value={replaceModal.diaperId}>Fraldas próprias</option>
-                                                )}
-                                                {diaperInventory?.filter((item) => item.origin === 'Casa').map((item) => (
-                                                    <option key={item.id} value={item.id}>{item.name} ({item.stockDepot} no depósito)</option>
-                                                ))}
-                                            </select>
-                                        </div>
+                                    {currentRoomStock !== '' && (
+                                        <>
+                                            <div style={{ marginBottom: '18px', background: '#f8fafc', borderRadius: '18px', padding: '14px', border: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                                <AlertCircle size={20} color="#0284c7" />
+                                                <div style={{ fontSize: '15px', fontWeight: 800, color: '#0f172a' }}>
+                                                    {Number(currentRoomStock) >= TARGET_STOCK
+                                                        ? 'Já está com 10 ou mais.'
+                                                        : `Faltam ${Math.max(0, TARGET_STOCK - Number(currentRoomStock))} para chegar a 10.`}
+                                                </div>
+                                            </div>
+
+                                            <div className={formStyles.formGroup} style={{ marginBottom: '18px' }}>
+                                                <label style={{ display: 'block', fontSize: '13px', fontWeight: 900, color: '#475569', marginBottom: '8px', textTransform: 'uppercase' }}>
+                                                    2. Quantas vai repor agora?
+                                                </label>
+                                                <input
+                                                    type="number"
+                                                    min="0"
+                                                    value={replenishAmount}
+                                                    onChange={(e) => setReplenishAmount(e.target.value)}
+                                                    style={{
+                                                        width: '100%',
+                                                        padding: '18px',
+                                                        fontSize: '36px',
+                                                        textAlign: 'center',
+                                                        fontWeight: '900',
+                                                        borderRadius: '18px',
+                                                        border: '2px solid #cbd5e1',
+                                                        background: '#fff',
+                                                        color: '#0f172a'
+                                                    }}
+                                                />
+
+                                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: '8px', marginTop: '10px' }}>
+                                                    {[0, Math.max(0, TARGET_STOCK - (Number(currentRoomStock) || 0)), Math.max(0, Math.ceil((TARGET_STOCK - (Number(currentRoomStock) || 0)) / 2))].filter((value, index, arr) => arr.indexOf(value) === index).map((value) => (
+                                                        <button
+                                                            key={value}
+                                                            type="button"
+                                                            onClick={() => setReplenishAmount(String(value))}
+                                                            style={{
+                                                                padding: '12px',
+                                                                borderRadius: '14px',
+                                                                border: '1px solid #cbd5e1',
+                                                                background: Number(replenishAmount) === value ? '#0f172a' : '#fff',
+                                                                color: Number(replenishAmount) === value ? '#fff' : '#0f172a',
+                                                                fontWeight: 800,
+                                                                cursor: 'pointer'
+                                                            }}
+                                                        >
+                                                            {value}
+                                                        </button>
+                                                    ))}
+                                                </div>
+                                            </div>
+
+                                            {Number(replenishAmount) > 0 && (
+                                                <div className={formStyles.formGroup} style={{ marginBottom: '18px' }}>
+                                                    <label style={{ display: 'block', fontSize: '13px', fontWeight: 900, color: '#475569', marginBottom: '8px', textTransform: 'uppercase' }}>
+                                                        3. Que fralda vai usar?
+                                                    </label>
+                                                    <select
+                                                        value={selectedReplenishDiaperId}
+                                                        onChange={(e) => setSelectedReplenishDiaperId(e.target.value)}
+                                                        style={{ width: '100%', padding: '14px', borderRadius: '14px', border: '1px solid #cbd5e1', fontSize: '16px', fontWeight: '800', color: '#0f172a', background: 'white', cursor: 'pointer' }}
+                                                    >
+                                                        {replaceModal.origin === 'Própria' && (
+                                                            <option value={replaceModal.diaperId}>Fraldas próprias</option>
+                                                        )}
+                                                        {diaperInventory?.filter((item) => item.origin === 'Casa').map((item) => (
+                                                            <option key={item.id} value={item.id}>{item.name} ({item.stockDepot} no depósito)</option>
+                                                        ))}
+                                                    </select>
+                                                </div>
+                                            )}
+                                        </>
                                     )}
                                 </>
                             )}

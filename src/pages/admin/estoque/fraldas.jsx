@@ -9,7 +9,7 @@ import Sidebar from '@/components/layout/Sidebar';
 import Card from '@/components/ui/Card';
 import { useApp } from '@/pages/_app';
 import { useData } from '@/contexts/DataContext';
-import { DIAPER_INVENTORY_CATALOG, getPackSize } from '@/data/diaperConfig.mjs';
+import { DIAPER_INVENTORY_CATALOG, getPackSize, sortDiaperPatientsByPlan, isDirectFamilySupplyPatient } from '@/data/diaperConfig.mjs';
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
 import { Baby, Plus, X, ArrowLeft, RefreshCw, Box, TableProperties, ChevronLeft, ChevronRight, CheckCircle2, Download, Clock, User } from 'lucide-react';
@@ -21,6 +21,23 @@ const toISODate = (d) => {
     return copy.toISOString().split('T')[0];
 };
 
+const cloneInventory = (items = []) => items.map((item) => ({ ...item }));
+const serializeInventory = (items = []) => JSON.stringify(
+    [...items]
+        .map((item) => ({
+            id: item.id,
+            name: item.name,
+            category: item.category,
+            origin: item.origin,
+            patientName: item.patientName || null,
+            stockDepot: Number(item.stockDepot || 0),
+            packSize: Number(item.packSize || 0),
+            diaperKind: item.diaperKind || null,
+            diaperSize: item.diaperSize || null
+        }))
+        .sort((a, b) => a.id.localeCompare(b.id))
+);
+
 export default function FraldasPage() {
     const { isAdmin, toggleMode, currentUser } = useApp();
     const router = useRouter();
@@ -28,7 +45,7 @@ export default function FraldasPage() {
         diaperPatients, diaperLogs, inventoryItems,
         addDiaperPatient, deleteDiaperPatient, updateDiaperPatient,
         addDiaperLog,
-        addInventoryItem, updateInventoryItem
+        addInventoryItem, updateInventoryItem, deleteInventoryItem
     } = useData();
 
     // TABS
@@ -44,6 +61,10 @@ export default function FraldasPage() {
     const [replaceModal, setReplaceModal] = useState(null); // { patient, date: YYYY-MM-DD }
     const [currentRoomStock, setCurrentRoomStock] = useState('');
     const [replenishAmount, setReplenishAmount] = useState('0');
+    const [directSupplyStatus, setDirectSupplyStatus] = useState('ok');
+    const [toast, setToast] = useState('');
+    const [draftInventory, setDraftInventory] = useState(null);
+    const [savedInventorySnapshot, setSavedInventorySnapshot] = useState(null);
 
     // Filtro de inventário para fraldas
     const diaperInventory = useMemo(() => {
@@ -56,10 +77,23 @@ export default function FraldasPage() {
             });
     }, [inventoryItems]);
 
+    const inventoryEditorItems = draftInventory ?? diaperInventory;
+
     const availableCatalogItems = useMemo(() => {
-        const existingIds = new Set(diaperInventory.map((item) => item.id));
+        const existingIds = new Set(inventoryEditorItems.map((item) => item.id));
         return DIAPER_INVENTORY_CATALOG.filter((item) => !existingIds.has(item.id));
-    }, [diaperInventory]);
+    }, [inventoryEditorItems]);
+
+    const orderedDiaperPatients = useMemo(() => (
+        diaperPatients && diaperPatients.length > 0
+            ? sortDiaperPatientsByPlan([...new Map(diaperPatients.map((p) => [p.name.toLowerCase().trim(), p])).values()])
+            : []
+    ), [diaperPatients]);
+
+    const inventoryDirty = useMemo(
+        () => draftInventory !== null && serializeInventory(draftInventory) !== serializeInventory(diaperInventory),
+        [draftInventory, diaperInventory]
+    );
 
     // Gestão da Semana Visível
     const todayStr = toISODate(new Date());
@@ -131,7 +165,7 @@ export default function FraldasPage() {
         doc.text(`Mês de Referência: ${focusMonthName}`, 14, 30);
         doc.text(`Data de Emissão: ${new Date().toLocaleDateString('pt-PT')} às ${new Date().toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' })}`, 14, 36);
 
-        let targetPatients = patient ? [patient] : [...new Map(diaperPatients.map(p => [p.name.toLowerCase().trim(), p])).values()].sort((a, b) => a.name.localeCompare(b.name));
+        let targetPatients = patient ? [patient] : orderedDiaperPatients;
         if (!targetPatients || targetPatients.length === 0) {
             alert("Não há dados para exportar.");
             return;
@@ -147,7 +181,7 @@ export default function FraldasPage() {
 
             tableRows.push([
                 p.name,
-                diaperType ? diaperType.name : 'Sem Fralda',
+                isDirectFamilySupplyPatient(p) ? 'Fralda própria no quarto' : (diaperType ? diaperType.name : 'Sem Fralda'),
                 p.origin === 'Própria' ? 'Própria' : 'Casa',
                 total + " uni."
             ]);
@@ -178,19 +212,121 @@ export default function FraldasPage() {
         if (!depotForm.name.trim()) return;
         const selectedCatalogItem = DIAPER_INVENTORY_CATALOG.find((item) => item.id === depotForm.name);
         if (!selectedCatalogItem) return;
-        addInventoryItem({
-            ...selectedCatalogItem,
-            stockDepot: selectedCatalogItem.stockDepot || 0
+        setDraftInventory((current) => {
+            const base = current ?? cloneInventory(diaperInventory);
+            return [...base, { ...selectedCatalogItem, stockDepot: selectedCatalogItem.stockDepot || 0 }];
         });
         setDepotForm({ name: '', stockDepot: 0, origin: 'Casa', patientName: '' });
         setShowDepotForm(false);
     };
 
     const handleUpdateDepot = (id, change) => {
-        const item = diaperInventory.find(i => i.id === id);
+        const source = draftInventory ?? diaperInventory;
+        const item = source.find(i => i.id === id);
         if (!item) return;
         if (item.stockDepot + change < 0) return;
-        updateInventoryItem(id, { stockDepot: item.stockDepot + change });
+        setDraftInventory((current) => {
+            const base = current ?? cloneInventory(diaperInventory);
+            return base.map((entry) => (
+            entry.id === id ? { ...entry, stockDepot: entry.stockDepot + change } : entry
+            ));
+        });
+    };
+
+    const handleResetInventoryDraft = () => {
+        setDraftInventory(null);
+        setToast('Alterações do stock descartadas.');
+        setTimeout(() => setToast(''), 3000);
+    };
+
+    const handleSaveInventory = async () => {
+        const workingDraft = draftInventory ?? cloneInventory(diaperInventory);
+        const previousLive = cloneInventory(diaperInventory);
+        const currentById = new Map(diaperInventory.map((item) => [item.id, item]));
+        const draftById = new Map(workingDraft.map((item) => [item.id, item]));
+
+        for (const existing of diaperInventory) {
+            if (!draftById.has(existing.id)) {
+                await deleteInventoryItem(existing.id);
+            }
+        }
+
+        for (const draftItem of workingDraft) {
+            const currentItem = currentById.get(draftItem.id);
+            if (!currentItem) {
+                await addInventoryItem(draftItem);
+                continue;
+            }
+
+            const draftPayload = {
+                name: draftItem.name,
+                category: draftItem.category,
+                origin: draftItem.origin,
+                patientName: draftItem.patientName || null,
+                stockDepot: Number(draftItem.stockDepot || 0),
+                packSize: Number(draftItem.packSize || 0),
+                diaperKind: draftItem.diaperKind || null,
+                diaperSize: draftItem.diaperSize || null
+            };
+
+            const currentPayload = {
+                name: currentItem.name,
+                category: currentItem.category,
+                origin: currentItem.origin,
+                patientName: currentItem.patientName || null,
+                stockDepot: Number(currentItem.stockDepot || 0),
+                packSize: Number(currentItem.packSize || 0),
+                diaperKind: currentItem.diaperKind || null,
+                diaperSize: currentItem.diaperSize || null
+            };
+
+            if (JSON.stringify(draftPayload) !== JSON.stringify(currentPayload)) {
+                await updateInventoryItem(draftItem.id, draftPayload);
+            }
+        }
+
+        setSavedInventorySnapshot(previousLive);
+        setDraftInventory(null);
+        setToast('Stock guardado com sucesso.');
+        setTimeout(() => setToast(''), 3000);
+    };
+
+    const handleRestorePreviousInventory = async () => {
+        if (!savedInventorySnapshot) return;
+
+        const snapshot = cloneInventory(savedInventorySnapshot);
+        const currentLive = cloneInventory(diaperInventory);
+        setSavedInventorySnapshot(currentLive);
+
+        const currentById = new Map(diaperInventory.map((item) => [item.id, item]));
+        const snapshotById = new Map(snapshot.map((item) => [item.id, item]));
+
+        for (const existing of diaperInventory) {
+            if (!snapshotById.has(existing.id)) {
+                await deleteInventoryItem(existing.id);
+            }
+        }
+
+        for (const item of snapshot) {
+            if (!currentById.has(item.id)) {
+                await addInventoryItem(item);
+            } else {
+                await updateInventoryItem(item.id, {
+                    name: item.name,
+                    category: item.category,
+                    origin: item.origin,
+                    patientName: item.patientName || null,
+                    stockDepot: Number(item.stockDepot || 0),
+                    packSize: Number(item.packSize || 0),
+                    diaperKind: item.diaperKind || null,
+                    diaperSize: item.diaperSize || null
+                });
+            }
+        }
+
+        setDraftInventory(null);
+        setToast('Stock anterior restaurado.');
+        setTimeout(() => setToast(''), 3000);
     };
 
     // HANDLERS PACIENTES
@@ -211,14 +347,38 @@ export default function FraldasPage() {
         setReplaceModal(null);
         setCurrentRoomStock('');
         setReplenishAmount('0');
+        setDirectSupplyStatus('ok');
     };
 
     const handleReplaceSubmit = (e) => {
         e.preventDefault();
         const patient = replaceModal.patient;
         const actionDateStr = replaceModal.date;
+        const isDirectSupply = isDirectFamilySupplyPatient(patient);
         const currentInRoom = Number(currentRoomStock);
         const amountToReplenish = Number(replenishAmount);
+
+        if (isDirectSupply) {
+            const stockValue = directSupplyStatus === 'ok' ? 10 : 0;
+            addDiaperLog({
+                type: 'replenishment',
+                patientId: patient.id,
+                patientName: patient.name,
+                diaperId: '',
+                diaperName: 'Fralda própria no quarto',
+                date: actionDateStr,
+                time: new Date().toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' }),
+                amountAdded: 0,
+                previousStock: stockValue,
+                newStock: stockValue,
+                directSupplyStatus,
+                executorId: currentUser?.id || 'admin',
+                executorName: currentUser?.name || 'Admin',
+            });
+            updateDiaperPatient(patient.id, { wardrobeStock: stockValue, hasAnomaly: directSupplyStatus !== 'ok' });
+            closeReplaceModal();
+            return;
+        }
 
         if (Number.isNaN(currentInRoom) || currentInRoom < 0) {
             alert("A quantidade no quarto deve ser 0 ou superior.");
@@ -314,6 +474,12 @@ export default function FraldasPage() {
                             </h1>
                         </div>
                     </div>
+
+                    {toast && (
+                        <div style={{ background: '#DCFCE7', color: '#166534', padding: '16px', borderRadius: '14px', fontSize: '15px', marginBottom: '20px', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '8px', boxShadow: '0 4px 6px rgba(0,0,0,0.05)' }}>
+                            <CheckCircle2 size={18} /> {toast}
+                        </div>
+                    )}
 
                     {/* Menu Pivot */}
                     <div style={{ display: 'flex', gap: '8px', borderBottom: '2px solid #E5E7EB', marginBottom: '24px' }}>
@@ -430,8 +596,9 @@ export default function FraldasPage() {
                                         </tr>
                                     </thead>
                                     <tbody>
-                                        {diaperPatients && diaperPatients.length > 0 ? [...new Map(diaperPatients.map(p => [p.name.toLowerCase().trim(), p])).values()].sort((a, b) => a.name.localeCompare(b.name)).map(patient => {
+                                        {orderedDiaperPatients && orderedDiaperPatients.length > 0 ? orderedDiaperPatients.map(patient => {
                                             const diaperType = diaperInventory.find(d => d.id === patient.diaperId);
+                                            const isDirectSupply = isDirectFamilySupplyPatient(patient);
 
                                             return (
                                                 <tr key={patient.id} style={{ borderBottom: '1px solid #E5E7EB' }}>
@@ -445,6 +612,11 @@ export default function FraldasPage() {
                                                                     <span style={{ fontWeight: 800, color: diaperType.stockDepot < 20 ? '#EF4444' : '#16A34A', marginLeft: '4px' }}>
                                                                         ({diaperType.stockDepot} no depósito)
                                                                     </span>
+                                                                </>
+                                                            ) : isDirectSupply ? (
+                                                                <>
+                                                                    <Baby size={12} />
+                                                                    <span>Fralda própria no quarto</span>
                                                                 </>
                                                             ) : (
                                                                 <span style={{ color: '#EF4444', fontWeight: 600 }}>Falta Configurar Fralda</span>
@@ -473,12 +645,30 @@ export default function FraldasPage() {
                                                                     {refillLog ? (
                                                                         <div title={`Confirmado por ${refillLog.executorName || 'Admin'}`} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', cursor: 'pointer' }}>
                                                                             {refillLog.amountAdded > 0 ? (
-                                                                                <div style={{ display: 'flex', alignItems: 'center', gap: '2px', background: '#DCFCE7', color: '#166534', padding: '4px 10px', borderRadius: '12px', fontWeight: 800, fontSize: '14px' }}>
-                                                                                    +{refillLog.amountAdded}
+                                                                                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px' }}>
+                                                                                    <div style={{ display: 'flex', alignItems: 'center', gap: '2px', background: '#DCFCE7', color: '#166534', padding: '4px 10px', borderRadius: '12px', fontWeight: 800, fontSize: '14px' }}>
+                                                                                        +{refillLog.amountAdded}
+                                                                                    </div>
+                                                                                    <div style={{ fontSize: '11px', fontWeight: 800, color: '#475569' }}>
+                                                                                        Total: {Number(refillLog.newStock || 0)}
+                                                                                    </div>
                                                                                 </div>
-                                                                            ) : (
+                                                                            ) : Number(refillLog.newStock || refillLog.previousStock || 10) >= 10 ? (
                                                                                 <div style={{ display: 'flex', alignItems: 'center', gap: '2px', background: '#E5E7EB', color: '#4B5563', padding: '4px 10px', borderRadius: '12px', fontWeight: 600, fontSize: '14px' }}>
                                                                                     OK (10)
+                                                                                </div>
+                                                                            ) : refillLog.directSupplyStatus === 'missing' ? (
+                                                                                <div style={{ display: 'flex', alignItems: 'center', gap: '2px', background: '#FEE2E2', color: '#B91C1C', padding: '4px 10px', borderRadius: '12px', fontWeight: 700, fontSize: '13px' }}>
+                                                                                    Sem fralda
+                                                                                </div>
+                                                                            ) : (
+                                                                                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px' }}>
+                                                                                    <div style={{ display: 'flex', alignItems: 'center', gap: '2px', background: '#FEF3C7', color: '#B45309', padding: '4px 10px', borderRadius: '12px', fontWeight: 700, fontSize: '13px' }}>
+                                                                                        Sem reposição
+                                                                                    </div>
+                                                                                    <div style={{ fontSize: '11px', fontWeight: 800, color: '#92400E' }}>
+                                                                                        Total: {Number(refillLog.newStock || refillLog.previousStock || 0)}
+                                                                                    </div>
                                                                                 </div>
                                                                             )}
                                                                             <span style={{ fontSize: '11px', color: '#6B7280', marginTop: '6px', fontWeight: 500, display: 'flex', alignItems: 'center', gap: '2px' }}>
@@ -493,12 +683,13 @@ export default function FraldasPage() {
                                                                             onClick={() => {
                                                                                 setReplaceModal({ patient, date: dateStr });
                                                                                 setReplenishAmount('0');
+                                                                                setDirectSupplyStatus('ok');
                                                                             }}
                                                                             style={{ border: '1px dashed #9CA3AF', background: 'white', color: '#4B5563', padding: '6px', borderRadius: '6px', cursor: 'pointer', fontSize: '12px', width: '100%', transition: 'all 0.2s' }}
                                                                             onMouseEnter={e => { e.currentTarget.style.borderColor = '#0071E3'; e.currentTarget.style.color = '#0071E3'; }}
                                                                             onMouseLeave={e => { e.currentTarget.style.borderColor = '#9CA3AF'; e.currentTarget.style.color = '#4B5563'; }}
                                                                         >
-                                                                            {dateStr === todayStr ? 'Repor' : 'Atrasado'}
+                                                                            {isDirectSupply ? 'OK' : (dateStr === todayStr ? 'Repor' : 'Atrasado')}
                                                                         </button>
                                                                     )}
 
@@ -617,6 +808,43 @@ export default function FraldasPage() {
                     {/* ---- ABA DEPÓSITO ---- */}
                     {activeTab === 'deposito' && (
                         <div>
+                            <div style={{ background: inventoryDirty ? '#fff7ed' : '#f8fafc', border: `1px solid ${inventoryDirty ? '#fdba74' : '#e2e8f0'}`, borderRadius: '20px', padding: '16px', marginBottom: '20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '16px', flexWrap: 'wrap' }}>
+                                <div>
+                                    <div style={{ fontSize: '16px', fontWeight: 900, color: '#0f172a' }}>
+                                        {inventoryDirty ? 'Existem alterações por guardar' : 'Stock guardado'}
+                                    </div>
+                                    <div style={{ fontSize: '14px', color: '#64748B', marginTop: '4px', fontWeight: 600 }}>
+                                        Os botões alteram primeiro em rascunho. Só fica permanente quando carregar em guardar.
+                                    </div>
+                                </div>
+                                <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+                                    <button
+                                        type="button"
+                                        onClick={handleResetInventoryDraft}
+                                        disabled={!inventoryDirty}
+                                        style={{ padding: '12px 16px', borderRadius: '12px', border: '1px solid #CBD5E1', background: inventoryDirty ? 'white' : '#F8FAFC', color: '#334155', fontWeight: 800, cursor: inventoryDirty ? 'pointer' : 'not-allowed', opacity: inventoryDirty ? 1 : 0.5 }}
+                                    >
+                                        Descartar alterações
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={handleRestorePreviousInventory}
+                                        disabled={!savedInventorySnapshot}
+                                        style={{ padding: '12px 16px', borderRadius: '12px', border: '1px solid #BFDBFE', background: savedInventorySnapshot ? '#EFF6FF' : '#F8FAFC', color: '#1D4ED8', fontWeight: 800, cursor: savedInventorySnapshot ? 'pointer' : 'not-allowed', opacity: savedInventorySnapshot ? 1 : 0.5 }}
+                                    >
+                                        Voltar ao estado anterior
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={handleSaveInventory}
+                                        disabled={!inventoryDirty}
+                                        style={{ padding: '12px 18px', borderRadius: '12px', border: 'none', background: inventoryDirty ? '#16A34A' : '#94A3B8', color: 'white', fontWeight: 900, cursor: inventoryDirty ? 'pointer' : 'not-allowed' }}
+                                    >
+                                        Salvar
+                                    </button>
+                                </div>
+                            </div>
+
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
                                 <h2 style={{ fontSize: '18px', fontWeight: 600, color: '#111827', margin: 0 }}>Gestão Principal das Caixas</h2>
                                 <button className={styles.primaryButton} onClick={() => setShowDepotForm(!showDepotForm)} style={{ padding: '8px 16px', background: '#34C759' }}>
@@ -652,9 +880,9 @@ export default function FraldasPage() {
                                 <h3 style={{ fontSize: '18px', color: '#166534', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
                                     <Box size={22} /> Fraldas da Casa
                                 </h3>
-                                {diaperInventory.filter(i => i.origin === 'Casa').length > 0 ? (
+                                {inventoryEditorItems.filter(i => i.origin === 'Casa').length > 0 ? (
                                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '20px' }}>
-                                        {diaperInventory.filter(i => i.origin === 'Casa').map(item => (
+                                        {inventoryEditorItems.filter(i => i.origin === 'Casa').map(item => (
                                             <div key={item.id} style={{ background: 'white', padding: '20px', border: '1px solid #E5E7EB', borderRadius: '20px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)', display: 'flex', flexDirection: 'column' }}>
                                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '20px' }}>
                                                     <div>
@@ -696,9 +924,9 @@ export default function FraldasPage() {
                                 <h3 style={{ fontSize: '18px', color: '#0369A1', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
                                     <User size={22} /> Fraldas Próprias (Família)
                                 </h3>
-                                {diaperInventory.filter(i => i.origin === 'Própria').length > 0 ? (
+                                {inventoryEditorItems.filter(i => i.origin === 'Própria').length > 0 ? (
                                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '20px' }}>
-                                        {diaperInventory.filter(i => i.origin === 'Própria').map(item => (
+                                        {inventoryEditorItems.filter(i => i.origin === 'Própria').map(item => (
                                             <div key={item.id} style={{ background: 'white', padding: '20px', border: '1px solid #E5E7EB', borderRadius: '20px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)', display: 'flex', flexDirection: 'column' }}>
                                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '20px' }}>
                                                     <div>
@@ -767,6 +995,28 @@ export default function FraldasPage() {
                         </div>
 
                         <form onSubmit={handleReplaceSubmit}>
+                            {isDirectFamilySupplyPatient(replaceModal.patient) ? (
+                                <div className={formStyles.formGroup}>
+                                    <label style={{ fontSize: '16px', fontWeight: 600, color: '#111827' }}>Fralda própria no quarto</label>
+                                    <p style={{ fontSize: '13px', color: '#6B7280', margin: '4px 0 16px 0', lineHeight: 1.5 }}>Para este utente não contamos stock do depósito. Basta confirmar se tem fralda no quarto.</p>
+                                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '12px' }}>
+                                        <button
+                                            type="button"
+                                            onClick={() => setDirectSupplyStatus('ok')}
+                                            style={{ padding: '18px', borderRadius: '14px', border: directSupplyStatus === 'ok' ? '2px solid #16A34A' : '1px solid #CBD5E1', background: directSupplyStatus === 'ok' ? '#DCFCE7' : 'white', color: '#166534', fontWeight: 900, cursor: 'pointer' }}
+                                        >
+                                            OK, tem fralda
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => setDirectSupplyStatus('missing')}
+                                            style={{ padding: '18px', borderRadius: '14px', border: directSupplyStatus === 'missing' ? '2px solid #DC2626' : '1px solid #CBD5E1', background: directSupplyStatus === 'missing' ? '#FEE2E2' : 'white', color: '#B91C1C', fontWeight: 900, cursor: 'pointer' }}
+                                        >
+                                            Sem fralda
+                                        </button>
+                                    </div>
+                                </div>
+                            ) : (
                             <div className={formStyles.formGroup}>
                                 <label style={{ fontSize: '16px', fontWeight: 600, color: '#111827' }}>Quantas fraldas AINDA estão na gaveta ou quarto agora? *</label>
                                 <p style={{ fontSize: '13px', color: '#6B7280', margin: '4px 0 16px 0', lineHeight: 1.5 }}>Primeiro confirme a quantidade atual no quarto e depois escolha quantas fraldas vai repor agora.</p>
@@ -804,6 +1054,7 @@ export default function FraldasPage() {
                                     </>
                                 )}
                             </div>
+                            )}
 
                             <div className={formStyles.formActions} style={{ marginTop: '24px' }}>
                                 <button type="button" className={formStyles.cancelBtn} onClick={closeReplaceModal}>
