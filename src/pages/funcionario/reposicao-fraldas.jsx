@@ -113,9 +113,7 @@ export default function FraldasReposicaoFuncionarioPage() {
             const currentStock = patient.wardrobeStock !== undefined ? patient.wardrobeStock : TARGET_STOCK;
             const missingToTarget = Math.max(0, TARGET_STOCK - currentStock);
             const checkedToday = Boolean(latestReplenishment);
-            const replenishedToday = patientLogs
-                .filter((log) => log.type === 'replenishment')
-                .reduce((sum, log) => sum + Number(log.amountAdded || 0), 0);
+            const replenishedToday = Number(latestReplenishment?.amountAdded || 0);
 
             let stage = 'pending';
             if (checkedToday && missingToTarget === 0) stage = 'done';
@@ -450,12 +448,12 @@ export default function FraldasReposicaoFuncionarioPage() {
                 onClick={() => openPatientModal(patient)}
                 style={{
                     background: 'white',
-                    padding: '18px',
-                    borderRadius: '20px',
+                    padding: '16px',
+                    borderRadius: '18px',
                     border: `2px solid ${accent.border}`,
                     display: 'flex',
                     flexDirection: 'column',
-                    gap: '14px',
+                    gap: '12px',
                     textAlign: 'left',
                     boxShadow: '0 8px 24px rgba(15, 23, 42, 0.06)',
                     cursor: 'pointer'
@@ -463,46 +461,50 @@ export default function FraldasReposicaoFuncionarioPage() {
             >
                 <div style={{ display: 'flex', justifyContent: 'space-between', gap: '12px', alignItems: 'flex-start' }}>
                     <div>
-                        <div style={{ fontSize: '19px', fontWeight: 800, color: '#0f172a', lineHeight: 1.2 }}>{patient.name}</div>
+                        <div style={{ fontSize: '18px', fontWeight: 800, color: '#0f172a', lineHeight: 1.15 }}>{patient.name}</div>
                         <div style={{ marginTop: '6px', display: 'inline-flex', padding: '6px 10px', borderRadius: '999px', background: accent.badgeBg, color: accent.badgeColor, fontSize: '12px', fontWeight: 800 }}>
                             {statusLabel}
                         </div>
                     </div>
-                    <div style={{ minWidth: '72px', borderRadius: '16px', background: accent.boxBg, padding: '10px 8px', textAlign: 'center' }}>
+                    <div style={{ minWidth: '70px', borderRadius: '16px', background: accent.boxBg, padding: '10px 8px', textAlign: 'center' }}>
                         <div style={{ fontSize: '11px', fontWeight: 800, color: '#64748b', textTransform: 'uppercase' }}>Agora</div>
                         <div style={{ fontSize: '28px', fontWeight: 900, color: accent.badgeColor, lineHeight: 1 }}>{state?.currentStock ?? '-'}</div>
                     </div>
                 </div>
 
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '10px' }}>
-                    <div style={{ borderRadius: '16px', background: '#f8fafc', padding: '12px' }}>
-                        <div style={{ fontSize: '11px', fontWeight: 800, color: '#64748b', textTransform: 'uppercase' }}>Faltam para 10</div>
-                        <div style={{ fontSize: '24px', fontWeight: 900, color: missing > 0 ? '#ea580c' : '#16a34a' }}>{missing}</div>
-                    </div>
-                    <div style={{ borderRadius: '16px', background: '#f8fafc', padding: '12px' }}>
-                        <div style={{ fontSize: '11px', fontWeight: 800, color: '#64748b', textTransform: 'uppercase' }}>Modelo</div>
-                        <div style={{ fontSize: '14px', fontWeight: 800, color: '#0f172a' }}>
-                            {patient.origin === 'Própria'
-                                ? (isDirectFamilySupplyPatient(patient)
-                                    ? 'No quarto'
-                                    : (diaperInventoryById.get(patient.diaperId)?.name || getInventoryItemConfig(patient.diaperId)?.name || 'Própria'))
-                                : (diaperInventoryById.get(patient.diaperId)?.name || getInventoryItemConfig(patient.diaperId)?.name || 'Sem modelo')}
-                        </div>
+                <div style={{ borderRadius: '16px', background: '#f8fafc', padding: '12px' }}>
+                    <div style={{ fontSize: '11px', fontWeight: 800, color: '#64748b', textTransform: 'uppercase' }}>Modelo</div>
+                    <div style={{ marginTop: '4px', fontSize: '15px', fontWeight: 800, color: '#0f172a', lineHeight: 1.25 }}>
+                        {patient.origin === 'Própria'
+                            ? (isDirectFamilySupplyPatient(patient)
+                                ? 'No quarto'
+                                : (diaperInventoryById.get(patient.diaperId)?.name || getInventoryItemConfig(patient.diaperId)?.name || 'Própria'))
+                            : (diaperInventoryById.get(patient.diaperId)?.name || getInventoryItemConfig(patient.diaperId)?.name || 'Sem modelo')}
                     </div>
                 </div>
 
-                {state?.checkedToday && (
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '10px' }}>
-                        <div style={{ borderRadius: '16px', background: '#eff6ff', padding: '12px' }}>
-                            <div style={{ fontSize: '11px', fontWeight: 800, color: '#64748b', textTransform: 'uppercase' }}>Tem agora</div>
-                            <div style={{ fontSize: '24px', fontWeight: 900, color: '#1d4ed8' }}>{state?.currentStock ?? 0}</div>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                    {missing > 0 && (
+                        <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '8px 10px', borderRadius: '14px', background: '#fff7ed', color: '#c2410c', fontSize: '13px', fontWeight: 800 }}>
+                            Faltam {missing}
                         </div>
-                        <div style={{ borderRadius: '16px', background: '#f0fdf4', padding: '12px' }}>
-                            <div style={{ fontSize: '11px', fontWeight: 800, color: '#64748b', textTransform: 'uppercase' }}>Repostas hoje</div>
-                            <div style={{ fontSize: '24px', fontWeight: 900, color: '#15803d' }}>{state?.replenishedToday ?? 0}</div>
+                    )}
+                    {state?.checkedToday && (
+                        <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '8px 10px', borderRadius: '14px', background: '#f0fdf4', color: '#15803d', fontSize: '13px', fontWeight: 800 }}>
+                            Repostas hoje: {state?.replenishedToday ?? 0}
+                        </div>
+                    )}
+                    {state?.checkedToday && missing === 0 && (
+                        <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '8px 10px', borderRadius: '14px', background: '#eff6ff', color: '#1d4ed8', fontSize: '13px', fontWeight: 800 }}>
+                            Completo
+                        </div>
+                    )}
+                    {!state?.checkedToday && (
+                        <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '8px 10px', borderRadius: '14px', background: '#f8fafc', color: '#64748b', fontSize: '13px', fontWeight: 800 }}>
+                            Por conferir
                         </div>
                     </div>
-                )}
+                </div>
 
                 <div style={{ fontSize: '15px', fontWeight: 800, color: '#0f172a' }}>
                     {!state?.checkedToday && 'Abrir para conferir'}
