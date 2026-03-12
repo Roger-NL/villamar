@@ -121,6 +121,7 @@ export default function FraldasPage() {
     const todayStr = toISODate(new Date());
     const [weekOffset, setWeekOffset] = useState(0);
     const [dayOffset, setDayOffset] = useState(0); // Para a aba 'Diárias'
+    const [depositUsageDate, setDepositUsageDate] = useState(todayStr);
 
     const selectedDay = useMemo(() => {
         const d = new Date();
@@ -173,6 +174,20 @@ export default function FraldasPage() {
         if (!diaperLogs) return [];
         return diaperLogs.filter(l => l.type === 'usage' && l.date === dateStr).sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
     }, [diaperLogs, selectedDay]);
+
+    const usageByInventoryForDepositDate = useMemo(() => {
+        const totals = new Map();
+        if (!diaperLogs) return totals;
+
+        diaperLogs
+            .filter((log) => log.type === 'usage' && log.date === depositUsageDate)
+            .forEach((log) => {
+                const key = log.diaperId || '';
+                totals.set(key, (totals.get(key) || 0) + Number(log.amountUsed || 0));
+            });
+
+        return totals;
+    }, [diaperLogs, depositUsageDate]);
 
     // EXPORT PDF
     const exportPDF = (patient = null) => {
@@ -837,10 +852,22 @@ export default function FraldasPage() {
 
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
                                 <h2 style={{ fontSize: '18px', fontWeight: 600, color: '#111827', margin: 0 }}>Gestão Principal das Caixas</h2>
-                                <button className={styles.primaryButton} onClick={() => setShowDepotForm(!showDepotForm)} style={{ padding: '8px 16px', background: '#34C759' }}>
-                                    {showDepotForm ? <X size={16} /> : <Plus size={16} />}
-                                    <span style={{ fontSize: '14px' }}>{showDepotForm ? 'Fechar' : 'Nova Referência'}</span>
-                                </button>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+                                    <label style={{ display: 'flex', alignItems: 'center', gap: '8px', background: 'white', border: '1px solid #D1D5DB', borderRadius: '12px', padding: '10px 12px', fontSize: '14px', fontWeight: 700, color: '#374151' }}>
+                                        Fraldas usadas em
+                                        <input
+                                            type="date"
+                                            value={depositUsageDate}
+                                            onChange={(e) => setDepositUsageDate(e.target.value)}
+                                            max={todayStr}
+                                            style={{ border: 'none', background: 'transparent', color: '#111827', fontWeight: 700 }}
+                                        />
+                                    </label>
+                                    <button className={styles.primaryButton} onClick={() => setShowDepotForm(!showDepotForm)} style={{ padding: '8px 16px', background: '#34C759' }}>
+                                        {showDepotForm ? <X size={16} /> : <Plus size={16} />}
+                                        <span style={{ fontSize: '14px' }}>{showDepotForm ? 'Fechar' : 'Nova Referência'}</span>
+                                    </button>
+                                </div>
                             </div>
 
                             {/* Form Depósito */}
@@ -889,6 +916,13 @@ export default function FraldasPage() {
                                                     Pacote: {getPackSize(item)} unidades
                                                 </p>
 
+                                                <div style={{ marginBottom: '14px', background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: '14px', padding: '12px' }}>
+                                                    <div style={{ fontSize: '11px', fontWeight: 800, color: '#64748B', textTransform: 'uppercase' }}>Fraldas usadas em {new Date(`${depositUsageDate}T00:00:00`).toLocaleDateString('pt-PT')}</div>
+                                                    <div style={{ marginTop: '6px', fontSize: '24px', fontWeight: 900, color: '#0F172A' }}>
+                                                        {usageByInventoryForDepositDate.get(item.id) || 0}
+                                                    </div>
+                                                </div>
+
                                                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', borderTop: '1px dashed #E5E7EB', paddingTop: '20px', marginTop: 'auto' }}>
                                                     <button title="-10" onClick={() => handleUpdateDepot(item.id, -10)} style={{ border: 'none', background: '#FEE2E2', color: '#EF4444', flex: 1, padding: '12px 0', borderRadius: '10px', cursor: 'pointer', fontWeight: 800, fontSize: '15px', transition: '0.2s' }}>-10</button>
                                                     <button title="-1" onClick={() => handleUpdateDepot(item.id, -1)} style={{ border: 'none', background: '#FEE2E2', color: '#EF4444', flex: 1, padding: '12px 0', borderRadius: '10px', cursor: 'pointer', fontWeight: 800, fontSize: '15px', transition: '0.2s' }}>-1</button>
@@ -932,6 +966,13 @@ export default function FraldasPage() {
                                                 <p style={{ margin: '0 0 14px 0', fontSize: '13px', color: '#64748B', fontWeight: 700 }}>
                                                     Pacote: {getPackSize(item)} unidades
                                                 </p>
+
+                                                <div style={{ marginBottom: '14px', background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: '14px', padding: '12px' }}>
+                                                    <div style={{ fontSize: '11px', fontWeight: 800, color: '#64748B', textTransform: 'uppercase' }}>Fraldas usadas em {new Date(`${depositUsageDate}T00:00:00`).toLocaleDateString('pt-PT')}</div>
+                                                    <div style={{ marginTop: '6px', fontSize: '24px', fontWeight: 900, color: '#0F172A' }}>
+                                                        {usageByInventoryForDepositDate.get(item.id) || 0}
+                                                    </div>
+                                                </div>
 
                                                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', borderTop: '1px dashed #E5E7EB', paddingTop: '20px', marginTop: 'auto' }}>
                                                     <button title="-10" onClick={() => handleUpdateDepot(item.id, -10)} style={{ border: 'none', background: '#FEE2E2', color: '#EF4444', flex: 1, padding: '12px 0', borderRadius: '10px', cursor: 'pointer', fontWeight: 800, fontSize: '15px' }}>-10</button>
