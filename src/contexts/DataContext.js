@@ -612,6 +612,14 @@ export function DataProvider({ children }) {
         else await writeDB('diaperLogs', newLog.id, newLog);
     }, [db]);
 
+    const updateDiaperLog = useCallback(async (id, updates) => {
+        if (!db) {
+            setDiaperLogs(prev => prev.map(log => log.id === id ? { ...log, ...updates } : log));
+        } else {
+            await writeDB('diaperLogs', id, updates, true);
+        }
+    }, [db]);
+
     const deleteDiaperLog = useCallback(async (id) => {
         if (!db) setDiaperLogs(prev => prev.filter(l => l.id !== id));
         else await deleteDB('diaperLogs', id);
@@ -683,7 +691,7 @@ export function DataProvider({ children }) {
         addLeave, deleteLeave,
         addInventoryItem, updateInventoryItem, deleteInventoryItem,
         addDiaperPatient, updateDiaperPatient, deleteDiaperPatient,
-        addDiaperLog, deleteDiaperLog,
+        addDiaperLog, updateDiaperLog, deleteDiaperLog,
         updateDailyPlan, publishDailyPlan, toggleDailyTaskComplete,
         addDailyAnnouncement, removeDailyAnnouncement
     };

@@ -44,7 +44,7 @@ export default function FraldasPage() {
     const {
         diaperPatients, diaperLogs, inventoryItems,
         addDiaperPatient, deleteDiaperPatient, updateDiaperPatient,
-        addDiaperLog,
+        addDiaperLog, updateDiaperLog,
         addInventoryItem, updateInventoryItem, deleteInventoryItem
     } = useData();
 
@@ -429,17 +429,26 @@ export default function FraldasPage() {
         setDirectSupplyStatus('ok');
     };
 
+    const openReplaceModal = (patient, date, existingLog = null) => {
+        setReplaceModal({ patient, date, existingLog });
+        setCurrentRoomStock(existingLog ? String(existingLog.previousStock ?? 0) : '');
+        setReplenishAmount(existingLog ? String(existingLog.amountAdded ?? 0) : '0');
+        setSelectedReplenishDiaperId(existingLog?.diaperId || patient.diaperId || '');
+        setDirectSupplyStatus(existingLog?.directSupplyStatus || 'ok');
+    };
+
     const handleReplaceSubmit = (e) => {
         e.preventDefault();
         const patient = replaceModal.patient;
         const actionDateStr = replaceModal.date;
+        const existingLog = replaceModal.existingLog;
         const isDirectSupply = isDirectFamilySupplyPatient(patient);
         const currentInRoom = Number(currentRoomStock);
         const amountToReplenish = Number(replenishAmount);
 
         if (isDirectSupply) {
             const stockValue = directSupplyStatus === 'ok' ? 10 : 0;
-            addDiaperLog({
+            const logPayload = {
                 type: 'replenishment',
                 patientId: patient.id,
                 patientName: patient.name,
@@ -453,7 +462,30 @@ export default function FraldasPage() {
                 directSupplyStatus,
                 executorId: currentUser?.id || 'admin',
                 executorName: currentUser?.name || 'Admin',
-            });
+            };
+
+            if (existingLog) {
+                updateDiaperLog(existingLog.id, {
+                    ...logPayload,
+                    editedAt: new Date().toISOString(),
+                    editedById: currentUser?.id || 'admin',
+                    editedByName: currentUser?.name || 'Admin',
+                    editHistory: [
+                        ...(existingLog.editHistory || []),
+                        {
+                            editedAt: new Date().toISOString(),
+                            editedById: currentUser?.id || 'admin',
+                            editedByName: currentUser?.name || 'Admin',
+                            previousStock: existingLog.previousStock ?? null,
+                            amountAdded: existingLog.amountAdded ?? null,
+                            newStock: existingLog.newStock ?? null,
+                            directSupplyStatus: existingLog.directSupplyStatus ?? null
+                        }
+                    ]
+                });
+            } else {
+                addDiaperLog(logPayload);
+            }
             updateDiaperPatient(patient.id, { wardrobeStock: stockValue, hasAnomaly: directSupplyStatus !== 'ok' });
             closeReplaceModal();
             return;
@@ -471,13 +503,25 @@ export default function FraldasPage() {
 
         const diaperType = diaperInventory.find((item) => item.id === selectedReplenishDiaperId) || getInventoryItemConfig(selectedReplenishDiaperId);
         const shouldAdjustInventory = amountToReplenish > 0 && Boolean(diaperType);
+        const previousDiaperType = existingLog?.diaperId
+            ? (diaperInventory.find((item) => item.id === existingLog.diaperId) || getInventoryItemConfig(existingLog.diaperId))
+            : null;
         if (amountToReplenish > 0 && !diaperType) {
             alert('Tipo de fralda não encontrado! Verifique o depósito.');
             return;
         }
 
         const requiredAmount = amountToReplenish;
-        if (shouldAdjustInventory && diaperType.stockDepot < requiredAmount) {
+        const inventoryAvailable = (() => {
+            if (!shouldAdjustInventory) return 0;
+            if (!existingLog || existingLog.skipDepotAdjustment || !previousDiaperType) return Number(diaperType.stockDepot || 0);
+            if (previousDiaperType.id === diaperType.id) {
+                return Number(diaperType.stockDepot || 0) + Number(existingLog.amountAdded || 0);
+            }
+            return Number(diaperType.stockDepot || 0);
+        })();
+
+        if (shouldAdjustInventory && inventoryAvailable < requiredAmount) {
             alert(`Falta estoque no depósito! Há apenas ${diaperType.stockDepot} de ${diaperType.name}.`);
             return;
         }
@@ -485,12 +529,19 @@ export default function FraldasPage() {
         const finalStock = currentInRoom + amountToReplenish;
 
         // Subtrai do depósito se for preciso adicionar
-        if (shouldAdjustInventory) {
-            updateInventoryItem(diaperType.id, { stockDepot: diaperType.stockDepot - requiredAmount });
+        if (existingLog && !existingLog.skipDepotAdjustment && previousDiaperType && Number(existingLog.amountAdded || 0) > 0) {
+            const restoredStock = Number(previousDiaperType.stockDepot || 0) + Number(existingLog.amountAdded || 0);
+            updateInventoryItem(previousDiaperType.id, { stockDepot: restoredStock });
         }
 
-        // Log the refill
-        addDiaperLog({
+        if (shouldAdjustInventory && !existingLog?.skipDepotAdjustment) {
+            const nextStock = previousDiaperType?.id === diaperType.id
+                ? inventoryAvailable - requiredAmount
+                : Number(diaperType.stockDepot || 0) - requiredAmount;
+            updateInventoryItem(diaperType.id, { stockDepot: nextStock });
+        }
+
+        const logPayload = {
             type: 'replenishment',
             patientId: patient.id,
             patientName: patient.name,
@@ -503,7 +554,31 @@ export default function FraldasPage() {
             newStock: finalStock,
             executorId: currentUser?.id || 'admin',
             executorName: currentUser?.name || 'Admin',
-        });
+        };
+
+        if (existingLog) {
+            updateDiaperLog(existingLog.id, {
+                ...logPayload,
+                editedAt: new Date().toISOString(),
+                editedById: currentUser?.id || 'admin',
+                editedByName: currentUser?.name || 'Admin',
+                editHistory: [
+                    ...(existingLog.editHistory || []),
+                    {
+                        editedAt: new Date().toISOString(),
+                        editedById: currentUser?.id || 'admin',
+                        editedByName: currentUser?.name || 'Admin',
+                        previousStock: existingLog.previousStock ?? null,
+                        amountAdded: existingLog.amountAdded ?? null,
+                        newStock: existingLog.newStock ?? null,
+                        diaperId: existingLog.diaperId ?? null,
+                        diaperName: existingLog.diaperName ?? null
+                    }
+                ]
+            });
+        } else {
+            addDiaperLog(logPayload);
+        }
 
         updateDiaperPatient(patient.id, { wardrobeStock: finalStock, hasAnomaly: false });
 
@@ -696,15 +771,17 @@ export default function FraldasPage() {
 
                                                         const dayLogs = diaperLogs?.filter(l => l.patientId === patient.id && l.date === dateStr) || [];
                                                         const refillLog = dayLogs.find(l => l.type === 'replenishment');
-                                                        const usageLogs = dayLogs.filter(l => l.type === 'usage');
-
-                                                        const totalUsed = usageLogs.reduce((sum, l) => sum + Number(l.amountUsed || 0), 0);
 
                                                         return (
                                                             <td key={dateStr} style={{ padding: '12px 8px', textAlign: 'center', background: dateStr === todayStr ? '#FEFCE8' : 'transparent', borderRight: '1px solid #F3F4F6', verticalAlign: 'middle' }}>
                                                                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
                                                                     {refillLog ? (
-                                                                        <div title={`Confirmado por ${refillLog.executorName || 'Admin'}`} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', cursor: 'pointer' }}>
+                                                                        <button
+                                                                            type="button"
+                                                                            title={`Confirmado por ${refillLog.executorName || 'Admin'}`}
+                                                                            onClick={() => openReplaceModal(patient, dateStr, refillLog)}
+                                                                            style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', cursor: 'pointer', background: 'transparent', border: 'none', padding: 0 }}
+                                                                        >
                                                                             {refillLog.directSupplyStatus === 'missing' ? (
                                                                                 <div style={{ display: 'flex', alignItems: 'center', gap: '2px', background: '#FEE2E2', color: '#B91C1C', padding: '4px 10px', borderRadius: '12px', fontWeight: 700, fontSize: '13px' }}>
                                                                                     Sem fralda
@@ -726,29 +803,18 @@ export default function FraldasPage() {
                                                                                 <CheckCircle2 size={10} color="#166534" />
                                                                                 {refillLog.timestamp ? new Date(refillLog.timestamp).toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' }) : (refillLog.time || '')}
                                                                             </span>
-                                                                        </div>
+                                                                        </button>
                                                                     ) : isFuture ? (
-                                                                        <span style={{ color: '#D1D5DB' }}>{totalUsed === 0 ? '-' : ''}</span>
+                                                                        <span style={{ color: '#D1D5DB' }}>-</span>
                                                                     ) : (
                                                                         <button
-                                                                            onClick={() => {
-                                                                                setReplaceModal({ patient, date: dateStr });
-                                                                                setReplenishAmount('0');
-                                                                                setSelectedReplenishDiaperId(patient.diaperId || '');
-                                                                                setDirectSupplyStatus('ok');
-                                                                            }}
+                                                                            onClick={() => openReplaceModal(patient, dateStr)}
                                                                             style={{ border: '1px dashed #9CA3AF', background: 'white', color: '#4B5563', padding: '6px', borderRadius: '6px', cursor: 'pointer', fontSize: '12px', width: '100%', transition: 'all 0.2s' }}
                                                                             onMouseEnter={e => { e.currentTarget.style.borderColor = '#0071E3'; e.currentTarget.style.color = '#0071E3'; }}
                                                                             onMouseLeave={e => { e.currentTarget.style.borderColor = '#9CA3AF'; e.currentTarget.style.color = '#4B5563'; }}
                                                                         >
                                                                             {isDirectSupply ? 'OK' : 'Registar'}
                                                                         </button>
-                                                                    )}
-
-                                                                    {totalUsed > 0 && (
-                                                                        <div style={{ display: 'flex', alignItems: 'center', gap: '2px', background: '#FEE2E2', color: '#EF4444', padding: '4px 10px', borderRadius: '12px', fontWeight: 800, fontSize: '14px' }} title={`${totalUsed} fraldas usadas`}>
-                                                                            -{totalUsed}
-                                                                        </div>
                                                                     )}
                                                                 </div>
                                                             </td>
@@ -1150,6 +1216,12 @@ export default function FraldasPage() {
                             </div>
                         </div>
 
+                        {replaceModal.existingLog?.editedAt && (
+                            <div style={{ marginBottom: '16px', background: '#EFF6FF', border: '1px solid #BFDBFE', borderRadius: '12px', padding: '12px', color: '#1D4ED8', fontSize: '13px', fontWeight: 700 }}>
+                                Última alteração: {replaceModal.existingLog.editedByName || 'Admin'} em {new Date(replaceModal.existingLog.editedAt).toLocaleString('pt-PT')}
+                            </div>
+                        )}
+
                         <form onSubmit={handleReplaceSubmit}>
                             {isDirectFamilySupplyPatient(replaceModal.patient) ? (
                                 <div className={formStyles.formGroup}>
@@ -1238,7 +1310,7 @@ export default function FraldasPage() {
                                     Cancelar
                                 </button>
                                 <button type="submit" className={formStyles.submitBtn} style={{ background: '#0071E3', fontWeight: 700, fontSize: '16px', padding: '12px 24px' }}>
-                                    Guardar Registo
+                                    {replaceModal.existingLog ? 'Guardar Alteração' : 'Guardar Registo'}
                                 </button>
                             </div>
                         </form>
