@@ -182,10 +182,10 @@ export default function FraldasPage() {
         if (!diaperLogs) return totals;
 
         diaperLogs
-            .filter((log) => log.type === 'usage' && log.date === depositUsageDate)
+            .filter((log) => log.type === 'replenishment' && log.date === depositUsageDate && !log.skipDepotAdjustment)
             .forEach((log) => {
                 const key = log.diaperId || '';
-                totals.set(key, (totals.get(key) || 0) + Number(log.amountUsed || 0));
+                totals.set(key, (totals.get(key) || 0) + Number(log.amountAdded || 0));
             });
 
         return totals;
