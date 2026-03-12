@@ -9,6 +9,7 @@ import Sidebar from '@/components/layout/Sidebar';
 import Card from '@/components/ui/Card';
 import { useApp } from '@/pages/_app';
 import { useData } from '@/contexts/DataContext';
+import { DIAPER_INVENTORY_CATALOG, getPackSize } from '@/data/diaperConfig.mjs';
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
 import { Baby, Plus, X, ArrowLeft, RefreshCw, Box, TableProperties, ChevronLeft, ChevronRight, CheckCircle2, Download, Clock, User } from 'lucide-react';
@@ -42,12 +43,23 @@ export default function FraldasPage() {
 
     const [replaceModal, setReplaceModal] = useState(null); // { patient, date: YYYY-MM-DD }
     const [currentRoomStock, setCurrentRoomStock] = useState('');
+    const [replenishAmount, setReplenishAmount] = useState('0');
 
     // Filtro de inventário para fraldas
     const diaperInventory = useMemo(() => {
         if (!inventoryItems) return [];
-        return inventoryItems.filter(i => i.category === 'fralda');
+        return inventoryItems
+            .filter((i) => i.category === 'fralda')
+            .sort((a, b) => {
+                if (a.origin !== b.origin) return a.origin.localeCompare(b.origin);
+                return a.name.localeCompare(b.name);
+            });
     }, [inventoryItems]);
+
+    const availableCatalogItems = useMemo(() => {
+        const existingIds = new Set(diaperInventory.map((item) => item.id));
+        return DIAPER_INVENTORY_CATALOG.filter((item) => !existingIds.has(item.id));
+    }, [diaperInventory]);
 
     // Gestão da Semana Visível
     const todayStr = toISODate(new Date());
@@ -164,12 +176,11 @@ export default function FraldasPage() {
     const handleAddDepot = (e) => {
         e.preventDefault();
         if (!depotForm.name.trim()) return;
+        const selectedCatalogItem = DIAPER_INVENTORY_CATALOG.find((item) => item.id === depotForm.name);
+        if (!selectedCatalogItem) return;
         addInventoryItem({
-            name: depotForm.name.trim(),
-            category: 'fralda',
-            stockDepot: 0,
-            origin: depotForm.origin || 'Casa',
-            patientName: depotForm.origin === 'Própria' ? depotForm.patientName : null
+            ...selectedCatalogItem,
+            stockDepot: selectedCatalogItem.stockDepot || 0
         });
         setDepotForm({ name: '', stockDepot: 0, origin: 'Casa', patientName: '' });
         setShowDepotForm(false);
@@ -196,24 +207,36 @@ export default function FraldasPage() {
     };
 
     // HANDLERS REPOSIÇÃO
+    const closeReplaceModal = () => {
+        setReplaceModal(null);
+        setCurrentRoomStock('');
+        setReplenishAmount('0');
+    };
+
     const handleReplaceSubmit = (e) => {
         e.preventDefault();
         const patient = replaceModal.patient;
         const actionDateStr = replaceModal.date;
         const currentInRoom = Number(currentRoomStock);
+        const amountToReplenish = Number(replenishAmount);
 
-        if (currentInRoom < 0 || currentInRoom > 10) {
-            alert("A quantidade no quarto deve ser entre 0 e 10.");
+        if (Number.isNaN(currentInRoom) || currentInRoom < 0) {
+            alert("A quantidade no quarto deve ser 0 ou superior.");
+            return;
+        }
+
+        if (Number.isNaN(amountToReplenish) || amountToReplenish < 0) {
+            alert("A quantidade a repor deve ser 0 ou superior.");
             return;
         }
 
         const diaperType = diaperInventory.find(d => d.id === patient.diaperId);
-        if (!diaperType) {
+        if (amountToReplenish > 0 && !diaperType) {
             alert('Tipo de fralda não encontrado! Verifique o depósito.');
             return;
         }
 
-        const requiredAmount = 10 - currentInRoom;
+        const requiredAmount = amountToReplenish;
         if (requiredAmount > 0 && diaperType.stockDepot < requiredAmount) {
             alert(`Falta estoque no depósito! Há apenas ${diaperType.stockDepot} de ${diaperType.name}.`);
             return;
@@ -221,6 +244,7 @@ export default function FraldasPage() {
 
         const systemExpectedStock = patient.wardrobeStock !== undefined ? patient.wardrobeStock : 10;
         const anomalyAmount = systemExpectedStock - currentInRoom;
+        const finalStock = currentInRoom + amountToReplenish;
 
         if (anomalyAmount !== 0) {
             addDiaperLog({
@@ -247,21 +271,20 @@ export default function FraldasPage() {
             type: 'replenishment',
             patientId: patient.id,
             patientName: patient.name,
-            diaperId: diaperType.id,
-            diaperName: diaperType.name,
+            diaperId: diaperType?.id || '',
+            diaperName: diaperType?.name || '',
             date: actionDateStr,
             time: new Date().toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' }),
             amountAdded: requiredAmount,
             previousStock: currentInRoom,
-            newStock: 10,
+            newStock: finalStock,
             executorId: currentUser?.id || 'admin',
             executorName: currentUser?.name || 'Admin',
         });
 
-        updateDiaperPatient(patient.id, { wardrobeStock: 10, hasAnomaly: anomalyAmount > 0 ? true : false });
+        updateDiaperPatient(patient.id, { wardrobeStock: finalStock, hasAnomaly: anomalyAmount > 0 ? true : false });
 
-        setReplaceModal(null);
-        setCurrentRoomStock('');
+        closeReplaceModal();
     };
 
     return (
@@ -467,7 +490,10 @@ export default function FraldasPage() {
                                                                         <span style={{ color: '#D1D5DB' }}>{totalUsed === 0 && totalAnomaly === 0 ? '-' : ''}</span>
                                                                     ) : (
                                                                         <button
-                                                                            onClick={() => setReplaceModal({ patient, date: dateStr })}
+                                                                            onClick={() => {
+                                                                                setReplaceModal({ patient, date: dateStr });
+                                                                                setReplenishAmount('0');
+                                                                            }}
                                                                             style={{ border: '1px dashed #9CA3AF', background: 'white', color: '#4B5563', padding: '6px', borderRadius: '6px', cursor: 'pointer', fontSize: '12px', width: '100%', transition: 'all 0.2s' }}
                                                                             onMouseEnter={e => { e.currentTarget.style.borderColor = '#0071E3'; e.currentTarget.style.color = '#0071E3'; }}
                                                                             onMouseLeave={e => { e.currentTarget.style.borderColor = '#9CA3AF'; e.currentTarget.style.color = '#4B5563'; }}
@@ -522,7 +548,7 @@ export default function FraldasPage() {
 
                             {/* Informativo */}
                             <div style={{ marginTop: '16px', fontSize: '13px', color: '#6B7280', display: 'flex', gap: '16px' }}>
-                                <span>💡 <strong>Dica:</strong> Pode adicionar reposições retroativas clicando em "Atrasado".</span>
+                                <span>💡 <strong>Dica:</strong> Pode adicionar reposições retroativas clicando em &quot;Atrasado&quot;.</span>
                                 <span>🔒 Registo protegido com hora/assinatura exata do funcionário.</span>
                             </div>
                         </div>
@@ -609,38 +635,12 @@ export default function FraldasPage() {
                                                 <label>Nome do Tamanho/Modelo *</label>
                                                 <select value={depotForm.name} onChange={e => setDepotForm({ ...depotForm, name: e.target.value })} required>
                                                     <option value="">Selecione o tamanho...</option>
-                                                    <option value="cuecas P pequena">cuecas P pequena</option>
-                                                    <option value="cuecas M média">cuecas M média</option>
-                                                    <option value="cuecas L larga">cuecas L larga</option>
-                                                    <option value="fralda P pequena">fralda P pequena</option>
-                                                    <option value="fralda M média">fralda M média</option>
-                                                    <option value="fralda L larga">fralda L larga</option>
-                                                </select>
-                                            </div>
-                                            <div className={formStyles.formGroup} style={{ flex: 1 }}>
-                                                <label>Propriedade *</label>
-                                                <select value={depotForm.origin} onChange={e => setDepotForm({ ...depotForm, origin: e.target.value })} required>
-                                                    <option value="Casa">Fornecido pela Casa</option>
-                                                    <option value="Própria">Própria do Utente</option>
+                                                    {availableCatalogItems.map((item) => (
+                                                        <option key={item.id} value={item.id}>{item.name}</option>
+                                                    ))}
                                                 </select>
                                             </div>
                                         </div>
-
-                                        {depotForm.origin === 'Própria' && (
-                                            <div className={formStyles.rowFormGroup}>
-                                                <div className={formStyles.formGroup} style={{ flex: 1 }}>
-                                                    <label>Nome do Utente *</label>
-                                                    <select value={depotForm.patientName} onChange={e => setDepotForm({ ...depotForm, patientName: e.target.value })} required>
-                                                        <option value="">Selecione o utente...</option>
-                                                        {diaperPatients && [...new Map(diaperPatients.map(p => [p.name.toLowerCase().trim(), p])).values()]
-                                                            .sort((a, b) => a.name.localeCompare(b.name))
-                                                            .map(p => (
-                                                                <option key={p.id} value={p.name}>{p.name}</option>
-                                                            ))}
-                                                    </select>
-                                                </div>
-                                            </div>
-                                        )}
 
                                         <button type="submit" className={formStyles.btnPrimary} style={{ width: '100%', justifyContent: 'center', background: '#34C759' }}>Guardar Nova Referência</button>
                                     </form>
@@ -667,13 +667,17 @@ export default function FraldasPage() {
                                                     </div>
                                                 </div>
 
+                                                <p style={{ margin: '0 0 14px 0', fontSize: '13px', color: '#64748B', fontWeight: 700 }}>
+                                                    Pacote: {getPackSize(item)} unidades
+                                                </p>
+
                                                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', borderTop: '1px dashed #E5E7EB', paddingTop: '20px', marginTop: 'auto' }}>
                                                     <button title="-10" onClick={() => handleUpdateDepot(item.id, -10)} style={{ border: 'none', background: '#FEE2E2', color: '#EF4444', flex: 1, padding: '12px 0', borderRadius: '10px', cursor: 'pointer', fontWeight: 800, fontSize: '15px', transition: '0.2s' }}>-10</button>
                                                     <button title="-1" onClick={() => handleUpdateDepot(item.id, -1)} style={{ border: 'none', background: '#FEE2E2', color: '#EF4444', flex: 1, padding: '12px 0', borderRadius: '10px', cursor: 'pointer', fontWeight: 800, fontSize: '15px', transition: '0.2s' }}>-1</button>
                                                     <button title="+1" onClick={() => handleUpdateDepot(item.id, 1)} style={{ border: 'none', background: '#DCFCE7', color: '#16A34A', flex: 1, padding: '12px 0', borderRadius: '10px', cursor: 'pointer', fontWeight: 800, fontSize: '15px', transition: '0.2s' }}>+1</button>
                                                     <button title="+10" onClick={() => handleUpdateDepot(item.id, 10)} style={{ border: 'none', background: '#DCFCE7', color: '#16A34A', flex: 1, padding: '12px 0', borderRadius: '10px', cursor: 'pointer', fontWeight: 800, fontSize: '15px', transition: '0.2s' }}>+10</button>
-                                                    <button title="+Pacote (50)" onClick={() => handleUpdateDepot(item.id, 50)} style={{ border: 'none', background: '#166534', color: 'white', width: '100%', padding: '12px 0', borderRadius: '10px', cursor: 'pointer', fontWeight: 800, fontSize: '15px', marginTop: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
-                                                        <Plus size={16} /> Adicionar Pacote (+50)
+                                                    <button title={`+Pacote (${getPackSize(item)})`} onClick={() => handleUpdateDepot(item.id, getPackSize(item))} style={{ border: 'none', background: '#166534', color: 'white', width: '100%', padding: '12px 0', borderRadius: '10px', cursor: 'pointer', fontWeight: 800, fontSize: '15px', marginTop: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
+                                                        <Plus size={16} /> Adicionar Pacote (+{getPackSize(item)})
                                                     </button>
                                                 </div>
                                             </div>
@@ -707,13 +711,17 @@ export default function FraldasPage() {
                                                     </div>
                                                 </div>
 
+                                                <p style={{ margin: '0 0 14px 0', fontSize: '13px', color: '#64748B', fontWeight: 700 }}>
+                                                    Pacote: {getPackSize(item)} unidades
+                                                </p>
+
                                                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', borderTop: '1px dashed #E5E7EB', paddingTop: '20px', marginTop: 'auto' }}>
                                                     <button title="-10" onClick={() => handleUpdateDepot(item.id, -10)} style={{ border: 'none', background: '#FEE2E2', color: '#EF4444', flex: 1, padding: '12px 0', borderRadius: '10px', cursor: 'pointer', fontWeight: 800, fontSize: '15px' }}>-10</button>
                                                     <button title="-1" onClick={() => handleUpdateDepot(item.id, -1)} style={{ border: 'none', background: '#FEE2E2', color: '#EF4444', flex: 1, padding: '12px 0', borderRadius: '10px', cursor: 'pointer', fontWeight: 800, fontSize: '15px' }}>-1</button>
                                                     <button title="+1" onClick={() => handleUpdateDepot(item.id, 1)} style={{ border: 'none', background: '#E0F2FE', color: '#0284C7', flex: 1, padding: '12px 0', borderRadius: '10px', cursor: 'pointer', fontWeight: 800, fontSize: '15px' }}>+1</button>
                                                     <button title="+10" onClick={() => handleUpdateDepot(item.id, 10)} style={{ border: 'none', background: '#E0F2FE', color: '#0284C7', flex: 1, padding: '12px 0', borderRadius: '10px', cursor: 'pointer', fontWeight: 800, fontSize: '15px' }}>+10</button>
-                                                    <button title="+Pacote (50)" onClick={() => handleUpdateDepot(item.id, 50)} style={{ border: 'none', background: '#0284C7', color: 'white', width: '100%', padding: '12px 0', borderRadius: '10px', cursor: 'pointer', fontWeight: 800, fontSize: '15px', marginTop: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
-                                                        <Plus size={16} /> Adicionar Pacote (+50)
+                                                    <button title={`+Pacote (${getPackSize(item)})`} onClick={() => handleUpdateDepot(item.id, getPackSize(item))} style={{ border: 'none', background: '#0284C7', color: 'white', width: '100%', padding: '12px 0', borderRadius: '10px', cursor: 'pointer', fontWeight: 800, fontSize: '15px', marginTop: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
+                                                        <Plus size={16} /> Adicionar Pacote (+{getPackSize(item)})
                                                     </button>
                                                 </div>
                                             </div>
@@ -733,14 +741,14 @@ export default function FraldasPage() {
 
             {/* MODAL CONFIRMAÇÃO DIÁRIA (ActionModal) */}
             {replaceModal && (
-                <div className={formStyles.modalBackdrop} onClick={() => { setReplaceModal(null); setCurrentRoomStock(''); }}>
+                <div className={formStyles.modalBackdrop} onClick={closeReplaceModal}>
                     <div className={formStyles.modal} onClick={e => e.stopPropagation()}>
                         <div className={formStyles.modalHeader}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                                 <RefreshCw size={24} color="#0071E3" />
                                 <h2 style={{ margin: 0, color: '#111827' }}>Completar o Quarto</h2>
                             </div>
-                            <button className={formStyles.closeBtn} onClick={() => { setReplaceModal(null); setCurrentRoomStock(''); }}>
+                            <button className={formStyles.closeBtn} onClick={closeReplaceModal}>
                                 <X size={24} />
                             </button>
                         </div>
@@ -761,11 +769,10 @@ export default function FraldasPage() {
                         <form onSubmit={handleReplaceSubmit}>
                             <div className={formStyles.formGroup}>
                                 <label style={{ fontSize: '16px', fontWeight: 600, color: '#111827' }}>Quantas fraldas AINDA estão na gaveta ou quarto agora? *</label>
-                                <p style={{ fontSize: '13px', color: '#6B7280', margin: '4px 0 16px 0', lineHeight: 1.5 }}>Insira a quantidade atual e o sistema saberá calcular o quanto precisa repor do depósito para atingir a quantidade base de 10.</p>
+                                <p style={{ fontSize: '13px', color: '#6B7280', margin: '4px 0 16px 0', lineHeight: 1.5 }}>Primeiro confirme a quantidade atual no quarto e depois escolha quantas fraldas vai repor agora.</p>
                                 <input
                                     type="number"
                                     min="0"
-                                    max="10"
                                     value={currentRoomStock}
                                     onChange={e => setCurrentRoomStock(e.target.value)}
                                     required
@@ -774,21 +781,36 @@ export default function FraldasPage() {
                                     style={{ fontSize: '28px', padding: '16px', textAlign: 'center', height: '60px', borderRadius: '12px' }}
                                 />
                                 {currentRoomStock !== '' && (
-                                    <div style={{ marginTop: '20px', padding: '20px', background: '#EFF6FF', borderRadius: '16px', border: '1px solid #BFDBFE' }}>
-                                        <div style={{ fontSize: '15px', color: '#1D4ED8', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                            <span>O depósito vai enviar:</span>
-                                            <span style={{ fontWeight: 800, fontSize: '24px' }}>+{10 - Number(currentRoomStock)} uni.</span>
+                                    <>
+                                        <div style={{ marginTop: '20px', padding: '20px', background: '#EFF6FF', borderRadius: '16px', border: '1px solid #BFDBFE' }}>
+                                            <div style={{ fontSize: '15px', color: '#1D4ED8', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                <span>{Number(currentRoomStock) >= 10 ? 'Já tem 10 ou mais; pode repor 0 se quiser.' : `Faltam ${Math.max(0, 10 - Number(currentRoomStock))} para chegar a 10.`}</span>
+                                            </div>
                                         </div>
-                                    </div>
+
+                                        <div style={{ marginTop: '16px' }}>
+                                            <label style={{ fontSize: '16px', fontWeight: 600, color: '#111827', display: 'block', marginBottom: '8px' }}>Quantas vai repor agora?</label>
+                                            <input
+                                                type="number"
+                                                min="0"
+                                                value={replenishAmount}
+                                                onChange={e => setReplenishAmount(e.target.value)}
+                                                style={{ fontSize: '28px', padding: '16px', textAlign: 'center', height: '60px', borderRadius: '12px', width: '100%' }}
+                                            />
+                                            <p style={{ fontSize: '13px', color: '#6B7280', margin: '10px 0 0', textAlign: 'center' }}>
+                                                Stock final previsto: <strong>{Number(currentRoomStock) + (Number(replenishAmount) || 0)}</strong>
+                                            </p>
+                                        </div>
+                                    </>
                                 )}
                             </div>
 
                             <div className={formStyles.formActions} style={{ marginTop: '24px' }}>
-                                <button type="button" className={formStyles.cancelBtn} onClick={() => { setReplaceModal(null); setCurrentRoomStock(''); }}>
+                                <button type="button" className={formStyles.cancelBtn} onClick={closeReplaceModal}>
                                     Cancelar
                                 </button>
                                 <button type="submit" className={formStyles.submitBtn} style={{ background: '#0071E3', fontWeight: 700, fontSize: '16px', padding: '12px 24px' }}>
-                                    Assinar e Repor
+                                    Guardar Registo
                                 </button>
                             </div>
                         </form>
