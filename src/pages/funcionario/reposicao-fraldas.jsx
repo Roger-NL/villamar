@@ -109,11 +109,10 @@ export default function FraldasReposicaoFuncionarioPage() {
                 .filter((log) => log.patientId === patient.id && log.date === todayStr)
                 .sort((a, b) => new Date(b.timestamp || b.date) - new Date(a.timestamp || a.date));
 
-            const latestAudit = patientLogs.find((log) => log.type === 'audit');
             const latestReplenishment = patientLogs.find((log) => log.type === 'replenishment');
             const currentStock = patient.wardrobeStock !== undefined ? patient.wardrobeStock : TARGET_STOCK;
             const missingToTarget = Math.max(0, TARGET_STOCK - currentStock);
-            const checkedToday = Boolean(latestAudit || latestReplenishment);
+            const checkedToday = Boolean(latestReplenishment);
             const replenishedToday = patientLogs
                 .filter((log) => log.type === 'replenishment')
                 .reduce((sum, log) => sum + Number(log.amountAdded || 0), 0);
@@ -127,7 +126,6 @@ export default function FraldasReposicaoFuncionarioPage() {
                 currentStock,
                 missingToTarget,
                 replenishedToday,
-                latestAudit,
                 latestReplenishment,
                 stage
             };
@@ -387,22 +385,7 @@ export default function FraldasReposicaoFuncionarioPage() {
             return;
         }
 
-        const systemExpectedStock = patient.wardrobeStock !== undefined ? patient.wardrobeStock : TARGET_STOCK;
         const finalStock = currentInRoom + amountToReplenish;
-
-        await addDiaperLog({
-            type: 'audit',
-            patientId: patient.id,
-            patientName: patient.name,
-            date: todayStr,
-            time: new Date().toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' }),
-            expectedStock: systemExpectedStock,
-            actualStock: currentInRoom,
-            deviance: systemExpectedStock - currentInRoom,
-            checkedOnly: amountToReplenish === 0,
-            executorId: currentUser?.id,
-            executorName: currentUser?.name || 'Funcionário'
-        });
 
         if (shouldAdjustInventory) {
             await updateInventoryItem(diaperType.id, {
@@ -410,26 +393,24 @@ export default function FraldasReposicaoFuncionarioPage() {
             });
         }
 
-        if (amountToReplenish > 0) {
-            await addDiaperLog({
-                type: 'replenishment',
-                patientId: patient.id,
-                patientName: patient.name,
-                diaperId: diaperType ? diaperType.id : '',
-                diaperName: diaperType ? diaperType.name : '',
-                date: todayStr,
-                time: new Date().toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' }),
-                amountAdded: amountToReplenish,
-                previousStock: currentInRoom,
-                newStock: finalStock,
-                executorId: currentUser?.id,
-                executorName: currentUser?.name || 'Funcionário'
-            });
-        }
+        await addDiaperLog({
+            type: 'replenishment',
+            patientId: patient.id,
+            patientName: patient.name,
+            diaperId: diaperType ? diaperType.id : '',
+            diaperName: diaperType ? diaperType.name : '',
+            date: todayStr,
+            time: new Date().toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' }),
+            amountAdded: amountToReplenish,
+            previousStock: currentInRoom,
+            newStock: finalStock,
+            executorId: currentUser?.id,
+            executorName: currentUser?.name || 'Funcionário'
+        });
 
         await updateDiaperPatient(patient.id, {
             wardrobeStock: finalStock,
-            hasAnomaly: finalStock < TARGET_STOCK
+            hasAnomaly: false
         });
 
         setToast(amountToReplenish > 0
