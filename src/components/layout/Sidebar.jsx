@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { useMemo } from 'react';
 import { useRouter } from 'next/router';
 import styles from './Sidebar.module.css';
 import {
@@ -54,6 +55,11 @@ export default function Sidebar({ isAdmin = false }) {
     const router = useRouter();
     const { currentUser } = useApp();
     const { dailyPlans, isHydrated } = useData();
+    const todayStr = useMemo(() => {
+        const now = new Date();
+        now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+        return now.toISOString().slice(0, 10);
+    }, []);
 
     // Dynamically build employee items
     let currentEmployeeItems = employeeSidebarItems.map(section => ({
@@ -62,8 +68,6 @@ export default function Sidebar({ isAdmin = false }) {
     }));
 
     if (!isAdmin && currentUser && isHydrated && dailyPlans) {
-        const tzOffset = (new Date()).getTimezoneOffset() * 60000;
-        const todayStr = (new Date(Date.now() - tzOffset)).toISOString().slice(0, 10);
         const todayPlan = dailyPlans[todayStr];
 
         if (todayPlan && todayPlan.assignments && todayPlan.assignments['G_RepFraldas'] === currentUser.id) {

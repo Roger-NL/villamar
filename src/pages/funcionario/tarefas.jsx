@@ -1,5 +1,5 @@
 import Head from 'next/head';
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect, startTransition } from 'react';
 import styles from '@/styles/Tasks.module.css';
 import dashStyles from '@/styles/Dashboard.module.css';
 import Header from '@/components/layout/Header';
@@ -11,15 +11,19 @@ import { useData } from '@/contexts/DataContext';
 import { planoDiarioTemplate, planoDiarioNoturnoTemplate } from '@/data/planoDiarioTemplate';
 import { ClipboardList, CheckCircle, Clock, Check, Users, AlertCircle } from 'lucide-react';
 
+function getLocalISODate() {
+    const now = new Date();
+    now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+    return now.toISOString().slice(0, 10);
+}
+
 export default function TarefasPage() {
     const { isAdmin, toggleMode, currentUser } = useApp();
     const { dailyPlans, toggleDailyTaskComplete, isHydrated, getScheduleForMonth, employees } = useData();
     const [filter, setFilter] = useState('all');
     const [selectedUserId, setSelectedUserId] = useState(currentUser?.id);
 
-    const tzOffset = (new Date()).getTimezoneOffset() * 60000;
-    const localISOTime = (new Date(Date.now() - tzOffset)).toISOString().slice(0, 10);
-    const selectedDate = localISOTime;
+    const selectedDate = useMemo(() => getLocalISODate(), []);
 
     const dayPlan = dailyPlans[selectedDate];
     const nightPlan = dailyPlans[`${selectedDate}_NIGHT`];
@@ -58,9 +62,11 @@ export default function TarefasPage() {
     }, [currentUser, isHydrated, employees, getScheduleForMonth]);
 
     // Make sure selectedUserId is set to currentUser.id if empty
-    useMemo(() => {
+    useEffect(() => {
         if (!selectedUserId && currentUser?.id) {
-            setSelectedUserId(currentUser.id);
+            startTransition(() => {
+                setSelectedUserId(currentUser.id);
+            });
         }
     }, [currentUser, selectedUserId]);
 
@@ -138,7 +144,7 @@ export default function TarefasPage() {
         processTemplate(planoDiarioNoturnoTemplate, nightPlan, `${selectedDate}_NIGHT`);
 
         return tasks;
-    }, [dayPlan, nightPlan, activeUserIdToView]);
+    }, [dayPlan, nightPlan, activeUserIdToView, selectedDate]);
 
     const filteredMyTasks = myTasks.filter(task => {
         if (filter === 'pending') return !task.completed;

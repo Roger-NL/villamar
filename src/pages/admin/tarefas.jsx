@@ -1,5 +1,5 @@
 import Head from 'next/head';
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, startTransition, useRef } from 'react';
 import { DndContext, DragOverlay, PointerSensor, useSensor, useSensors, useDraggable, useDroppable } from '@dnd-kit/core';
 import styles from '@/styles/AdminPages.module.css';
 import planStyles from '@/styles/PlanoDiario.module.css';
@@ -13,6 +13,12 @@ import { planoDiarioTemplate, planoDiarioNoturnoTemplate } from '@/data/planoDia
 import {
     ClipboardList, CheckCircle, Clock, Check, Users, AlertCircle, Calendar, Send, Sun, Moon, ArrowRight, X, UserX, RotateCcw, Save
 } from 'lucide-react';
+
+function getLocalISODate() {
+    const now = new Date();
+    now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+    return now.toISOString().slice(0, 10);
+}
 
 function DraggableEmployee({ id, name, role }) {
     const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({ id: `employee:${id}` });
@@ -74,7 +80,9 @@ function DraggableResident({ id, resident, status, customName, onCycleStatus, on
     };
 
     useEffect(() => {
-        setEditValue(customName || resident);
+        startTransition(() => {
+            setEditValue(customName || resident);
+        });
     }, [customName, resident]);
 
     return (
@@ -138,7 +146,9 @@ function InlineEditableExtra({ id, defaultLabel, customLabels, onUpdateLabel }) 
     const [editValue, setEditValue] = useState(displayLabel);
 
     useEffect(() => {
-        setEditValue(displayLabel);
+        startTransition(() => {
+            setEditValue(displayLabel);
+        });
     }, [displayLabel]);
 
     const handleBlur = () => {
@@ -266,12 +276,7 @@ export default function AdminTarefasPage() {
     const { employees, dailyPlans, updateDailyPlan, publishDailyPlan, isHydrated } = useData();
 
     // YYYY-MM-DD local logic
-    const today = new Date();
-    // Ajustar fuso horário para bater local
-    const tzOffset = (new Date()).getTimezoneOffset() * 60000;
-    const localISOTime = (new Date(Date.now() - tzOffset)).toISOString().slice(0, 10);
-
-    const [selectedDate, setSelectedDate] = useState(localISOTime);
+    const [selectedDate, setSelectedDate] = useState(() => getLocalISODate());
     const [period, setPeriod] = useState("DAY");
     const [activeDragItem, setActiveDragItem] = useState(null);
     const [localAssignments, setLocalAssignments] = useState({});
@@ -279,6 +284,7 @@ export default function AdminTarefasPage() {
     const [localGroupResidents, setLocalGroupResidents] = useState({});
     const [residentStatuses, setResidentStatuses] = useState({});
     const [customResidentNames, setCustomResidentNames] = useState({});
+    const residentCounterRef = useRef(0);
 
     const planKey = period === 'DAY' ? selectedDate : `${selectedDate}_NIGHT`;
     const currentTemplate = period === 'DAY' ? planoDiarioTemplate : planoDiarioNoturnoTemplate;
@@ -288,14 +294,6 @@ export default function AdminTarefasPage() {
     useEffect(() => {
         if (isHydrated) {
             const plan = dailyPlans[planKey];
-            setLocalAssignments(plan?.assignments || {});
-            setCustomLabels(plan?.customLabels || {});
-            setResidentStatuses(plan?.residentStatuses || {});
-            setCustomResidentNames(plan?.customResidentNames || {});
-
-            setResidentStatuses(plan?.residentStatuses || {});
-            setCustomResidentNames(plan?.customResidentNames || {});
-
             const initialGroups = plan?.groupResidents || {};
             let updatedGroups = { ...initialGroups };
 
@@ -308,9 +306,15 @@ export default function AdminTarefasPage() {
                     }
                 }
             });
-            setLocalGroupResidents(updatedGroups);
+            startTransition(() => {
+                setLocalAssignments(plan?.assignments || {});
+                setCustomLabels(plan?.customLabels || {});
+                setResidentStatuses(plan?.residentStatuses || {});
+                setCustomResidentNames(plan?.customResidentNames || {});
+                setLocalGroupResidents(updatedGroups);
+            });
         }
-    }, [planKey, dailyPlans, isHydrated, period, currentTemplate]);
+    }, [planKey, dailyPlans, isHydrated, currentTemplate]);
 
     const getEmployeeName = (id) => employees.find(e => e.id == id)?.name.split(' ')[0] || null;
 
@@ -375,7 +379,8 @@ export default function AdminTarefasPage() {
     };
 
     const handleAddNewResident = (taskId, targetCol) => {
-        const newName = `Nova Pessoa ${Math.floor(Math.random() * 10000)}`;
+        residentCounterRef.current += 1;
+        const newName = `Nova Pessoa ${residentCounterRef.current}`;
         const targetStr = String(targetCol);
         setLocalGroupResidents(prev => {
             const blockGroups = prev[taskId] || { unassigned: [], '0': [], '1': [] };

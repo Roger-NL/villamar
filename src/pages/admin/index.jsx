@@ -39,6 +39,7 @@ export default function AdminDashboard() {
     } = useData();
 
     const [newAnnouncement, setNewAnnouncement] = useState('');
+    const [announcementSeverity, setAnnouncementSeverity] = useState('normal');
     const [, setTick] = useState(0); // Para forçar re-render do timer
 
     // Atualizar timers a cada segundo
@@ -148,8 +149,6 @@ export default function AdminDashboard() {
         const startTime = new Date(session.startTime).getTime();
         return Date.now() - startTime;
     };
-
-    const [announcementSeverity, setAnnouncementSeverity] = useState('normal');
 
     const handleAddAnnouncement = async () => {
         if (!newAnnouncement.trim()) return;

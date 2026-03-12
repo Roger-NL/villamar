@@ -2,7 +2,7 @@
  * Data Context - Gestão centralizada de dados com persistência no Firebase (Fallback: LocalStorage)
  * Gere: Funcionários, Tarefas, Escalas, Pedidos de Troca, Notificações, Banco de Horas
  */
-import { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import { createContext, useContext, useState, useEffect, useCallback, startTransition } from 'react';
 import { mockEmployees as initialEmployees, mockTasks as initialTasks, mockSwapRequests as initialSwaps, taskCategories as initialTaskCategories, getPrebuiltSchedule } from '@/data/mockData';
 import { db } from '@/config/firebase';
 import { collection, doc, setDoc, deleteDoc, onSnapshot, getDocs, writeBatch } from 'firebase/firestore';
@@ -70,19 +70,20 @@ export function DataProvider({ children }) {
                 loadedEmployees = loadedEmployees.filter(emp => validIds.has(emp.id));
             }
 
-            setEmployees(loadedEmployees);
-            setTasks(savedTasks ? JSON.parse(savedTasks) : initialTasks);
-            setSwapRequests(savedSwaps ? JSON.parse(savedSwaps) : initialSwaps);
-            setNotifications(savedNotifications ? JSON.parse(savedNotifications) : []);
-            setTimeRecords(savedTimeRecords ? JSON.parse(savedTimeRecords) : []);
-            setActiveSessions(savedActiveSessions ? JSON.parse(savedActiveSessions) : {});
             const savedLeaves = localStorage.getItem('leaves');
-
-            setSavedSchedules(savedSchedulesData ? JSON.parse(savedSchedulesData) : {});
-            setLeaves(savedLeaves ? JSON.parse(savedLeaves) : []);
-            setDailyPlans(savedDailyPlans ? JSON.parse(savedDailyPlans) : {});
-            setDailyAnnouncements(savedDailyAnnouncements ? JSON.parse(savedDailyAnnouncements) : []);
-            setIsHydrated(true);
+            startTransition(() => {
+                setEmployees(loadedEmployees);
+                setTasks(savedTasks ? JSON.parse(savedTasks) : initialTasks);
+                setSwapRequests(savedSwaps ? JSON.parse(savedSwaps) : initialSwaps);
+                setNotifications(savedNotifications ? JSON.parse(savedNotifications) : []);
+                setTimeRecords(savedTimeRecords ? JSON.parse(savedTimeRecords) : []);
+                setActiveSessions(savedActiveSessions ? JSON.parse(savedActiveSessions) : {});
+                setSavedSchedules(savedSchedulesData ? JSON.parse(savedSchedulesData) : {});
+                setLeaves(savedLeaves ? JSON.parse(savedLeaves) : []);
+                setDailyPlans(savedDailyPlans ? JSON.parse(savedDailyPlans) : {});
+                setDailyAnnouncements(savedDailyAnnouncements ? JSON.parse(savedDailyAnnouncements) : []);
+                setIsHydrated(true);
+            });
         } else if (db) {
             // WITH FIREBASE
             const unsubEmployees = onSnapshot(collection(db, 'employees'), (snapshot) => {
@@ -142,7 +143,9 @@ export function DataProvider({ children }) {
                 setDailyAnnouncements(snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id })).sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)));
             });
 
-            setIsHydrated(true);
+            startTransition(() => {
+                setIsHydrated(true);
+            });
 
             return () => {
                 unsubEmployees();
@@ -202,6 +205,14 @@ export function DataProvider({ children }) {
         }
     }, [employees, tasks, swapRequests, notifications, timeRecords, activeSessions, savedSchedules, dailyPlans, dailyAnnouncements, isHydrated]);
 
+    // === NOTIFICATIONS ===
+    const addNotification = useCallback(async (notification) => {
+        const newNotif = { id: Date.now(), ...notification, readBy: [], createdAt: new Date().toISOString() };
+        if (!db) setNotifications(prev => [newNotif, ...prev]);
+        else await writeDB('notifications', newNotif.id, newNotif);
+        return newNotif;
+    }, []);
+
     // === TIME TRACKING / BANCO DE HORAS ===
     const clockIn = useCallback(async (employeeId) => {
         const now = new Date().toISOString();
@@ -219,7 +230,7 @@ export function DataProvider({ children }) {
         addNotification({
             type: 'clock_in', title: 'Entrada Registada', message: `${emp?.name || 'Funcionário'} registou entrada.`, forAdmin: true,
         });
-    }, [employees, activeSessions]); // activeSessions included so fallback works
+    }, [employees, addNotification]);
 
     const clockOut = useCallback(async (employeeId) => {
         const session = activeSessions[employeeId];
@@ -255,7 +266,7 @@ export function DataProvider({ children }) {
         });
 
         return record;
-    }, [activeSessions, employees]);
+    }, [activeSessions, employees, addNotification]);
 
     const isEmployeeClockedIn = (employeeId) => !!activeSessions[employeeId];
     const getActiveSession = (employeeId) => activeSessions[employeeId] || null;
@@ -268,14 +279,6 @@ export function DataProvider({ children }) {
     };
 
     const getTimeRecords = (employeeId) => timeRecords.filter(r => r.employeeId === employeeId);
-
-    // === NOTIFICATIONS ===
-    const addNotification = useCallback(async (notification) => {
-        const newNotif = { id: Date.now(), ...notification, readBy: [], createdAt: new Date().toISOString() };
-        if (!db) setNotifications(prev => [newNotif, ...prev]);
-        else await writeDB('notifications', newNotif.id, newNotif);
-        return newNotif;
-    }, []);
 
     const markNotificationRead = async (id, userId) => {
         if (!userId) return;

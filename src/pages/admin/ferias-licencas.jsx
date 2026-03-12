@@ -171,7 +171,7 @@ export default function FeriaseLicencasPage() {
                             <div className={formStyles.emptyState}>
                                 <CalendarRange size={48} />
                                 <h3>Sem registos de ausências</h3>
-                                <p>Clique em "Novo Registo" para adicionar férias ou licenças.</p>
+                                <p>Clique em &quot;Novo Registo&quot; para adicionar férias ou licenças.</p>
                             </div>
                         ) : (
                             <div className={styles.tableWrapper}>

@@ -2,7 +2,7 @@
  * Toast Notifications Component
  * Mostra pop-ups de notificações em tempo real e pendentes ao login
  */
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, useCallback } from 'react';
 import { useRouter } from 'next/router';
 import { useData } from '@/contexts/DataContext';
 import { useApp } from '@/pages/_app';
@@ -48,6 +48,26 @@ export default function ToastNotifications() {
     const [visibleToasts, setVisibleToasts] = useState([]);
     const [shownIds, setShownIds] = useState(new Set());
     const hasCheckedPending = useRef(false);
+    const shownIdsRef = useRef(new Set());
+
+    const markAsShown = useCallback((id) => {
+        shownIdsRef.current = new Set([...shownIdsRef.current, id]);
+        setShownIds(new Set(shownIdsRef.current));
+    }, []);
+
+    const enqueueToast = useCallback((notif, userId, delay = 0) => {
+        setTimeout(() => {
+            if (shownIdsRef.current.has(notif.id) || (notif.readBy || []).includes(userId)) return;
+
+            markAsShown(notif.id);
+            setVisibleToasts(prev => [...prev, { ...notif, showing: true }]);
+            markNotificationRead(notif.id, userId);
+
+            setTimeout(() => {
+                setVisibleToasts(prev => prev.filter(t => t.id !== notif.id));
+            }, TOAST_DURATION);
+        }, delay);
+    }, [markAsShown, markNotificationRead]);
 
     // Mostrar notificações não lidas quando entra numa área (não na home)
     useEffect(() => {
@@ -62,22 +82,9 @@ export default function ToastNotifications() {
 
         // Mostrar até 3 notificações pendentes com delay
         unread.slice(0, 3).forEach((notif, index) => {
-            setTimeout(() => {
-                if (!shownIds.has(notif.id)) {
-                    setShownIds(prev => new Set([...prev, notif.id]));
-                    setVisibleToasts(prev => [...prev, { ...notif, showing: true }]);
-
-                    // Marcar como lida na BD
-                    markNotificationRead(notif.id, userId);
-
-                    // Auto-remove após duração
-                    setTimeout(() => {
-                        setVisibleToasts(prev => prev.filter(t => t.id !== notif.id));
-                    }, TOAST_DURATION);
-                }
-            }, index * 800); // Delay entre cada toast
+            enqueueToast(notif, userId, index * 800);
         });
-    }, [isHydrated, router.pathname, notifications, shownIds]);
+    }, [isHydrated, router.pathname, notifications, currentUser?.id, currentUser?.uid, enqueueToast]);
 
     // Detectar NOVAS notificações (em tempo real)
     useEffect(() => {
@@ -87,19 +94,10 @@ export default function ToastNotifications() {
         const latestNotif = notifications[0];
 
         // Se é uma notificação nova (não foi lida e não foi mostrada ainda)
-        if (latestNotif && !shownIds.has(latestNotif.id) && !(latestNotif.readBy || []).includes(userId)) {
-            setShownIds(prev => new Set([...prev, latestNotif.id]));
-
-            setVisibleToasts(prev => [...prev, { ...latestNotif, showing: true }]);
-
-            // Marcar logo como lida na BD ao ser mostrada no toast pop-up para não repetir
-            markNotificationRead(latestNotif.id, userId);
-
-            setTimeout(() => {
-                setVisibleToasts(prev => prev.filter(t => t.id !== latestNotif.id));
-            }, TOAST_DURATION);
+        if (latestNotif && !shownIdsRef.current.has(latestNotif.id) && !(latestNotif.readBy || []).includes(userId)) {
+            enqueueToast(latestNotif, userId);
         }
-    }, [notifications, shownIds, isHydrated, currentUser]);
+    }, [notifications, isHydrated, currentUser, router.pathname, enqueueToast]);
 
     const dismissToast = (id) => {
         if (currentUser?.id) {

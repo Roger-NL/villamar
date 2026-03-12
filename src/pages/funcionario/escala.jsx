@@ -1,5 +1,5 @@
 import Head from 'next/head';
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo } from 'react';
 import styles from '@/styles/Schedule.module.css';
 import genStyles from '@/styles/ScheduleGenerator.module.css';
 import dashStyles from '@/styles/Dashboard.module.css';
@@ -24,17 +24,12 @@ export default function EscalaPage() {
     const [selectedMonth, setSelectedMonth] = useState(today.getMonth());
     const [selectedYear, setSelectedYear] = useState(today.getFullYear());
 
-    // Estado para escala carregada
-    const [currentSchedule, setCurrentSchedule] = useState(null);
-
     // Modal de pedido de troca
     const [swapModal, setSwapModal] = useState(null); // { targetEmployeeId, targetDate, targetShift }
 
-    // Carregar escala salva ao mudar de mês
-    useEffect(() => {
-        const saved = getScheduleForMonth(selectedYear, selectedMonth);
-        setCurrentSchedule(saved);
-    }, [selectedYear, selectedMonth, getScheduleForMonth]);
+    const currentSchedule = useMemo(() => (
+        getScheduleForMonth(selectedYear, selectedMonth)
+    ), [selectedYear, selectedMonth, getScheduleForMonth]);
 
     // Buscar dados reais do mês para exibição em tabela
     const scheduleData = useMemo(() => {

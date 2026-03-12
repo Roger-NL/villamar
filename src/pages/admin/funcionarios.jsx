@@ -8,11 +8,12 @@ import Sidebar from '@/components/layout/Sidebar';
 import Avatar from '@/components/ui/Avatar';
 import { useApp } from '../_app';
 import { useData } from '@/contexts/DataContext';
+import { auth } from '@/config/firebase';
 import { mockCurrentUser, mockEmployees } from '@/data/mockData';
-import { Users, Plus, X, Trash2, UserPlus } from 'lucide-react';
+import { Users, Plus, X, Trash2, UserPlus, Mail, Shield, Lock } from 'lucide-react';
 
 export default function AdminFuncionariosPage() {
-    const { isAdmin, toggleMode } = useApp();
+    const { isAdmin, toggleMode, currentUser } = useApp();
     const { employees, addEmployee, updateEmployee, removeEmployee, isHydrated } = useData();
 
     const [showForm, setShowForm] = useState(false);
@@ -20,6 +21,11 @@ export default function AdminFuncionariosPage() {
 
     const [editingEmployee, setEditingEmployee] = useState(null);
     const [editFormData, setEditFormData] = useState({ name: '', role: 'Cuidador', shiftPreference: 'Dia', pin: '', isAdmin: false });
+    const [loginPassword, setLoginPassword] = useState('');
+    const [confirmLoginPassword, setConfirmLoginPassword] = useState('');
+    const [passwordResetLoading, setPasswordResetLoading] = useState(false);
+    const [passwordResetError, setPasswordResetError] = useState('');
+    const [passwordResetSuccess, setPasswordResetSuccess] = useState('');
 
     const [confirmDelete, setConfirmDelete] = useState(null);
 
@@ -84,6 +90,11 @@ export default function AdminFuncionariosPage() {
             pin: emp.pin || '',
             isAdmin: emp.isAdmin || false,
         });
+        setLoginPassword('');
+        setConfirmLoginPassword('');
+        setPasswordResetLoading(false);
+        setPasswordResetError('');
+        setPasswordResetSuccess('');
         setEditingEmployee(emp);
     };
 
@@ -109,6 +120,63 @@ export default function AdminFuncionariosPage() {
     const handleDelete = (id) => {
         removeEmployee(id);
         setConfirmDelete(null);
+    };
+
+    const handleSetLoginPassword = async (e) => {
+        e.preventDefault();
+        if (!editingEmployee) return;
+
+        setPasswordResetError('');
+        setPasswordResetSuccess('');
+
+        if (!editingEmployee.email) {
+            setPasswordResetError('Este utilizador não tem login por email.');
+            return;
+        }
+
+        if (loginPassword !== confirmLoginPassword) {
+            setPasswordResetError('As passwords não coincidem.');
+            return;
+        }
+
+        if (loginPassword.length < 6) {
+            setPasswordResetError('A password deve ter pelo menos 6 caracteres.');
+            return;
+        }
+
+        if (!auth?.currentUser) {
+            setPasswordResetError('A sua sessão de admin expirou. Entre novamente.');
+            return;
+        }
+
+        try {
+            setPasswordResetLoading(true);
+            const idToken = await auth.currentUser.getIdToken();
+            const response = await fetch('/api/admin/set-password', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    Authorization: `Bearer ${idToken}`
+                },
+                body: JSON.stringify({
+                    employeeId: String(editingEmployee.id),
+                    newPassword: loginPassword
+                })
+            });
+
+            const payload = await response.json();
+            if (!response.ok) {
+                throw new Error(payload.error || 'Não foi possível definir a nova password.');
+            }
+
+            setPasswordResetSuccess(`Password de login redefinida para ${editingEmployee.name}.`);
+            setLoginPassword('');
+            setConfirmLoginPassword('');
+        } catch (error) {
+            setPasswordResetError(error.message || 'Não foi possível definir a nova password.');
+        } finally {
+            setPasswordResetLoading(false);
+        }
     };
 
     if (!isHydrated) {
@@ -305,6 +373,83 @@ export default function AdminFuncionariosPage() {
                                         </button>
                                     </div>
                                 </form>
+
+                                <div style={{ marginTop: '20px', paddingTop: '20px', borderTop: '1px solid #e2e8f0' }}>
+                                    <h3 style={{ margin: '0 0 12px 0', fontSize: '1rem', color: '#0f172a', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                        <Shield size={18} /> Password de Login
+                                    </h3>
+
+                                    {editingEmployee.email ? (
+                                        <>
+                                            <div style={{ background: '#f8fafc', borderRadius: '14px', padding: '14px', marginBottom: '16px' }}>
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#475569', fontWeight: 700, marginBottom: '6px' }}>
+                                                    <Mail size={16} /> {editingEmployee.email}
+                                                </div>
+                                                <div style={{ fontSize: '0.9rem', color: '#64748b' }}>
+                                                    Esta password é a do acesso com email. O PIN acima continua separado para a entrada da equipa.
+                                                </div>
+                                            </div>
+
+                                            {passwordResetError && (
+                                                <div style={{ background: '#FEE2E2', color: '#DC2626', padding: '12px', borderRadius: '10px', fontSize: '0.9rem', marginBottom: '12px', fontWeight: 700 }}>
+                                                    {passwordResetError}
+                                                </div>
+                                            )}
+
+                                            {passwordResetSuccess && (
+                                                <div style={{ background: '#DCFCE7', color: '#15803d', padding: '12px', borderRadius: '10px', fontSize: '0.9rem', marginBottom: '12px', fontWeight: 700 }}>
+                                                    {passwordResetSuccess}
+                                                </div>
+                                            )}
+
+                                            <form onSubmit={handleSetLoginPassword}>
+                                                <div className={formStyles.formGroup}>
+                                                    <label>Nova Password de Login</label>
+                                                    <div style={{ position: 'relative' }}>
+                                                        <Lock size={18} style={{ position: 'absolute', left: '12px', top: '14px', color: '#9CA3AF' }} />
+                                                        <input
+                                                            type="password"
+                                                            value={loginPassword}
+                                                            onChange={e => setLoginPassword(e.target.value)}
+                                                            placeholder="Mínimo 6 caracteres"
+                                                            style={{ paddingLeft: '40px' }}
+                                                            required
+                                                        />
+                                                    </div>
+                                                </div>
+
+                                                <div className={formStyles.formGroup}>
+                                                    <label>Confirmar Nova Password</label>
+                                                    <div style={{ position: 'relative' }}>
+                                                        <Lock size={18} style={{ position: 'absolute', left: '12px', top: '14px', color: '#9CA3AF' }} />
+                                                        <input
+                                                            type="password"
+                                                            value={confirmLoginPassword}
+                                                            onChange={e => setConfirmLoginPassword(e.target.value)}
+                                                            placeholder="Repita a password"
+                                                            style={{ paddingLeft: '40px' }}
+                                                            required
+                                                        />
+                                                    </div>
+                                                </div>
+
+                                                <button
+                                                    type="submit"
+                                                    className={formStyles.submitBtn}
+                                                    disabled={passwordResetLoading}
+                                                    style={{ width: '100%', opacity: passwordResetLoading ? 0.7 : 1 }}
+                                                >
+                                                    <Shield size={18} />
+                                                    {passwordResetLoading ? 'A redefinir...' : 'Definir Nova Password'}
+                                                </button>
+                                            </form>
+                                        </>
+                                    ) : (
+                                        <div style={{ background: '#fffbeb', color: '#92400e', borderRadius: '14px', padding: '14px', fontSize: '0.92rem', lineHeight: 1.5 }}>
+                                            Este utilizador não tem login por email configurado. Para ele, o acesso continua a ser feito pelo PIN da equipa.
+                                        </div>
+                                    )}
+                                </div>
                             </div>
                         </div>
                     )}
@@ -365,7 +510,7 @@ export default function AdminFuncionariosPage() {
                         <div className={formStyles.emptyState}>
                             <Users size={48} />
                             <h3>Sem funcionários</h3>
-                            <p>Clique em "Novo" para adicionar o primeiro funcionário.</p>
+                            <p>Clique em &quot;Novo&quot; para adicionar o primeiro funcionário.</p>
                         </div>
                     )}
                 </div>

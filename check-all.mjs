@@ -19,7 +19,7 @@ async function run() {
         if(l.type==='usage') {
             console.log(`[${l.type}] ${l.date} - ${l.patientName} (${l.amountUsed})`);
         } else {
-            console.log(`[${l.type}] ${l.date} - ${l.patientName}");
+            console.log(`[${l.type}] ${l.date} - ${l.patientName}`);
         }
     }
     process.exit(0);

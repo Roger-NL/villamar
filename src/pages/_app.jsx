@@ -18,11 +18,10 @@ function GlobalAuthListener({ children }) {
     const { setIsAdmin, setCurrentUser } = useApp();
     const { employees, isHydrated } = useData();
     const router = useRouter();
-    const [isChecking, setIsChecking] = useState(true); // Prevenir flash
+    const [isChecking, setIsChecking] = useState(() => Boolean(auth)); // Prevenir flash
 
     useEffect(() => {
         if (!auth) {
-            setIsChecking(false);
             return;
         }
 
@@ -100,7 +99,7 @@ function GlobalAuthListener({ children }) {
         });
 
         return () => unsubscribe();
-    }, [auth, employees, isHydrated]); // router not needed as dependency for effect to re-run
+    }, [employees, isHydrated, router, setCurrentUser, setIsAdmin]);
 
     if (isChecking && router.pathname !== '/') {
         return <div style={{ height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f8fafc', color: '#64748b' }}>A carregar sessão...</div>;

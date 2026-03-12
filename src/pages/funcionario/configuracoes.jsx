@@ -1,5 +1,5 @@
 import Head from 'next/head';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, startTransition } from 'react';
 import styles from '@/styles/Config.module.css';
 import formStyles from '@/styles/Forms.module.css';
 import Header from '@/components/layout/Header';
@@ -17,7 +17,11 @@ export default function ConfiguracoesPage() {
     const [user, setUser] = useState(currentUser || mockCurrentUser);
 
     useEffect(() => {
-        if (currentUser) setUser(currentUser);
+        if (currentUser) {
+            startTransition(() => {
+                setUser(currentUser);
+            });
+        }
     }, [currentUser]);
     const [notifications, setNotifications] = useState(true);
     const [darkMode, setDarkMode] = useState(false);
