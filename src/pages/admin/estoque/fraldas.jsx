@@ -53,7 +53,7 @@ export default function FraldasPage() {
 
     // Formulários e Modais
     const [showDepotForm, setShowDepotForm] = useState(false);
-    const [depotForm, setDepotForm] = useState({ name: '', stockDepot: 0, origin: 'Casa', patientName: '' });
+    const [depotForm, setDepotForm] = useState({ name: '', stockDepot: '', origin: 'Casa', patientName: '' });
 
     const [showPatientForm, setShowPatientForm] = useState(false);
     const [patientForm, setPatientForm] = useState({ name: '', diaperId: '', origin: 'Casa' });
@@ -92,6 +92,11 @@ export default function FraldasPage() {
         const existingIds = new Set(inventoryEditorItems.map((item) => item.id));
         return DIAPER_INVENTORY_CATALOG.filter((item) => !existingIds.has(item.id));
     }, [inventoryEditorItems]);
+
+    const selectedDepotCatalogItem = useMemo(
+        () => DIAPER_INVENTORY_CATALOG.find((item) => item.id === depotForm.name) || null,
+        [depotForm.name]
+    );
 
     const orderedDiaperPatients = useMemo(() => (
         diaperPatients && diaperPatients.length > 0
@@ -290,11 +295,15 @@ export default function FraldasPage() {
         if (!depotForm.name.trim()) return;
         const selectedCatalogItem = DIAPER_INVENTORY_CATALOG.find((item) => item.id === depotForm.name);
         if (!selectedCatalogItem) return;
+        const customStock = depotForm.stockDepot === '' ? null : Number(depotForm.stockDepot);
         setDraftInventory((current) => {
             const base = current ?? cloneInventory(diaperInventory);
-            return [...base, { ...selectedCatalogItem, stockDepot: selectedCatalogItem.stockDepot || 0 }];
+            return [...base, {
+                ...selectedCatalogItem,
+                stockDepot: Number.isNaN(customStock) || customStock === null ? (selectedCatalogItem.stockDepot || 0) : customStock
+            }];
         });
-        setDepotForm({ name: '', stockDepot: 0, origin: 'Casa', patientName: '' });
+        setDepotForm({ name: '', stockDepot: '', origin: 'Casa', patientName: '' });
         setShowDepotForm(false);
     };
 
@@ -992,7 +1001,37 @@ export default function FraldasPage() {
                                                     ))}
                                                 </select>
                                             </div>
+                                            <div className={formStyles.formGroup} style={{ flex: 1 }}>
+                                                <label>Para quem</label>
+                                                <input
+                                                    type="text"
+                                                    value={selectedDepotCatalogItem?.patientName || (selectedDepotCatalogItem?.origin === 'Casa' ? 'Casa' : '')}
+                                                    readOnly
+                                                    placeholder="Escolha a referência"
+                                                />
+                                            </div>
+                                            <div className={formStyles.formGroup} style={{ flex: 1 }}>
+                                                <label>Quantidade inicial</label>
+                                                <input
+                                                    type="number"
+                                                    min="0"
+                                                    value={depotForm.stockDepot}
+                                                    onChange={e => setDepotForm({ ...depotForm, stockDepot: e.target.value })}
+                                                    placeholder={selectedDepotCatalogItem ? String(selectedDepotCatalogItem.stockDepot || 0) : '0'}
+                                                />
+                                            </div>
                                         </div>
+
+                                        {selectedDepotCatalogItem && (
+                                            <div style={{ marginBottom: '16px', background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: '14px', padding: '12px', display: 'flex', justifyContent: 'space-between', gap: '12px', flexWrap: 'wrap' }}>
+                                                <div style={{ fontSize: '13px', fontWeight: 800, color: '#0F172A' }}>
+                                                    {selectedDepotCatalogItem.origin === 'Casa' ? 'Estoque da casa' : 'Fralda própria'}
+                                                </div>
+                                                <div style={{ fontSize: '13px', fontWeight: 700, color: '#64748B' }}>
+                                                    Pacote padrão: {getPackSize(selectedDepotCatalogItem)} | Pacotão: 52
+                                                </div>
+                                            </div>
+                                        )}
 
                                         <button type="submit" className={formStyles.btnPrimary} style={{ width: '100%', justifyContent: 'center', background: '#34C759' }}>Guardar Nova Referência</button>
                                     </form>
@@ -1079,6 +1118,9 @@ export default function FraldasPage() {
                                                     <button title="+10" onClick={() => handleUpdateDepot(item.id, 10)} style={{ border: 'none', background: '#DCFCE7', color: '#16A34A', flex: 1, padding: '12px 0', borderRadius: '10px', cursor: 'pointer', fontWeight: 800, fontSize: '15px', transition: '0.2s' }}>+10</button>
                                                     <button title={`+Pacote (${getPackSize(item)})`} onClick={() => handleUpdateDepot(item.id, getPackSize(item))} style={{ border: 'none', background: '#166534', color: 'white', width: '100%', padding: '12px 0', borderRadius: '10px', cursor: 'pointer', fontWeight: 800, fontSize: '15px', marginTop: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
                                                         <Plus size={16} /> Adicionar Pacote (+{getPackSize(item)})
+                                                    </button>
+                                                    <button title="+Pacotão (52)" onClick={() => handleUpdateDepot(item.id, 52)} style={{ border: 'none', background: '#0F766E', color: 'white', width: '100%', padding: '12px 0', borderRadius: '10px', cursor: 'pointer', fontWeight: 800, fontSize: '15px', marginTop: '4px' }}>
+                                                        Adicionar Pacotão (+52)
                                                     </button>
                                                 </div>
                                             </div>
@@ -1172,6 +1214,9 @@ export default function FraldasPage() {
                                                     <button title="+10" onClick={() => handleUpdateDepot(item.id, 10)} style={{ border: 'none', background: '#E0F2FE', color: '#0284C7', flex: 1, padding: '12px 0', borderRadius: '10px', cursor: 'pointer', fontWeight: 800, fontSize: '15px' }}>+10</button>
                                                     <button title={`+Pacote (${getPackSize(item)})`} onClick={() => handleUpdateDepot(item.id, getPackSize(item))} style={{ border: 'none', background: '#0284C7', color: 'white', width: '100%', padding: '12px 0', borderRadius: '10px', cursor: 'pointer', fontWeight: 800, fontSize: '15px', marginTop: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
                                                         <Plus size={16} /> Adicionar Pacote (+{getPackSize(item)})
+                                                    </button>
+                                                    <button title="+Pacotão (52)" onClick={() => handleUpdateDepot(item.id, 52)} style={{ border: 'none', background: '#0369A1', color: 'white', width: '100%', padding: '12px 0', borderRadius: '10px', cursor: 'pointer', fontWeight: 800, fontSize: '15px', marginTop: '4px' }}>
+                                                        Adicionar Pacotão (+52)
                                                     </button>
                                                 </div>
                                             </div>
