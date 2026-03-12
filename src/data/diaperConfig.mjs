@@ -139,6 +139,17 @@ export const DIAPER_INVENTORY_CATALOG = [
         packSize: 20,
         diaperKind: 'fralda',
         diaperSize: 'M'
+    },
+    {
+        id: 'propria-perpetua-pinto-fraldas-l',
+        name: 'Fraldas L Perpétua Pinto',
+        category: 'fralda',
+        origin: 'Própria',
+        patientName: 'Perpétua Pinto',
+        stockDepot: 0,
+        packSize: 20,
+        diaperKind: 'fralda',
+        diaperSize: 'L'
     }
 ];
 
@@ -155,7 +166,8 @@ const DIAPER_ASSIGNMENT_OVERRIDES = {
     'Lourdes Nunes': { diaperId: 'propria-lourdes-nunes-cueca-fralda-g', origin: 'Própria' },
     'Maria Rodrigues': { diaperId: 'propria-maria-rodrigues-fraldas-m', origin: 'Própria' },
     'Fernanda Costa': { diaperId: 'propria-fernanda-costa-fraldas-m', origin: 'Própria' },
-    'Teresa Almendra': { diaperId: 'propria-teresa-almendra-fraldas-m', origin: 'Própria' }
+    'Teresa Almendra': { diaperId: 'propria-teresa-almendra-fraldas-m', origin: 'Própria' },
+    'Perpétua Pinto': { diaperId: 'propria-perpetua-pinto-fraldas-l', origin: 'Própria', backupDiaperId: 'casa-fraldas-l' }
 };
 
 export function getPatientDiaperAssignment(patientName) {

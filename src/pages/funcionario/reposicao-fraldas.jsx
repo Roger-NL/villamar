@@ -61,7 +61,8 @@ export default function FraldasReposicaoFuncionarioPage() {
                         {
                             ...patient,
                             diaperId: patient.diaperId ?? assignment.diaperId,
-                            origin: patient.origin ?? assignment.origin
+                            origin: patient.origin ?? assignment.origin,
+                            backupDiaperId: patient.backupDiaperId ?? assignment.backupDiaperId ?? ''
                         }
                     ];
                 })).values()]
@@ -293,9 +294,9 @@ export default function FraldasReposicaoFuncionarioPage() {
 
         const inventory = diaperInventory || [];
         const diaperType = inventory.find((item) => item.id === selectedReplenishDiaperId) || getInventoryItemConfig(selectedReplenishDiaperId);
-        const usingHouseStock = amountToReplenish > 0 && patient.origin !== 'Própria';
+        const usingHouseStock = amountToReplenish > 0 && diaperType?.origin === 'Casa';
 
-        if (usingHouseStock && !diaperType) {
+        if (amountToReplenish > 0 && !diaperType) {
             alert('Escolha o modelo de fralda para a reposição.');
             return;
         }
@@ -409,7 +410,9 @@ export default function FraldasReposicaoFuncionarioPage() {
                         <div style={{ fontSize: '11px', fontWeight: 800, color: '#64748b', textTransform: 'uppercase' }}>Modelo</div>
                         <div style={{ fontSize: '14px', fontWeight: 800, color: '#0f172a' }}>
                             {patient.origin === 'Própria'
-                                ? (isDirectFamilySupplyPatient(patient) ? 'No quarto' : 'Própria')
+                                ? (isDirectFamilySupplyPatient(patient)
+                                    ? 'No quarto'
+                                    : (diaperInventoryById.get(patient.diaperId)?.name || getInventoryItemConfig(patient.diaperId)?.name || 'Própria'))
                                 : (diaperInventoryById.get(patient.diaperId)?.name || getInventoryItemConfig(patient.diaperId)?.name || 'Sem modelo')}
                         </div>
                     </div>
@@ -541,7 +544,16 @@ export default function FraldasReposicaoFuncionarioPage() {
                             <div style={{ marginTop: '16px', background: '#fff7ed', borderRadius: '18px', padding: '16px', border: '1px solid #fed7aa' }}>
                                 <div style={{ fontSize: '14px', fontWeight: 900, color: '#c2410c', marginBottom: '8px' }}>Fraldas próprias do utente</div>
                                 <div style={{ color: '#9a3412', fontWeight: 700, lineHeight: 1.5 }}>
-                                    {ownSupplySummary.map(({ patient, state }) => `${patient.name}: ${isDirectFamilySupplyPatient(patient) ? 'confirmar com a família' : `faltam ${state.missingToTarget}`}`).join(' | ')}
+                                    {ownSupplySummary.map(({ patient, state }) => {
+                                        const ownModel = diaperInventoryById.get(patient.diaperId)?.name || getInventoryItemConfig(patient.diaperId)?.name || 'Fralda própria';
+                                        const backupModel = patient.backupDiaperId
+                                            ? (diaperInventoryById.get(patient.backupDiaperId)?.name || getInventoryItemConfig(patient.backupDiaperId)?.name || '')
+                                            : '';
+                                        if (isDirectFamilySupplyPatient(patient)) return `${patient.name}: confirmar com a família`;
+                                        return backupModel
+                                            ? `${patient.name}: faltam ${state.missingToTarget} (${ownModel}; se faltar, usar ${backupModel})`
+                                            : `${patient.name}: faltam ${state.missingToTarget} (${ownModel})`;
+                                    }).join(' | ')}
                                 </div>
                             </div>
                         )}

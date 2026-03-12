@@ -9,7 +9,7 @@ import Sidebar from '@/components/layout/Sidebar';
 import Card from '@/components/ui/Card';
 import { useApp } from '@/pages/_app';
 import { useData } from '@/contexts/DataContext';
-import { DIAPER_INVENTORY_CATALOG, getPackSize, sortDiaperPatientsByPlan, isDirectFamilySupplyPatient } from '@/data/diaperConfig.mjs';
+import { DIAPER_INVENTORY_CATALOG, getInventoryItemConfig, getPackSize, getPatientDiaperAssignment, sortDiaperPatientsByPlan, isDirectFamilySupplyPatient } from '@/data/diaperConfig.mjs';
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
 import { Baby, Plus, X, ArrowLeft, RefreshCw, Box, TableProperties, ChevronLeft, ChevronRight, CheckCircle2, Download, Clock, User } from 'lucide-react';
@@ -61,6 +61,7 @@ export default function FraldasPage() {
     const [replaceModal, setReplaceModal] = useState(null); // { patient, date: YYYY-MM-DD }
     const [currentRoomStock, setCurrentRoomStock] = useState('');
     const [replenishAmount, setReplenishAmount] = useState('0');
+    const [selectedReplenishDiaperId, setSelectedReplenishDiaperId] = useState('');
     const [directSupplyStatus, setDirectSupplyStatus] = useState('ok');
     const [toast, setToast] = useState('');
     const [draftInventory, setDraftInventory] = useState(null);
@@ -68,13 +69,20 @@ export default function FraldasPage() {
 
     // Filtro de inventário para fraldas
     const diaperInventory = useMemo(() => {
-        if (!inventoryItems) return [];
-        return inventoryItems
-            .filter((i) => i.category === 'fralda')
-            .sort((a, b) => {
-                if (a.origin !== b.origin) return a.origin.localeCompare(b.origin);
-                return a.name.localeCompare(b.name);
+        const byId = new Map(
+            DIAPER_INVENTORY_CATALOG.map((item) => [item.id, { ...item }])
+        );
+
+        (inventoryItems || [])
+            .filter((item) => item.category === 'fralda')
+            .forEach((item) => {
+                byId.set(item.id, { ...byId.get(item.id), ...item });
             });
+
+        return [...byId.values()].sort((a, b) => {
+            if (a.origin !== b.origin) return a.origin.localeCompare(b.origin);
+            return a.name.localeCompare(b.name);
+        });
     }, [inventoryItems]);
 
     const inventoryEditorItems = draftInventory ?? diaperInventory;
@@ -86,7 +94,20 @@ export default function FraldasPage() {
 
     const orderedDiaperPatients = useMemo(() => (
         diaperPatients && diaperPatients.length > 0
-            ? sortDiaperPatientsByPlan([...new Map(diaperPatients.map((p) => [p.name.toLowerCase().trim(), p])).values()])
+            ? sortDiaperPatientsByPlan(
+                [...new Map(diaperPatients.map((patient) => {
+                    const assignment = getPatientDiaperAssignment(patient.name);
+                    return [
+                        patient.name.toLowerCase().trim(),
+                        {
+                            ...patient,
+                            diaperId: patient.diaperId ?? assignment.diaperId,
+                            origin: patient.origin ?? assignment.origin,
+                            backupDiaperId: patient.backupDiaperId ?? assignment.backupDiaperId ?? ''
+                        }
+                    ];
+                })).values()]
+            )
             : []
     ), [diaperPatients]);
 
@@ -175,7 +196,7 @@ export default function FraldasPage() {
         const tableRows = [];
 
         targetPatients.forEach(p => {
-            const diaperType = diaperInventory.find(d => d.id === p.diaperId);
+            const diaperType = diaperInventory.find(d => d.id === p.diaperId) || getInventoryItemConfig(p.diaperId);
             const patientStats = monthStats.stats[p.id] || { added: 0, used: 0 };
             const total = Math.max(patientStats.added, patientStats.used); // Use whichever is higher, or just show used if they don't do refills.
 
@@ -347,6 +368,7 @@ export default function FraldasPage() {
         setReplaceModal(null);
         setCurrentRoomStock('');
         setReplenishAmount('0');
+        setSelectedReplenishDiaperId('');
         setDirectSupplyStatus('ok');
     };
 
@@ -390,14 +412,15 @@ export default function FraldasPage() {
             return;
         }
 
-        const diaperType = diaperInventory.find(d => d.id === patient.diaperId);
+        const diaperType = diaperInventory.find((item) => item.id === selectedReplenishDiaperId) || getInventoryItemConfig(selectedReplenishDiaperId);
+        const usingHouseStock = amountToReplenish > 0 && diaperType?.origin === 'Casa';
         if (amountToReplenish > 0 && !diaperType) {
             alert('Tipo de fralda não encontrado! Verifique o depósito.');
             return;
         }
 
         const requiredAmount = amountToReplenish;
-        if (requiredAmount > 0 && diaperType.stockDepot < requiredAmount) {
+        if (usingHouseStock && diaperType.stockDepot < requiredAmount) {
             alert(`Falta estoque no depósito! Há apenas ${diaperType.stockDepot} de ${diaperType.name}.`);
             return;
         }
@@ -422,7 +445,7 @@ export default function FraldasPage() {
         }
 
         // Subtrai do depósito se for preciso adicionar
-        if (requiredAmount > 0) {
+        if (usingHouseStock) {
             updateInventoryItem(diaperType.id, { stockDepot: diaperType.stockDepot - requiredAmount });
         }
 
@@ -597,7 +620,7 @@ export default function FraldasPage() {
                                     </thead>
                                     <tbody>
                                         {orderedDiaperPatients && orderedDiaperPatients.length > 0 ? orderedDiaperPatients.map(patient => {
-                                            const diaperType = diaperInventory.find(d => d.id === patient.diaperId);
+                                            const diaperType = diaperInventory.find(d => d.id === patient.diaperId) || getInventoryItemConfig(patient.diaperId);
                                             const isDirectSupply = isDirectFamilySupplyPatient(patient);
 
                                             return (
@@ -683,6 +706,7 @@ export default function FraldasPage() {
                                                                             onClick={() => {
                                                                                 setReplaceModal({ patient, date: dateStr });
                                                                                 setReplenishAmount('0');
+                                                                                setSelectedReplenishDiaperId(patient.diaperId || '');
                                                                                 setDirectSupplyStatus('ok');
                                                                             }}
                                                                             style={{ border: '1px dashed #9CA3AF', background: 'white', color: '#4B5563', padding: '6px', borderRadius: '6px', cursor: 'pointer', fontSize: '12px', width: '100%', transition: 'all 0.2s' }}
@@ -1051,6 +1075,27 @@ export default function FraldasPage() {
                                                 Stock final previsto: <strong>{Number(currentRoomStock) + (Number(replenishAmount) || 0)}</strong>
                                             </p>
                                         </div>
+
+                                        {Number(replenishAmount) > 0 && (
+                                            <div style={{ marginTop: '16px' }}>
+                                                <label style={{ fontSize: '16px', fontWeight: 600, color: '#111827', display: 'block', marginBottom: '8px' }}>Que fralda vai usar?</label>
+                                                <select
+                                                    value={selectedReplenishDiaperId}
+                                                    onChange={e => setSelectedReplenishDiaperId(e.target.value)}
+                                                    style={{ width: '100%', padding: '14px', borderRadius: '12px', border: '1px solid #D1D5DB', fontSize: '16px', fontWeight: 700 }}
+                                                >
+                                                    {!selectedReplenishDiaperId && <option value="">Escolha a fralda</option>}
+                                                    {replaceModal.patient.origin === 'Própria' && replaceModal.patient.diaperId && (
+                                                        <option value={replaceModal.patient.diaperId}>
+                                                            {(diaperInventory.find((item) => item.id === replaceModal.patient.diaperId)?.name || getInventoryItemConfig(replaceModal.patient.diaperId)?.name || 'Fralda própria')}
+                                                        </option>
+                                                    )}
+                                                    {diaperInventory.filter((item) => item.origin === 'Casa').map((item) => (
+                                                        <option key={item.id} value={item.id}>{item.name} ({item.stockDepot} no depósito)</option>
+                                                    ))}
+                                                </select>
+                                            </div>
+                                        )}
                                     </>
                                 )}
                             </div>
