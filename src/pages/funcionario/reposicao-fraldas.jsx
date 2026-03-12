@@ -243,6 +243,86 @@ export default function FraldasReposicaoFuncionarioPage() {
         setDirectSupplyStatus('ok');
     };
 
+    const handleReplenishAll = async () => {
+        const readyPatients = orderedPatients.filter((patient) => {
+            const state = patientDayState[patient.id];
+            return state?.checkedToday && state.missingToTarget > 0 && !isDirectFamilySupplyPatient(patient);
+        });
+
+        if (readyPatients.length === 0) {
+            alert('Não há quartos prontos para repor.');
+            return;
+        }
+
+        const inventoryMap = new Map(
+            diaperInventory.map((item) => [item.id, { ...item }])
+        );
+        const shortages = [];
+
+        readyPatients.forEach((patient) => {
+            const state = patientDayState[patient.id];
+            const diaperType = inventoryMap.get(patient.diaperId) || getInventoryItemConfig(patient.diaperId);
+            if (!diaperType) {
+                shortages.push(`${patient.name}: sem modelo associado`);
+                return;
+            }
+
+            if (Number(diaperType.stockDepot || 0) < state.missingToTarget) {
+                shortages.push(`${patient.name}: ${diaperType.name} tem apenas ${diaperType.stockDepot}`);
+                return;
+            }
+
+            inventoryMap.set(diaperType.id, {
+                ...diaperType,
+                stockDepot: Number(diaperType.stockDepot || 0) - state.missingToTarget
+            });
+        });
+
+        if (shortages.length > 0) {
+            alert(`Não foi possível repor tudo.\n${shortages.join('\n')}\n\nSe precisar, faça esses casos manualmente.`);
+            return;
+        }
+
+        const updatedStocks = new Map();
+
+        for (const patient of readyPatients) {
+            const state = patientDayState[patient.id];
+            const diaperType = inventoryMap.get(patient.diaperId) || getInventoryItemConfig(patient.diaperId);
+            const previousStock = Number(state.currentStock || 0);
+            const amountAdded = Number(state.missingToTarget || 0);
+            const newStock = previousStock + amountAdded;
+
+            updatedStocks.set(diaperType.id, Number(diaperType.stockDepot || 0));
+
+            await addDiaperLog({
+                type: 'replenishment',
+                patientId: patient.id,
+                patientName: patient.name,
+                diaperId: diaperType.id,
+                diaperName: diaperType.name,
+                date: todayStr,
+                time: new Date().toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' }),
+                amountAdded,
+                previousStock,
+                newStock,
+                executorId: currentUser?.id,
+                executorName: currentUser?.name || 'Funcionário'
+            });
+
+            await updateDiaperPatient(patient.id, {
+                wardrobeStock: newStock,
+                hasAnomaly: false
+            });
+        }
+
+        for (const [inventoryId, stockDepot] of updatedStocks.entries()) {
+            await updateInventoryItem(inventoryId, { stockDepot });
+        }
+
+        setToast(`Reposição completa: ${readyPatients.length} quartos atualizados`);
+        setTimeout(() => setToast(''), 3000);
+    };
+
     const handleSaveReplace = async (e) => {
         if (e) e.preventDefault();
         if (!replaceModal) return;
@@ -295,14 +375,14 @@ export default function FraldasReposicaoFuncionarioPage() {
 
         const inventory = diaperInventory || [];
         const diaperType = inventory.find((item) => item.id === selectedReplenishDiaperId) || getInventoryItemConfig(selectedReplenishDiaperId);
-        const usingHouseStock = amountToReplenish > 0 && diaperType?.origin === 'Casa';
+        const shouldAdjustInventory = amountToReplenish > 0 && Boolean(diaperType);
 
         if (amountToReplenish > 0 && !diaperType) {
             alert('Escolha o modelo de fralda para a reposição.');
             return;
         }
 
-        if (usingHouseStock && diaperType.stockDepot < amountToReplenish) {
+        if (shouldAdjustInventory && diaperType.stockDepot < amountToReplenish) {
             alert(`Falta stock no depósito. Existem apenas ${diaperType.stockDepot} de ${diaperType.name}.`);
             return;
         }
@@ -324,7 +404,7 @@ export default function FraldasReposicaoFuncionarioPage() {
             executorName: currentUser?.name || 'Funcionário'
         });
 
-        if (usingHouseStock) {
+        if (shouldAdjustInventory) {
             await updateInventoryItem(diaperType.id, {
                 stockDepot: Math.max(0, diaperType.stockDepot - amountToReplenish)
             });
@@ -501,7 +581,25 @@ export default function FraldasReposicaoFuncionarioPage() {
                     </div>
 
                     <div style={{ background: 'white', borderRadius: '24px', padding: '20px', border: '1px solid #e2e8f0', boxShadow: '0 10px 30px rgba(15, 23, 42, 0.05)', marginBottom: '24px' }}>
-                        <div style={{ fontSize: '19px', fontWeight: 900, color: '#0f172a', marginBottom: '14px' }}>Levar do piso 3</div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px', marginBottom: '14px', flexWrap: 'wrap' }}>
+                            <div style={{ fontSize: '19px', fontWeight: 900, color: '#0f172a' }}>Levar do piso 3</div>
+                            <button
+                                type="button"
+                                onClick={handleReplenishAll}
+                                disabled={patientSections.ready.length === 0}
+                                style={{
+                                    padding: '12px 16px',
+                                    borderRadius: '14px',
+                                    border: 'none',
+                                    background: patientSections.ready.length > 0 ? '#16a34a' : '#94a3b8',
+                                    color: 'white',
+                                    fontWeight: 900,
+                                    cursor: patientSections.ready.length > 0 ? 'pointer' : 'not-allowed'
+                                }}
+                            >
+                                Repor tudo
+                            </button>
+                        </div>
 
                         {depotPickupSummary.length > 0 ? (
                             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '12px' }}>

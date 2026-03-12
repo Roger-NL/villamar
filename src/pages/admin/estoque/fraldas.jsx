@@ -414,14 +414,14 @@ export default function FraldasPage() {
         }
 
         const diaperType = diaperInventory.find((item) => item.id === selectedReplenishDiaperId) || getInventoryItemConfig(selectedReplenishDiaperId);
-        const usingHouseStock = amountToReplenish > 0 && diaperType?.origin === 'Casa';
+        const shouldAdjustInventory = amountToReplenish > 0 && Boolean(diaperType);
         if (amountToReplenish > 0 && !diaperType) {
             alert('Tipo de fralda não encontrado! Verifique o depósito.');
             return;
         }
 
         const requiredAmount = amountToReplenish;
-        if (usingHouseStock && diaperType.stockDepot < requiredAmount) {
+        if (shouldAdjustInventory && diaperType.stockDepot < requiredAmount) {
             alert(`Falta estoque no depósito! Há apenas ${diaperType.stockDepot} de ${diaperType.name}.`);
             return;
         }
@@ -446,7 +446,7 @@ export default function FraldasPage() {
         }
 
         // Subtrai do depósito se for preciso adicionar
-        if (usingHouseStock) {
+        if (shouldAdjustInventory) {
             updateInventoryItem(diaperType.id, { stockDepot: diaperType.stockDepot - requiredAmount });
         }
 
