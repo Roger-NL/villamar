@@ -484,26 +484,26 @@ export default function FraldasReposicaoFuncionarioPage() {
                 </div>
 
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
-                    {missing > 0 && (
+                    {missing > 0 ? (
                         <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '8px 10px', borderRadius: '14px', background: '#fff7ed', color: '#c2410c', fontSize: '13px', fontWeight: 800 }}>
-                            Faltam {missing}
+                            {`Faltam ${missing}`}
                         </div>
-                    )}
-                    {state?.checkedToday && (
+                    ) : null}
+                    {state?.checkedToday ? (
                         <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '8px 10px', borderRadius: '14px', background: '#f0fdf4', color: '#15803d', fontSize: '13px', fontWeight: 800 }}>
-                            Repostas hoje: {state?.replenishedToday ?? 0}
+                            {`Repostas hoje: ${state?.replenishedToday ?? 0}`}
                         </div>
-                    )}
-                    {state?.checkedToday && missing === 0 && (
+                    ) : null}
+                    {state?.checkedToday && missing === 0 ? (
                         <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '8px 10px', borderRadius: '14px', background: '#eff6ff', color: '#1d4ed8', fontSize: '13px', fontWeight: 800 }}>
                             Completo
                         </div>
-                    )}
-                    {!state?.checkedToday && (
+                    ) : null}
+                    {!state?.checkedToday ? (
                         <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '8px 10px', borderRadius: '14px', background: '#f8fafc', color: '#64748b', fontSize: '13px', fontWeight: 800 }}>
                             Por conferir
                         </div>
-                    </div>
+                    ) : null}
                 </div>
 
                 <div style={{ fontSize: '15px', fontWeight: 800, color: '#0f172a' }}>
