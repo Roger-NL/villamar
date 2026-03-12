@@ -45,19 +45,20 @@ export default function FraldasFuncionarioPage() {
         const patient = diaperPatients.find(p => p.id === selectedPatient);
         if (!patient) return;
 
-        const isOwn = patient.origin === 'Própria';
         let currentStock = patient.wardrobeStock !== undefined ? patient.wardrobeStock : 10;
-        let anomalyAmount = 0;
+        const amountUsed = Number(amount);
+        const previousStock = currentStock;
 
-        if (!isOwn) {
-            if (amount > currentStock) {
-                anomalyAmount = amount - currentStock;
-                currentStock = 0;
-            } else {
-                currentStock -= amount;
-            }
-            updateDiaperPatient(patient.id, { wardrobeStock: currentStock, hasAnomaly: anomalyAmount > 0 ? true : patient.hasAnomaly });
+        if (amountUsed > currentStock) {
+            currentStock = 0;
+        } else {
+            currentStock -= amountUsed;
         }
+
+        updateDiaperPatient(patient.id, {
+            wardrobeStock: currentStock,
+            hasAnomaly: false
+        });
 
         addDiaperLog({
             type: 'usage',
@@ -66,13 +67,14 @@ export default function FraldasFuncionarioPage() {
             diaperId: patient.diaperId,
             date: new Date().toISOString().split('T')[0],
             time: new Date().toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' }),
-            amountUsed: Number(amount),
-            anomaly: anomalyAmount,
+            amountUsed,
+            previousStock,
+            newStock: currentStock,
             executorId: currentUser?.id,
             executorName: currentUser?.name || 'Membro da Equipa'
         });
 
-        setToast(`Registada 1 troca de fralda para ${patient.name}`);
+        setToast(`${patient.name}: registada utilização de ${amountUsed}`);
         setTimeout(() => setToast(''), 3000);
         setSelectedPatient('');
         setAmount(1);
