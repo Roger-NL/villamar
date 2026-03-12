@@ -83,7 +83,72 @@
 }
 
 .userSection {
+    position: relative;
     cursor: pointer;
+}
+
+.userButton {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+}
+
+.profileMenu {
+    position: absolute;
+    top: calc(100% + 10px);
+    right: 0;
+    width: 220px;
+    background: white;
+    border: 1px solid var(--border-light);
+    border-radius: 16px;
+    box-shadow: 0 18px 45px rgba(15, 23, 42, 0.14);
+    padding: 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    z-index: 110;
+}
+
+.profileMenuHeader {
+    padding: 12px 14px 10px;
+    border-bottom: 1px solid var(--border-light);
+    margin-bottom: 4px;
+}
+
+.profileMenuName {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--text-primary);
+}
+
+.profileMenuRole {
+    margin-top: 2px;
+    font-size: 12px;
+    color: var(--text-secondary);
+}
+
+.profileMenuItem {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    padding: 12px 14px;
+    border: none;
+    border-radius: 12px;
+    background: transparent;
+    color: var(--text-primary);
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    text-align: left;
+}
+
+.profileMenuItem:hover {
+    background: #f8fafc;
 }
 
 /* Menu Button (Mobile) */
@@ -103,17 +168,31 @@
 @media (max-width: 768px) {
     .menuButton {
         display: flex;
+        background: #f8fafc;
+        border: 1px solid var(--border-light);
+        border-radius: 12px;
+    }
+
+    .container {
+        padding: 0 14px;
+    }
+
+    .logoText {
+        font-size: 17px;
+    }
+
+    .profileMenu {
+        right: 0;
+        width: min(250px, calc(100vw - 28px));
     }
 }
 
-/* Mobile Menu & Backdrop */
 .backdrop {
     position: fixed;
     inset: 0;
-    background: rgba(0, 0, 0, 0.2);
-    backdrop-filter: blur(2px);
+    background: rgba(15, 23, 42, 0.16);
+    backdrop-filter: blur(3px);
     z-index: 101;
-    animation: fadeIn 0.3s ease;
 }
 
 .mobileMenu {
@@ -121,12 +200,14 @@
     top: 0;
     left: 0;
     bottom: 0;
-    width: 280px;
-    background: var(--bg-card);
+    width: min(320px, 86vw);
+    background: rgba(255, 255, 255, 0.96);
+    backdrop-filter: blur(20px);
+    border-right: 1px solid var(--border-light);
     z-index: 102;
     transform: translateX(-100%);
-    transition: transform 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
-    box-shadow: var(--shadow-lg);
+    transition: transform 0.28s ease;
+    box-shadow: 0 24px 60px rgba(15, 23, 42, 0.16);
     display: flex;
     flex-direction: column;
 }
@@ -136,33 +217,84 @@
 }
 
 .menuHeader {
-    height: 60px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 0 var(--space-lg);
+    padding: 18px 18px 14px;
     border-bottom: 1px solid var(--border-light);
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
 }
 
 .menuTitle {
-    font-weight: 600;
-    font-size: 17px;
+    font-size: 18px;
+    font-weight: 800;
+    color: var(--text-primary);
+}
+
+.menuSubtitle {
+    margin-top: 4px;
+    font-size: 12px;
+    line-height: 1.4;
+    color: var(--text-secondary);
 }
 
 .closeButton {
-    background: transparent;
-    border: none;
-    cursor: pointer;
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #f8fafc;
+    border: 1px solid var(--border-light);
+    border-radius: 12px;
     color: var(--text-secondary);
-    padding: 4px;
+    cursor: pointer;
 }
 
-@keyframes fadeIn {
-    from {
-        opacity: 0;
-    }
+.menuContent {
+    padding: 16px;
+    overflow-y: auto;
+}
 
-    to {
-        opacity: 1;
-    }
+.menuSection + .menuSection {
+    margin-top: 18px;
+}
+
+.menuSectionTitle {
+    margin-bottom: 10px;
+    padding-left: 6px;
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--text-tertiary);
+}
+
+.menuSectionItems {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.menuLink {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
+    padding: 14px 14px;
+    background: white;
+    border: 1px solid var(--border-light);
+    border-radius: 16px;
+    color: var(--text-primary);
+    font-size: 14px;
+    font-weight: 700;
+    text-align: left;
+    cursor: pointer;
+    box-shadow: 0 8px 24px rgba(15, 23, 42, 0.04);
+}
+
+.menuLinkActive {
+    background: rgba(0, 113, 227, 0.08);
+    border-color: rgba(0, 113, 227, 0.16);
+    color: var(--primary);
 }

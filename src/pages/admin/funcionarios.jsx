@@ -300,8 +300,15 @@ export default function AdminFuncionariosPage() {
                     {/* Edit Form Modal */}
                     {editingEmployee && (
                         <div className={formStyles.modalBackdrop} onClick={() => setEditingEmployee(null)}>
-                            <div className={formStyles.modal} onClick={e => e.stopPropagation()}>
-                                <div className={formStyles.modalHeader}>
+                            <div
+                                className={formStyles.modal}
+                                onClick={e => e.stopPropagation()}
+                                style={{ maxWidth: '620px', maxHeight: '90vh', overflowY: 'auto', paddingBottom: '20px' }}
+                            >
+                                <div
+                                    className={formStyles.modalHeader}
+                                    style={{ position: 'sticky', top: 0, background: 'white', zIndex: 2, paddingBottom: '12px' }}
+                                >
                                     <h2>Editar Funcionário</h2>
                                     <button className={formStyles.closeBtn} onClick={() => setEditingEmployee(null)}>
                                         <X size={24} />
@@ -449,6 +456,17 @@ export default function AdminFuncionariosPage() {
                                             Este utilizador não tem login por email configurado. Para ele, o acesso continua a ser feito pelo PIN da equipa.
                                         </div>
                                     )}
+                                </div>
+
+                                <div style={{ marginTop: '18px', display: 'flex', justifyContent: 'flex-end' }}>
+                                    <button
+                                        type="button"
+                                        className={formStyles.cancelBtn}
+                                        onClick={() => setEditingEmployee(null)}
+                                        style={{ maxWidth: '180px' }}
+                                    >
+                                        Fechar
+                                    </button>
                                 </div>
                             </div>
                         </div>
