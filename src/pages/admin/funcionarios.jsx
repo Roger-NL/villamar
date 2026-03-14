@@ -30,6 +30,7 @@ export default function AdminFuncionariosPage() {
     const [confirmDelete, setConfirmDelete] = useState(null);
 
     const roles = ['Cuidador', 'Cuidadora', 'Auxiliar', 'Enfermeira', 'Enfermeiro', 'Médico', 'Médica', 'Coordenador', 'Encarregado', 'Auxiliary_Cozinha'];
+    const getStoredPin = (formState) => (formState.isAdmin ? '' : (formState.pin || Math.floor(1000 + Math.random() * 9000).toString()));
 
     const handleSyncEmployees = async () => {
         const excludedIds = [1, 2, 3, 4]; // Direção/Gestão
@@ -45,7 +46,7 @@ export default function AdminFuncionariosPage() {
                     id: mockEmp.id,
                     name: mockEmp.name,
                     role: mockEmp.role,
-                    pin: mockEmp.pin,
+                    pin: mockEmp.isAdmin ? '' : mockEmp.pin,
                     isAdmin: mockEmp.isAdmin || false,
                     shiftPreference: mockEmp.role === 'Cuidadora' && (mockEmp.id >= 15 && mockEmp.id <= 18) ? 'Noite' : 'Dia'
                 });
@@ -55,7 +56,7 @@ export default function AdminFuncionariosPage() {
                 await updateEmployee(existingEmp.id, {
                     name: mockEmp.name,
                     role: mockEmp.role,
-                    pin: mockEmp.pin,
+                    pin: mockEmp.isAdmin ? '' : mockEmp.pin,
                     isAdmin: mockEmp.isAdmin || false,
                     shiftPreference: mockEmp.role === 'Cuidadora' && (mockEmp.id >= 15 && mockEmp.id <= 18) ? 'Noite' : existingEmp.shiftPreference || 'Dia'
                 });
@@ -73,7 +74,7 @@ export default function AdminFuncionariosPage() {
                 name: formData.name.trim(),
                 role: formData.role,
                 shiftPreference: formData.shiftPreference,
-                pin: formData.pin || Math.floor(1000 + Math.random() * 9000).toString(),
+                pin: getStoredPin(formData),
                 isAdmin: formData.isAdmin,
                 avatar: null,
             });
@@ -105,7 +106,7 @@ export default function AdminFuncionariosPage() {
                 name: editFormData.name.trim(),
                 role: editFormData.role,
                 shiftPreference: editFormData.shiftPreference,
-                pin: editFormData.pin || Math.floor(1000 + Math.random() * 9000).toString(),
+                pin: getStoredPin(editFormData),
                 isAdmin: editFormData.isAdmin,
             });
             setEditingEmployee(null);
@@ -243,15 +244,6 @@ export default function AdminFuncionariosPage() {
                                         />
                                     </div>
                                     <div className={formStyles.formGroup}>
-                                        <label>PIN (Senha)</label>
-                                        <input
-                                            type="text"
-                                            value={formData.pin}
-                                            onChange={e => setFormData({ ...formData, pin: e.target.value })}
-                                            placeholder="Gerado automaticamente se vazio"
-                                        />
-                                    </div>
-                                    <div className={formStyles.formGroup}>
                                         <label>Função</label>
                                         <select
                                             value={formData.role}
@@ -277,12 +269,23 @@ export default function AdminFuncionariosPage() {
                                             <input
                                                 type="checkbox"
                                                 checked={formData.isAdmin}
-                                                onChange={e => setFormData({ ...formData, isAdmin: e.target.checked })}
+                                                onChange={e => setFormData({ ...formData, isAdmin: e.target.checked, pin: e.target.checked ? '' : formData.pin })}
                                                 style={{ width: 'auto' }}
                                             />
                                             Permissão de Administrador
                                         </label>
                                     </div>
+                                    {!formData.isAdmin && (
+                                        <div className={formStyles.formGroup}>
+                                            <label>PIN (Senha)</label>
+                                            <input
+                                                type="text"
+                                                value={formData.pin}
+                                                onChange={e => setFormData({ ...formData, pin: e.target.value })}
+                                                placeholder="Gerado automaticamente se vazio"
+                                            />
+                                        </div>
+                                    )}
                                     <div className={formStyles.formActions}>
                                         <button type="button" className={formStyles.cancelBtn} onClick={() => setShowForm(false)}>
                                             Cancelar
@@ -325,16 +328,6 @@ export default function AdminFuncionariosPage() {
                                         />
                                     </div>
                                     <div className={formStyles.formGroup}>
-                                        <label>PIN (Senha)</label>
-                                        <input
-                                            type="text"
-                                            value={editFormData.pin}
-                                            onChange={e => setEditFormData({ ...editFormData, pin: e.target.value })}
-                                            placeholder="Ex: 1234"
-                                            required
-                                        />
-                                    </div>
-                                    <div className={formStyles.formGroup}>
                                         <label>Função</label>
                                         <select
                                             value={editFormData.role}
@@ -360,12 +353,24 @@ export default function AdminFuncionariosPage() {
                                             <input
                                                 type="checkbox"
                                                 checked={editFormData.isAdmin}
-                                                onChange={e => setEditFormData({ ...editFormData, isAdmin: e.target.checked })}
+                                                onChange={e => setEditFormData({ ...editFormData, isAdmin: e.target.checked, pin: e.target.checked ? '' : editFormData.pin })}
                                                 style={{ width: 'auto' }}
                                             />
                                             Permissão de Administrador
                                         </label>
                                     </div>
+                                    {!editFormData.isAdmin && (
+                                        <div className={formStyles.formGroup}>
+                                            <label>PIN (Senha)</label>
+                                            <input
+                                                type="text"
+                                                value={editFormData.pin}
+                                                onChange={e => setEditFormData({ ...editFormData, pin: e.target.value })}
+                                                placeholder="Ex: 1234"
+                                                required
+                                            />
+                                        </div>
+                                    )}
                                     <div className={formStyles.formActions}>
                                         <button type="button" className={formStyles.dangerBtn} onClick={handleDeleteFromEdit}>
                                             <Trash2 size={18} />
@@ -392,8 +397,8 @@ export default function AdminFuncionariosPage() {
                                                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#475569', fontWeight: 700, marginBottom: '6px' }}>
                                                     <Mail size={16} /> {editingEmployee.email}
                                                 </div>
-                                                <div style={{ fontSize: '0.9rem', color: '#64748b' }}>
-                                                    Esta password é a do acesso com email. O PIN acima continua separado para a entrada da equipa.
+                                            <div style={{ fontSize: '0.9rem', color: '#64748b' }}>
+                                                    Esta password é a do acesso com email. Administradores não usam PIN de entrada.
                                                 </div>
                                             </div>
 
@@ -517,9 +522,11 @@ export default function AdminFuncionariosPage() {
                                 <div style={{ background: emp.shiftPreference === 'Noite' ? '#1e293b' : '#F3F4F6', padding: '4px 12px', borderRadius: '12px', fontSize: '0.85rem', fontWeight: 'bold', color: emp.shiftPreference === 'Noite' ? '#f8fafc' : '#4B5563', margin: '4px 0' }}>
                                     Turno: {emp.shiftPreference === 'Noite' ? 'Noturno' : 'Diurno'}
                                 </div>
-                                <div style={{ background: '#F3F4F6', padding: '4px 12px', borderRadius: '12px', fontSize: '0.85rem', fontWeight: 'bold', color: '#4B5563', margin: '4px 0' }}>
-                                    PIN: {emp.pin || '1234'}
-                                </div>
+                                {!emp.isAdmin && (
+                                    <div style={{ background: '#F3F4F6', padding: '4px 12px', borderRadius: '12px', fontSize: '0.85rem', fontWeight: 'bold', color: '#4B5563', margin: '4px 0' }}>
+                                        PIN: {emp.pin || '1234'}
+                                    </div>
+                                )}
                             </div>
                         ))}
                     </div>

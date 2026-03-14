@@ -105,6 +105,8 @@ export default function Home() {
             } else {
                 await signInWithEmailAndPassword(auth, email, password);
             }
+
+            localStorage.removeItem('villamar_employee_session');
         } catch (err) {
             console.error("Auth error:", err);
             if (err.code === 'auth/invalid-credential' || err.code === 'auth/user-not-found' || err.code === 'auth/wrong-password') {
@@ -295,7 +297,7 @@ export default function Home() {
 
                                 <div className={styles.userList}>
                                     {employees
-                                        .filter(emp => emp.name.toLowerCase().includes('roger') || (!emp.isAdmin && emp.role !== 'Administrador'))
+                                        .filter(emp => !emp.isAdmin && emp.role !== 'Administrador')
                                         .sort((a, b) => a.name.localeCompare(b.name))
                                         .map(emp => (
                                             <button
