@@ -9,7 +9,7 @@ import Sidebar from '@/components/layout/Sidebar';
 import { useApp } from '@/pages/_app';
 import { useData } from '@/contexts/DataContext';
 import { DIAPER_FLOOR_PLAN, DIAPER_INVENTORY_CATALOG, getInventoryItemConfig, getPatientDiaperAssignment, hasExplicitDiaperAssignment, sortDiaperPatientsByPlan, isDirectFamilySupplyPatient } from '@/data/diaperConfig.mjs';
-import { Box, CheckCircle2, ClipboardList, Package2, AlertCircle, X } from 'lucide-react';
+import { Box, CheckCircle2, ClipboardList, Package2, AlertCircle, X, ChevronDown } from 'lucide-react';
 
 const TARGET_STOCK = 10;
 
@@ -24,6 +24,8 @@ export default function FraldasReposicaoFuncionarioPage() {
     const [currentRoomStock, setCurrentRoomStock] = useState('');
     const [replenishAmount, setReplenishAmount] = useState('0');
     const [directSupplyStatus, setDirectSupplyStatus] = useState('ok');
+    const [showFlowGuide, setShowFlowGuide] = useState(false);
+    const [expandedPickupSections, setExpandedPickupSections] = useState({});
     const [todayStr] = useState(() => new Date().toISOString().split('T')[0]);
     const [todayPlanStr] = useState(() => {
         const now = new Date();
@@ -172,6 +174,8 @@ export default function FraldasReposicaoFuncionarioPage() {
             .filter(({ state }) => state?.checkedToday && state.missingToTarget > 0)
     ), [orderedPatients, patientDayState]);
 
+    const floorOrderDesc = useMemo(() => [...DIAPER_FLOOR_PLAN].reverse(), []);
+
     const summaryCards = useMemo(() => {
         const total = orderedPatients.length;
         const checked = orderedPatients.filter((patient) => patientDayState[patient.id]?.checkedToday).length;
@@ -183,6 +187,37 @@ export default function FraldasReposicaoFuncionarioPage() {
             { label: 'Fraldas em falta', value: missingUnits, tone: '#15803d', bg: '#f0fdf4' }
         ];
     }, [orderedPatients, patientDayState]);
+
+    const summaryTotals = useMemo(() => ({
+        pending: summaryCards[0]?.value || 0,
+        checked: summaryCards[1]?.value || 0,
+        missing: summaryCards[2]?.value || 0
+    }), [summaryCards]);
+
+    const groupedDepotPickupSummary = useMemo(() => (
+        floorOrderDesc.map((floor) => {
+            const items = depotPickupSummary
+                .map((item) => ({
+                    ...item,
+                    patients: item.patients.filter((patient) => floor.names.includes(patient.name))
+                }))
+                .filter((item) => item.patients.length > 0)
+                .map((item) => ({
+                    ...item,
+                    amount: item.patients.reduce((sum, patient) => sum + Number(patient.amount || 0), 0)
+                }));
+
+            return { id: floor.id, label: floor.label, items };
+        }).filter((floor) => floor.items.length > 0)
+    ), [depotPickupSummary, floorOrderDesc]);
+
+    const groupedOwnSupplySummary = useMemo(() => (
+        floorOrderDesc.map((floor) => ({
+            id: floor.id,
+            label: floor.label,
+            items: ownSupplySummary.filter(({ patient }) => floor.names.includes(patient.name))
+        })).filter((floor) => floor.items.length > 0)
+    ), [ownSupplySummary, floorOrderDesc]);
 
     const patientSections = useMemo(() => {
         const pending = [];
@@ -261,6 +296,13 @@ export default function FraldasReposicaoFuncionarioPage() {
             || ''
         );
         setDirectSupplyStatus('ok');
+    };
+
+    const togglePickupSection = (sectionId) => {
+        setExpandedPickupSections((prev) => ({
+            ...prev,
+            [sectionId]: !prev[sectionId]
+        }));
     };
 
     const handleReplenishAll = async () => {
@@ -577,7 +619,7 @@ export default function FraldasReposicaoFuncionarioPage() {
                             <Box size={30} color="#0284c7" /> Conferir e Repor Fraldas
                         </h1>
                         <p style={{ margin: 0, color: '#64748b', fontSize: '16px', maxWidth: '720px' }}>
-                            Primeiro conte o que está no armário. Depois o sistema mostra exatamente o que falta apanhar no piso 3.
+                            Primeiro conte o que está no armário. Depois o sistema mostra exatamente o que falta recolher para repor.
                         </p>
                     </div>
 
@@ -587,36 +629,72 @@ export default function FraldasReposicaoFuncionarioPage() {
                         </div>
                     )}
 
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))', gap: '14px', marginBottom: '24px' }}>
-                        {summaryCards.map((card) => (
-                            <div key={card.label} style={{ background: card.bg, borderRadius: '20px', padding: '18px', border: '1px solid rgba(148, 163, 184, 0.18)' }}>
-                                <div style={{ fontSize: '13px', fontWeight: 800, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.04em' }}>{card.label}</div>
-                                <div style={{ marginTop: '8px', fontSize: '34px', fontWeight: 900, color: card.tone }}>{card.value}</div>
+                    <div style={{ background: 'white', borderRadius: '24px', padding: '16px 18px', border: '1px solid #e2e8f0', boxShadow: '0 10px 30px rgba(15, 23, 42, 0.05)', marginBottom: '16px' }}>
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: '12px' }}>
+                            <div style={{ minWidth: 0, paddingRight: '8px', borderRight: '1px solid #e2e8f0' }}>
+                                <div style={{ fontSize: '11px', fontWeight: 800, color: '#64748b', textTransform: 'uppercase' }}>Por conferir</div>
+                                <div style={{ marginTop: '4px', fontSize: '30px', fontWeight: 900, color: '#ef4444', lineHeight: 1 }}>{summaryTotals.pending}</div>
                             </div>
-                        ))}
+                            <div style={{ minWidth: 0, padding: '0 8px', borderRight: '1px solid #e2e8f0' }}>
+                                <div style={{ fontSize: '11px', fontWeight: 800, color: '#64748b', textTransform: 'uppercase' }}>Conferidos hoje</div>
+                                <div style={{ marginTop: '4px', fontSize: '30px', fontWeight: 900, color: '#0284c7', lineHeight: 1 }}>{summaryTotals.checked}</div>
+                            </div>
+                            <div style={{ minWidth: 0, paddingLeft: '8px' }}>
+                                <div style={{ fontSize: '11px', fontWeight: 800, color: '#64748b', textTransform: 'uppercase' }}>Fraldas em falta</div>
+                                <div style={{ marginTop: '4px', fontSize: '30px', fontWeight: 900, color: '#15803d', lineHeight: 1 }}>{summaryTotals.missing}</div>
+                            </div>
+                        </div>
                     </div>
 
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '14px', marginBottom: '24px' }}>
-                        <div style={{ background: 'linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%)', borderRadius: '22px', padding: '18px', border: '1px solid #bfdbfe' }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '10px' }}>
-                                <ClipboardList size={22} color="#1d4ed8" />
-                                <div style={{ fontSize: '18px', fontWeight: 900, color: '#1e3a8a' }}>1. Conferir</div>
-                            </div>
-                            <div style={{ color: '#1e40af', fontSize: '15px', fontWeight: 700 }}>Abra o utente e confira do piso 0 ao piso 2.</div>
-                        </div>
+                    <div style={{ marginBottom: '24px' }}>
+                        <button
+                            type="button"
+                            onClick={() => setShowFlowGuide((prev) => !prev)}
+                            style={{
+                                width: '100%',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'space-between',
+                                gap: '12px',
+                                padding: '14px 16px',
+                                borderRadius: '18px',
+                                border: '1px solid #dbeafe',
+                                background: '#f8fbff',
+                                color: '#0f172a',
+                                cursor: 'pointer',
+                                fontWeight: 900
+                            }}
+                        >
+                            <span style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                <ClipboardList size={18} color="#1d4ed8" />
+                                Regra de conferência e reposição
+                            </span>
+                            <ChevronDown size={18} style={{ transform: showFlowGuide ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.18s ease' }} />
+                        </button>
 
-                        <div style={{ background: 'linear-gradient(135deg, #ecfdf5 0%, #dcfce7 100%)', borderRadius: '22px', padding: '18px', border: '1px solid #bbf7d0' }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '10px' }}>
-                                <Package2 size={22} color="#15803d" />
-                                <div style={{ fontSize: '18px', fontWeight: 900, color: '#166534' }}>2. Recolher</div>
+                        {showFlowGuide && (
+                            <div style={{ marginTop: '10px', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '12px' }}>
+                                <div style={{ background: 'linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%)', borderRadius: '18px', padding: '14px', border: '1px solid #bfdbfe' }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
+                                        <ClipboardList size={18} color="#1d4ed8" />
+                                        <div style={{ fontSize: '15px', fontWeight: 900, color: '#1e3a8a' }}>1. Conferir</div>
+                                    </div>
+                                    <div style={{ color: '#1e40af', fontSize: '13px', fontWeight: 700 }}>Abra o utente e confira do piso 0 ao piso 2.</div>
+                                </div>
+                                <div style={{ background: 'linear-gradient(135deg, #ecfdf5 0%, #dcfce7 100%)', borderRadius: '18px', padding: '14px', border: '1px solid #bbf7d0' }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
+                                        <Package2 size={18} color="#15803d" />
+                                        <div style={{ fontSize: '15px', fontWeight: 900, color: '#166534' }}>2. Repor</div>
+                                    </div>
+                                    <div style={{ color: '#166534', fontSize: '13px', fontWeight: 700 }}>Depois reponha de cima para baixo, começando no piso 2.</div>
+                                </div>
                             </div>
-                            <div style={{ color: '#166534', fontSize: '15px', fontWeight: 700 }}>Depois reponha de cima para baixo, começando no piso 2.</div>
-                        </div>
+                        )}
                     </div>
 
                     <div style={{ background: 'white', borderRadius: '24px', padding: '20px', border: '1px solid #e2e8f0', boxShadow: '0 10px 30px rgba(15, 23, 42, 0.05)', marginBottom: '24px' }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px', marginBottom: '14px', flexWrap: 'wrap' }}>
-                            <div style={{ fontSize: '19px', fontWeight: 900, color: '#0f172a' }}>Levar do piso 3</div>
+                            <div style={{ fontSize: '19px', fontWeight: 900, color: '#0f172a' }}>Recolher para reposição</div>
                             <button
                                 type="button"
                                 onClick={handleReplenishAll}
@@ -636,36 +714,65 @@ export default function FraldasReposicaoFuncionarioPage() {
                         </div>
 
                         {depotPickupSummary.length > 0 ? (
-                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '12px' }}>
-                                {depotPickupSummary.map((item) => (
-                                    <div key={item.id} style={{ background: '#f8fafc', borderRadius: '18px', padding: '16px', border: '1px solid #e2e8f0' }}>
-                                        <div style={{ fontSize: '13px', fontWeight: 800, color: '#64748b', textTransform: 'uppercase' }}>Modelo</div>
-                                        <div style={{ fontSize: '18px', fontWeight: 900, color: '#0f172a', marginTop: '4px' }}>{item.name}</div>
-                                        <div style={{ marginTop: '12px', display: 'flex', justifyContent: 'space-between', alignItems: 'end' }}>
-                                            <div>
-                                                <div style={{ fontSize: '13px', color: '#64748b', fontWeight: 700 }}>Precisa de</div>
-                                                <div style={{ fontSize: '30px', fontWeight: 900, color: '#15803d', lineHeight: 1 }}>{item.amount}</div>
-                                            </div>
-                                            <div style={{ fontSize: '12px', color: '#64748b', fontWeight: 700 }}>
-                                                Depósito: {item.stockDepot ?? '-'}
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '12px' }}>
+                                    {depotPickupSummary.map((item) => (
+                                        <div key={item.id} style={{ background: '#f8fafc', borderRadius: '18px', padding: '16px', border: '1px solid #e2e8f0' }}>
+                                            <div style={{ fontSize: '13px', fontWeight: 800, color: '#64748b', textTransform: 'uppercase' }}>Modelo</div>
+                                            <div style={{ fontSize: '18px', fontWeight: 900, color: '#0f172a', marginTop: '4px' }}>{item.name}</div>
+                                            <div style={{ marginTop: '12px', display: 'flex', justifyContent: 'space-between', alignItems: 'end' }}>
+                                                <div>
+                                                    <div style={{ fontSize: '13px', color: '#64748b', fontWeight: 700 }}>Total</div>
+                                                    <div style={{ fontSize: '30px', fontWeight: 900, color: '#15803d', lineHeight: 1 }}>{item.amount}</div>
+                                                </div>
+                                                <div style={{ fontSize: '12px', color: '#64748b', fontWeight: 700 }}>
+                                                    Depósito: {item.stockDepot ?? '-'}
+                                                </div>
                                             </div>
                                         </div>
+                                    ))}
+                                </div>
 
-                                        <div style={{ marginTop: '14px', paddingTop: '12px', borderTop: '1px solid #e2e8f0' }}>
-                                            <div style={{ fontSize: '12px', fontWeight: 900, color: '#475569', textTransform: 'uppercase', marginBottom: '8px' }}>
-                                                Fraldas da casa
-                                            </div>
-                                            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                                                {item.patients.map((patient) => (
-                                                    <div key={patient.id} style={{ display: 'flex', justifyContent: 'space-between', gap: '12px', fontSize: '13px', fontWeight: 800, color: '#0f172a' }}>
-                                                        <span>{patient.name}</span>
-                                                        <span style={{ color: '#15803d' }}>{patient.amount}</span>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                                    {groupedDepotPickupSummary.map((floor) => (
+                                        <div key={floor.id} style={{ background: '#f8fafc', borderRadius: '18px', border: '1px solid #e2e8f0', overflow: 'hidden' }}>
+                                            <button
+                                                type="button"
+                                                onClick={() => togglePickupSection(`pickup-${floor.id}`)}
+                                                style={{ width: '100%', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px', padding: '14px 16px', background: 'transparent', border: 'none', cursor: 'pointer' }}
+                                            >
+                                                <div style={{ textAlign: 'left' }}>
+                                                    <div style={{ fontSize: '16px', fontWeight: 900, color: '#0f172a' }}>{floor.label}</div>
+                                                    <div style={{ fontSize: '12px', fontWeight: 800, color: '#64748b' }}>
+                                                        {floor.items.reduce((sum, item) => sum + item.amount, 0)} fraldas no total
                                                     </div>
-                                                ))}
-                                            </div>
+                                                </div>
+                                                <ChevronDown size={18} style={{ transform: expandedPickupSections[`pickup-${floor.id}`] ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.18s ease' }} />
+                                            </button>
+
+                                            {expandedPickupSections[`pickup-${floor.id}`] && (
+                                                <div style={{ padding: '0 16px 16px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                                                    {floor.items.map((item) => (
+                                                        <div key={`${floor.id}-${item.id}`} style={{ background: 'white', borderRadius: '14px', border: '1px solid #e2e8f0', padding: '12px' }}>
+                                                            <div style={{ display: 'flex', justifyContent: 'space-between', gap: '10px', marginBottom: '8px' }}>
+                                                                <div style={{ fontSize: '14px', fontWeight: 900, color: '#0f172a' }}>{item.name}</div>
+                                                                <div style={{ fontSize: '14px', fontWeight: 900, color: '#15803d' }}>{item.amount}</div>
+                                                            </div>
+                                                            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                                                                {item.patients.map((patient) => (
+                                                                    <div key={patient.id} style={{ display: 'flex', justifyContent: 'space-between', gap: '12px', fontSize: '13px', fontWeight: 800, color: '#0f172a' }}>
+                                                                        <span>{patient.name}</span>
+                                                                        <span style={{ color: '#15803d' }}>{patient.amount}</span>
+                                                                    </div>
+                                                                ))}
+                                                            </div>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            )}
                                         </div>
-                                    </div>
-                                ))}
+                                    ))}
+                                </div>
                             </div>
                         ) : (
                             <div style={{ background: '#f8fafc', borderRadius: '18px', padding: '18px', color: '#475569', fontWeight: 700 }}>
@@ -673,44 +780,58 @@ export default function FraldasReposicaoFuncionarioPage() {
                             </div>
                         )}
 
-                        {ownSupplySummary.length > 0 && (
+                        {groupedOwnSupplySummary.length > 0 && (
                             <div style={{ marginTop: '16px', background: '#fff7ed', borderRadius: '18px', padding: '16px', border: '1px solid #fed7aa' }}>
                                 <div style={{ fontSize: '14px', fontWeight: 900, color: '#c2410c', marginBottom: '8px' }}>Fraldas próprias do utente</div>
-                                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                                    {ownSupplySummary.map(({ patient, state }) => {
-                                        const ownModel = diaperInventoryById.get(patient.diaperId)?.name || getInventoryItemConfig(patient.diaperId)?.name || 'Fralda própria';
-                                        const backupModel = patient.backupDiaperId
-                                            ? (diaperInventoryById.get(patient.backupDiaperId)?.name || getInventoryItemConfig(patient.backupDiaperId)?.name || '')
-                                            : '';
-                                        if (isDirectFamilySupplyPatient(patient)) {
-                                            return (
-                                                <div key={patient.id} style={{ display: 'flex', justifyContent: 'space-between', gap: '12px', background: '#fffbeb', border: '1px solid #fed7aa', borderRadius: '14px', padding: '10px 12px' }}>
-                                                    <div style={{ color: '#7c2d12', fontWeight: 900 }}>{patient.name}</div>
-                                                    <div style={{ color: '#9a3412', fontWeight: 800 }}>Confirmar com a família</div>
-                                                </div>
-                                            );
-                                        }
-                                        return backupModel
-                                            ? (
-                                                <div key={patient.id} style={{ display: 'flex', justifyContent: 'space-between', gap: '12px', background: '#fffbeb', border: '1px solid #fed7aa', borderRadius: '14px', padding: '10px 12px' }}>
-                                                    <div>
-                                                        <div style={{ color: '#7c2d12', fontWeight: 900 }}>{patient.name}</div>
-                                                        <div style={{ color: '#9a3412', fontWeight: 700, fontSize: '12px', marginTop: '2px' }}>{ownModel}</div>
-                                                        <div style={{ color: '#b45309', fontWeight: 700, fontSize: '12px', marginTop: '2px' }}>Se faltar, usar {backupModel}</div>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                                    {groupedOwnSupplySummary.map((floor) => (
+                                        <div key={floor.id} style={{ background: '#fffbeb', borderRadius: '16px', border: '1px solid #fed7aa', overflow: 'hidden' }}>
+                                            <button
+                                                type="button"
+                                                onClick={() => togglePickupSection(`own-${floor.id}`)}
+                                                style={{ width: '100%', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px', padding: '14px 16px', background: 'transparent', border: 'none', cursor: 'pointer' }}
+                                            >
+                                                <div style={{ textAlign: 'left' }}>
+                                                    <div style={{ fontSize: '15px', fontWeight: 900, color: '#7c2d12' }}>{floor.label}</div>
+                                                    <div style={{ fontSize: '12px', fontWeight: 800, color: '#9a3412' }}>
+                                                        {floor.items.reduce((sum, entry) => sum + Number(entry.state.missingToTarget || 0), 0)} fraldas em falta
                                                     </div>
-                                                    <div style={{ color: '#c2410c', fontWeight: 900, fontSize: '18px', whiteSpace: 'nowrap' }}>Faltam {state.missingToTarget}</div>
                                                 </div>
-                                            )
-                                            : (
-                                                <div key={patient.id} style={{ display: 'flex', justifyContent: 'space-between', gap: '12px', background: '#fffbeb', border: '1px solid #fed7aa', borderRadius: '14px', padding: '10px 12px' }}>
-                                                    <div>
-                                                        <div style={{ color: '#7c2d12', fontWeight: 900 }}>{patient.name}</div>
-                                                        <div style={{ color: '#9a3412', fontWeight: 700, fontSize: '12px', marginTop: '2px' }}>{ownModel}</div>
-                                                    </div>
-                                                    <div style={{ color: '#c2410c', fontWeight: 900, fontSize: '18px', whiteSpace: 'nowrap' }}>Faltam {state.missingToTarget}</div>
+                                                <ChevronDown size={18} style={{ transform: expandedPickupSections[`own-${floor.id}`] ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.18s ease' }} />
+                                            </button>
+
+                                            {expandedPickupSections[`own-${floor.id}`] && (
+                                                <div style={{ padding: '0 16px 16px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                                    {floor.items.map(({ patient, state }) => {
+                                                        const ownModel = diaperInventoryById.get(patient.diaperId)?.name || getInventoryItemConfig(patient.diaperId)?.name || 'Fralda própria';
+                                                        const backupModel = patient.backupDiaperId
+                                                            ? (diaperInventoryById.get(patient.backupDiaperId)?.name || getInventoryItemConfig(patient.backupDiaperId)?.name || '')
+                                                            : '';
+                                                        if (isDirectFamilySupplyPatient(patient)) {
+                                                            return (
+                                                                <div key={patient.id} style={{ display: 'flex', justifyContent: 'space-between', gap: '12px', background: 'white', border: '1px solid #fed7aa', borderRadius: '14px', padding: '10px 12px' }}>
+                                                                    <div style={{ color: '#7c2d12', fontWeight: 900 }}>{patient.name}</div>
+                                                                    <div style={{ color: '#9a3412', fontWeight: 800 }}>Confirmar com a família</div>
+                                                                </div>
+                                                            );
+                                                        }
+                                                        return (
+                                                            <div key={patient.id} style={{ display: 'flex', justifyContent: 'space-between', gap: '12px', background: 'white', border: '1px solid #fed7aa', borderRadius: '14px', padding: '10px 12px' }}>
+                                                                <div>
+                                                                    <div style={{ color: '#7c2d12', fontWeight: 900 }}>{patient.name}</div>
+                                                                    <div style={{ color: '#9a3412', fontWeight: 700, fontSize: '12px', marginTop: '2px' }}>{ownModel}</div>
+                                                                    {backupModel ? (
+                                                                        <div style={{ color: '#b45309', fontWeight: 700, fontSize: '12px', marginTop: '2px' }}>Se faltar, usar {backupModel}</div>
+                                                                    ) : null}
+                                                                </div>
+                                                                <div style={{ color: '#c2410c', fontWeight: 900, fontSize: '18px', whiteSpace: 'nowrap' }}>Faltam {state.missingToTarget}</div>
+                                                            </div>
+                                                        );
+                                                    })}
                                                 </div>
-                                            );
-                                    })}
+                                            )}
+                                        </div>
+                                    ))}
                                 </div>
                             </div>
                         )}

@@ -80,6 +80,44 @@ const serializeInventory = (items = []) => JSON.stringify(
         .sort((a, b) => a.id.localeCompare(b.id))
 );
 
+const getLogMoment = (log) => new Date(log?.timestamp || `${log?.date || ''}T${log?.time || '00:00'}:00`);
+
+const buildDailyReplenishmentSummary = (logs = []) => {
+    if (!logs.length) return null;
+
+    const uniqueLogs = Array.from(new Map(
+        logs.map((log) => {
+            const signature = [
+                log.type,
+                log.patientId,
+                log.date,
+                log.time || '',
+                log.timestamp || '',
+                log.diaperId || '',
+                Number(log.amountAdded || 0),
+                Number(log.previousStock ?? 0),
+                Number(log.newStock ?? 0),
+                log.directSupplyStatus || ''
+            ].join('|');
+            return [signature, log];
+        })
+    ).values()).sort((a, b) => getLogMoment(a) - getLogMoment(b));
+
+    const firstLog = uniqueLogs[0];
+    const lastLog = uniqueLogs[uniqueLogs.length - 1];
+    const positiveReplenishments = uniqueLogs
+        .map((log) => Number(log.amountAdded || 0))
+        .filter((amount) => amount > 0);
+
+    return {
+        ...lastLog,
+        previousStock: Number(firstLog.previousStock ?? 0),
+        newStock: Number(lastLog.newStock ?? 0),
+        amountAdded: positiveReplenishments.reduce((sum, amount) => sum + amount, 0),
+        logs: uniqueLogs
+    };
+};
+
 export default function FraldasPage() {
     const { isAdmin, toggleMode, currentUser } = useApp();
     const router = useRouter();
@@ -202,6 +240,7 @@ export default function FraldasPage() {
     const [dayOffset, setDayOffset] = useState(0); // Para a aba 'Diárias'
     const [depositUsageDate, setDepositUsageDate] = useState(todayStr);
     const [arrivalForm, setArrivalForm] = useState({ itemId: '', date: todayStr, quantity: '' });
+    const [selectedWeeklyOwnSupplyPatientId, setSelectedWeeklyOwnSupplyPatientId] = useState('');
 
     const selectedDay = useMemo(() => {
         const d = new Date();
@@ -247,6 +286,42 @@ export default function FraldasPage() {
         }
         return { stats, focusMonthStr };
     }, [diaperLogs, weekDates]);
+
+    const weeklyHouseUsage = useMemo(() => {
+        const totals = new Map();
+        const weekDateSet = new Set(weekDates.map((date) => toISODate(date)));
+        if (!diaperLogs) return totals;
+
+        diaperLogs
+            .filter((log) => log.type === 'replenishment' && weekDateSet.has(log.date))
+            .forEach((log) => {
+                const diaperItem = diaperInventory.find((item) => item.id === log.diaperId) || getInventoryItemConfig(log.diaperId);
+                if (!diaperItem || diaperItem.origin !== 'Casa') return;
+                totals.set(diaperItem.id, {
+                    id: diaperItem.id,
+                    name: diaperItem.name,
+                    amount: (totals.get(diaperItem.id)?.amount || 0) + Number(log.amountAdded || 0)
+                });
+            });
+
+        return [...totals.values()].sort((a, b) => b.amount - a.amount);
+    }, [diaperLogs, weekDates, diaperInventory]);
+
+    const weeklyOwnSupplyPatients = useMemo(() => (
+        orderedDiaperPatients.filter((patient) => patient.origin === 'Própria' && !isDirectFamilySupplyPatient(patient))
+    ), [orderedDiaperPatients]);
+
+    const effectiveWeeklyOwnSupplyPatientId = weeklyOwnSupplyPatients.some((patient) => patient.id === selectedWeeklyOwnSupplyPatientId)
+        ? selectedWeeklyOwnSupplyPatientId
+        : (weeklyOwnSupplyPatients[0]?.id || '');
+
+    const weeklyOwnSupplyUsage = useMemo(() => {
+        if (!effectiveWeeklyOwnSupplyPatientId) return 0;
+        const weekDateSet = new Set(weekDates.map((date) => toISODate(date)));
+        return (diaperLogs || [])
+            .filter((log) => log.type === 'replenishment' && log.patientId === effectiveWeeklyOwnSupplyPatientId && weekDateSet.has(log.date))
+            .reduce((sum, log) => sum + Number(log.amountAdded || 0), 0);
+    }, [diaperLogs, effectiveWeeklyOwnSupplyPatientId, weekDates]);
 
     // Diaper usages of the selected day
     const usagesForSelectedDay = useMemo(() => {
@@ -886,7 +961,7 @@ export default function FraldasPage() {
                                                         const isFuture = dateStr > todayStr;
 
                                                         const dayLogs = diaperLogs?.filter(l => l.patientId === patient.id && l.date === dateStr) || [];
-                                                        const refillLog = dayLogs.find(l => l.type === 'replenishment');
+                                                        const refillLog = buildDailyReplenishmentSummary(dayLogs.filter((log) => log.type === 'replenishment'));
 
                                                         return (
                                                             <td key={dateStr} style={{ padding: '12px 8px', textAlign: 'center', background: dateStr === todayStr ? '#FEFCE8' : 'transparent', borderRight: '1px solid #F3F4F6', verticalAlign: 'middle' }}>
@@ -965,9 +1040,54 @@ export default function FraldasPage() {
                                 </table>
                             </div>
 
+                            <div style={{ marginTop: '16px', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '14px' }}>
+                                <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '16px', padding: '14px' }}>
+                                    <div style={{ fontSize: '13px', fontWeight: 900, color: '#0f172a', marginBottom: '10px', textTransform: 'uppercase' }}>
+                                        Fraldas usadas na semana
+                                    </div>
+                                    {weeklyHouseUsage.length > 0 ? (
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                            {weeklyHouseUsage.map((item) => (
+                                                <div key={item.id} style={{ display: 'flex', justifyContent: 'space-between', gap: '12px', fontSize: '13px', fontWeight: 800, color: '#0f172a' }}>
+                                                    <span>{item.name}</span>
+                                                    <span style={{ color: '#166534' }}>{item.amount}</span>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    ) : (
+                                        <div style={{ fontSize: '13px', color: '#64748b', fontWeight: 700 }}>Ainda não há consumo da casa nesta semana.</div>
+                                    )}
+                                </div>
+
+                                <div style={{ background: '#fffaf0', border: '1px solid #fed7aa', borderRadius: '16px', padding: '14px' }}>
+                                    <div style={{ fontSize: '13px', fontWeight: 900, color: '#7c2d12', marginBottom: '10px', textTransform: 'uppercase' }}>
+                                        Fraldas próprias na semana
+                                    </div>
+                                    {weeklyOwnSupplyPatients.length > 0 ? (
+                                        <>
+                                            <select
+                                                value={effectiveWeeklyOwnSupplyPatientId}
+                                                onChange={(e) => setSelectedWeeklyOwnSupplyPatientId(e.target.value)}
+                                                style={{ width: '100%', padding: '10px 12px', borderRadius: '12px', border: '1px solid #fdba74', fontSize: '14px', fontWeight: 700, color: '#7c2d12', background: 'white', marginBottom: '10px' }}
+                                            >
+                                                {weeklyOwnSupplyPatients.map((patient) => (
+                                                    <option key={patient.id} value={patient.id}>{patient.name}</option>
+                                                ))}
+                                            </select>
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px' }}>
+                                                <span style={{ fontSize: '13px', fontWeight: 800, color: '#9a3412' }}>Usadas nesta semana</span>
+                                                <span style={{ fontSize: '24px', fontWeight: 900, color: '#c2410c', lineHeight: 1 }}>{weeklyOwnSupplyUsage}</span>
+                                            </div>
+                                        </>
+                                    ) : (
+                                        <div style={{ fontSize: '13px', color: '#9a3412', fontWeight: 700 }}>Ainda não há utentes com fralda própria para resumir.</div>
+                                    )}
+                                </div>
+                            </div>
+
                             {/* Informativo */}
-                            <div style={{ marginTop: '16px', fontSize: '13px', color: '#6B7280', display: 'flex', gap: '16px' }}>
-                                <span>💡 <strong>Dica:</strong> Pode adicionar reposições retroativas clicando em &quot;Atrasado&quot;.</span>
+                            <div style={{ marginTop: '16px', fontSize: '13px', color: '#6B7280', display: 'flex', gap: '16px', flexWrap: 'wrap' }}>
+                                <span>💡 <strong>Dica:</strong> Pode adicionar reposições retroativas clicando em &quot;Registar&quot;.</span>
                                 <span>🔒 Registo protegido com hora/assinatura exata do funcionário.</span>
                             </div>
                         </div>
