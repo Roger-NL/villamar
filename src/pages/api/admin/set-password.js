@@ -1,4 +1,5 @@
 import { getFirebaseAdminProjectId, getIdentityToolkitAccessToken } from '@/server/firebaseAdmin';
+import { isSuperAdminEmail } from '@/lib/authRoles';
 
 function getBearerToken(req) {
     const header = req.headers.authorization || '';
@@ -78,8 +79,13 @@ export default async function handler(req, res) {
 
         const actingUser = await lookupFirebaseUser(idToken);
         const actingEmployee = await getEmployeeDocument(actingUser.localId, idToken);
+        const canManagePasswords = Boolean(
+            isSuperAdminEmail(actingUser.email) ||
+            actingEmployee?.isSuperAdmin ||
+            actingEmployee?.isAdmin
+        );
 
-        if (!actingEmployee?.isAdmin) {
+        if (!canManagePasswords) {
             return res.status(403).json({ error: 'Só administradores podem definir passwords.' });
         }
 

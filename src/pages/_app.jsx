@@ -6,6 +6,7 @@ import { useRouter } from 'next/router';
 import { auth, db } from '@/config/firebase';
 import { onAuthStateChanged } from 'firebase/auth';
 import { doc, getDoc } from 'firebase/firestore';
+import { isSuperAdminEmail } from '@/lib/authRoles';
 
 // Context para modo Admin/Membro
 export const AppContext = createContext();
@@ -36,14 +37,16 @@ function GlobalAuthListener({ children }) {
 
                     if (docSnap.exists()) {
                         const userData = docSnap.data();
-                        const hasAdminAccess = Boolean(userData.isAdmin || userData.role === 'Administrador');
+                        const isSuperAdmin = isSuperAdminEmail(userData.email || user.email);
+                        const hasAdminAccess = Boolean(isSuperAdmin || userData.isAdmin || userData.role === 'Administrador');
                         setCurrentUser({
                             id: userData.id || user.uid,
                             name: userData.name,
-                            role: userData.role,
+                            role: isSuperAdmin ? 'Super Admin' : userData.role,
                             email: userData.email,
                             avatar: userData.avatar || null,
                             isAdmin: hasAdminAccess,
+                            isSuperAdmin,
                         });
                         setIsAdmin(hasAdminAccess);
 
@@ -55,13 +58,15 @@ function GlobalAuthListener({ children }) {
                             router.push('/funcionario');
                         }
                     } else {
+                        const isSuperAdmin = isSuperAdminEmail(user.email);
                         setCurrentUser({
                             id: user.uid,
                             name: user.email.split('@')[0],
-                            role: 'Administrador',
+                            role: isSuperAdmin ? 'Super Admin' : 'Administrador',
                             email: user.email,
                             avatar: null,
                             isAdmin: true,
+                            isSuperAdmin,
                         });
                         setIsAdmin(true);
 
@@ -72,13 +77,15 @@ function GlobalAuthListener({ children }) {
                 } catch (err) {
                     console.error("Erro ao obter perfil de admin (possível bloqueador/firewall):", err);
                     // Fallback para não ficar preso no "A validar..."
+                    const isSuperAdmin = isSuperAdminEmail(user.email);
                     setCurrentUser({
                         id: user.uid,
                         name: user.email.split('@')[0],
-                        role: 'Administrador',
+                        role: isSuperAdmin ? 'Super Admin' : 'Administrador',
                         email: user.email,
                         avatar: null,
                         isAdmin: true,
+                        isSuperAdmin,
                     });
                     setIsAdmin(true);
 

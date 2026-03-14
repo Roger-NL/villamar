@@ -13,6 +13,7 @@ import { initializeApp, getApps, getApp } from 'firebase/app';
 import { getAuth, createUserWithEmailAndPassword, signOut } from 'firebase/auth';
 import { doc, setDoc } from 'firebase/firestore';
 import { Shield, ArrowLeft, Mail, Lock, User, Plus } from 'lucide-react';
+import { isSuperAdminEmail } from '@/lib/authRoles';
 
 export default function NovoAdminPage() {
     const router = useRouter();
@@ -52,8 +53,9 @@ export default function NovoAdminPage() {
                 id: user.uid,
                 name: name,
                 email: email,
-                role: role,
+                role: isSuperAdminEmail(email) ? 'Super Admin' : role,
                 isAdmin: true,
+                isSuperAdmin: isSuperAdminEmail(email),
                 status: 'absent',
                 clockIn: null,
                 clockOut: null,
