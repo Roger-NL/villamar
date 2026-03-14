@@ -27,7 +27,7 @@ export default function ConfiguracoesPage() {
 
     // Profile Settings
     const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
-    const [newName, setNewName] = useState(user.name);
+    const [newName, setNewName] = useState('');
 
     // Security Settings
     const [isSecurityModalOpen, setIsSecurityModalOpen] = useState(false);
@@ -35,6 +35,14 @@ export default function ConfiguracoesPage() {
     const [confirmPin, setConfirmPin] = useState('');
     const [pinError, setPinError] = useState('');
     const [pinSuccess, setPinSuccess] = useState('');
+
+    useEffect(() => {
+        if (user?.name) {
+            startTransition(() => {
+                setNewName(user.name);
+            });
+        }
+    }, [user]);
 
     if (!user) {
         return <div>A carregar...</div>;
