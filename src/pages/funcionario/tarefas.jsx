@@ -17,6 +17,24 @@ function getLocalISODate() {
     return now.toISOString().slice(0, 10);
 }
 
+function normalizePlanAssignments(assignments = {}, template) {
+    const normalized = { ...assignments };
+
+    template.blocks.forEach((block) => {
+        (block.items || []).forEach((item) => {
+            if (!item.legacyAssignmentIds?.length) return;
+            if (normalized[item.id]) return;
+
+            const migrated = item.legacyAssignmentIds.map((legacyId) => normalized[legacyId] || null);
+            if (migrated.some(Boolean)) {
+                normalized[item.id] = migrated;
+            }
+        });
+    });
+
+    return normalized;
+}
+
 export default function TarefasPage() {
     const { isAdmin, toggleMode, currentUser } = useApp();
     const { dailyPlans, toggleDailyTaskComplete, isHydrated, getScheduleForMonth, employees } = useData();
@@ -39,24 +57,19 @@ export default function TarefasPage() {
 
         if (scheduleData) {
             const todayStr = new Date().toISOString().slice(0, 10);
-            const myTodaySched = scheduleData.schedules[currentUser.id]?.[todayStr];
+            employees.forEach(emp => {
+                if (emp.id === currentUser.id) return;
+                if (emp.role?.toLowerCase().includes('cozinha') || emp.name.toLowerCase().includes('cozinha')) return;
 
-            if (myTodaySched && !myTodaySched.isOff && myTodaySched.shift !== 'Folga' && myTodaySched.shift !== 'Férias' && myTodaySched.shift !== 'Licença') {
-                const isMyNightShift = myTodaySched.shift === 'Noite';
-
-                employees.forEach(emp => {
-                    if (emp.id === currentUser.id) return;
-                    if (emp.role?.toLowerCase().includes('cozinha') || emp.name.toLowerCase().includes('cozinha')) return;
-
-                    const empSched = scheduleData.schedules[emp.id]?.[todayStr];
-                    if (empSched && !empSched.isOff && empSched.shift !== 'Folga' && empSched.shift !== 'Férias' && empSched.shift !== 'Licença') {
-                        const isEmpNightShift = empSched.shift === 'Noite';
-                        if (isMyNightShift === isEmpNightShift) {
-                            list.push({ id: emp.id, name: emp.name.split(' ')[0] });
-                        }
-                    }
-                });
-            }
+                const empSched = scheduleData.schedules[emp.id]?.[todayStr];
+                if (empSched && !empSched.isOff && empSched.shift !== 'Folga' && empSched.shift !== 'Férias' && empSched.shift !== 'Licença') {
+                    list.push({
+                        id: emp.id,
+                        name: emp.name.split(' ')[0],
+                        shift: empSched.shift || 'Turno'
+                    });
+                }
+            });
         }
         return list;
     }, [currentUser, isHydrated, employees, getScheduleForMonth]);
@@ -78,11 +91,12 @@ export default function TarefasPage() {
 
         const processTemplate = (template, plan, planKey) => {
             if (!plan || !plan.publishedAt) return;
+            const normalizedAssignments = normalizePlanAssignments(plan.assignments || {}, template);
             template.blocks.forEach(block => {
                 if (block.type === 'group_assignment') {
                     block.columns.forEach((colName, colIdx) => {
                         const taskId = `${block.id}_${colIdx}`;
-                        const assignedEmpId = plan.assignments?.[taskId];
+                        const assignedEmpId = normalizedAssignments[taskId];
                         const isAssigned = Array.isArray(assignedEmpId)
                             ? assignedEmpId.some(id => id.toString() === activeUserIdToView?.toString())
                             : (assignedEmpId && assignedEmpId.toString() === activeUserIdToView?.toString());
@@ -118,22 +132,39 @@ export default function TarefasPage() {
                     });
                 } else if (block.items) {
                     block.items.forEach(item => {
-                        const assignedEmpId = plan.assignments?.[item.id];
+                        const assignedEmpId = normalizedAssignments[item.id];
                         const isAssigned = Array.isArray(assignedEmpId)
                             ? assignedEmpId.some(id => id.toString() === activeUserIdToView?.toString())
                             : (assignedEmpId && assignedEmpId.toString() === activeUserIdToView?.toString());
                         if (isAssigned) {
                             const status = plan.statuses?.[item.id] || {};
                             const customLabel = plan.customLabels?.[item.id] || item.label;
-                            tasks.push({
-                                ...item,
-                                label: customLabel,
-                                blockName: template.name === 'Plano Individual de trabalho Noturno' ? 'Noturno' : block.name,
-                                time: item.time || block.time || 'Diário',
-                                completed: !!status.completed,
-                                completedAt: status.completedAt,
-                                planKey: planKey
-                            });
+                            if (Array.isArray(assignedEmpId)) {
+                                assignedEmpId.forEach((employeeId, slotIndex) => {
+                                    if (employeeId?.toString() !== activeUserIdToView?.toString()) return;
+                                    tasks.push({
+                                        ...item,
+                                        id: `${item.id}__slot_${slotIndex}`,
+                                        sourceTaskId: item.id,
+                                        label: item.slotLabels?.[slotIndex] ? `${customLabel} — ${item.slotLabels[slotIndex]}` : customLabel,
+                                        blockName: template.name === 'Plano Individual de trabalho Noturno' ? 'Noturno' : block.name,
+                                        time: item.time || block.time || 'Diário',
+                                        completed: !!status.completed,
+                                        completedAt: status.completedAt,
+                                        planKey: planKey
+                                    });
+                                });
+                            } else {
+                                tasks.push({
+                                    ...item,
+                                    label: customLabel,
+                                    blockName: template.name === 'Plano Individual de trabalho Noturno' ? 'Noturno' : block.name,
+                                    time: item.time || block.time || 'Diário',
+                                    completed: !!status.completed,
+                                    completedAt: status.completedAt,
+                                    planKey: planKey
+                                });
+                            }
                         }
                     });
                 }
@@ -156,7 +187,8 @@ export default function TarefasPage() {
     const pendingCount = myTasks.filter(t => !t.completed).length;
 
     const handleToggleComplete = (planKey, taskId) => {
-        toggleDailyTaskComplete(planKey, taskId, currentUser?.id);
+        const normalizedTaskId = taskId.includes('__slot_') ? taskId.split('__slot_')[0] : taskId;
+        toggleDailyTaskComplete(planKey, normalizedTaskId, currentUser?.id);
     };
 
     if (!isHydrated) {

@@ -19,6 +19,24 @@ function getLocalISODate() {
     return now.toISOString().slice(0, 10);
 }
 
+function normalizePlanAssignments(assignments = {}, template) {
+    const normalized = { ...assignments };
+
+    template.blocks.forEach((block) => {
+        (block.items || []).forEach((item) => {
+            if (!item.legacyAssignmentIds?.length) return;
+            if (normalized[item.id]) return;
+
+            const migrated = item.legacyAssignmentIds.map((legacyId) => normalized[legacyId] || null);
+            if (migrated.some(Boolean)) {
+                normalized[item.id] = migrated;
+            }
+        });
+    });
+
+    return normalized;
+}
+
 function DraggableResident({ id, resident, status, customName, onCycleStatus, onUpdateName, onDelete, draggableEnabled = true }) {
     const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({ id: id, disabled: !draggableEnabled });
     const [isEditing, setIsEditing] = useState(false);
@@ -328,7 +346,7 @@ export default function AdminTarefasPage() {
                 }
             });
             startTransition(() => {
-                setLocalAssignments(plan?.assignments || {});
+                setLocalAssignments(normalizePlanAssignments(plan?.assignments || {}, currentTemplate));
                 setCustomLabels(plan?.customLabels || {});
                 setResidentStatuses(plan?.residentStatuses || {});
                 setCustomResidentNames(plan?.customResidentNames || {});
