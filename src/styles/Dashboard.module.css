@@ -54,6 +54,55 @@
     height: auto;
 }
 
+.inlineExpandButton {
+    margin-left: auto;
+    border: 1px solid #dbe4f0;
+    background: #f8fafc;
+    color: #64748b;
+    width: 26px;
+    height: 26px;
+    border-radius: 999px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.inlineExpandButton:hover {
+    background: #eef4ff;
+    color: var(--primary);
+}
+
+.widgetMiniLink {
+    margin-top: 10px;
+    align-self: flex-start;
+    border: none;
+    background: transparent;
+    color: var(--primary);
+    font-size: 12px;
+    font-weight: 700;
+    padding: 0;
+    cursor: pointer;
+}
+
+.compactList {
+    margin-top: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.compactListItem {
+    padding: 8px 10px;
+    border-radius: 10px;
+    background: #f8fafc;
+    color: #475569;
+    font-size: 12px;
+    font-weight: 600;
+    border: 1px solid #e2e8f0;
+}
+
 .widget:hover {
     transform: translateY(-2px);
     box-shadow: 0 8px 20px rgba(0, 0, 0, 0.05);

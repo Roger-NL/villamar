@@ -10,7 +10,7 @@ import { useData } from '@/contexts/DataContext';
 import { planoDiarioTemplate, planoDiarioNoturnoTemplate } from '@/data/planoDiarioTemplate';
 import {
     LogIn, LogOut, Calendar, CheckCircle, Clock,
-    ListChecks, ArrowRight, Timer, TrendingUp, Sun, Users, Coffee, Bell
+    ListChecks, Timer, Sun, Users, Coffee, Bell, ChevronDown, ChevronUp
 } from 'lucide-react';
 
 // Formatar duração
@@ -41,6 +41,10 @@ export default function FuncionarioDashboard() {
     } = useData();
 
     const [elapsedTime, setElapsedTime] = useState(0);
+    const [showAllTasks, setShowAllTasks] = useState(false);
+    const [showAllColleaguesToday, setShowAllColleaguesToday] = useState(false);
+    const [showAllColleaguesTomorrow, setShowAllColleaguesTomorrow] = useState(false);
+    const [showAllDaysOff, setShowAllDaysOff] = useState(false);
 
     const isClockedIn = isHydrated && currentUser ? isEmployeeClockedIn(currentUser.id) : false;
     const activeSession = isHydrated && currentUser ? getActiveSession(currentUser.id) : null;
@@ -74,10 +78,9 @@ export default function FuncionarioDashboard() {
 
     let pendingTasks = 0;
     let nextTaskInfo = null;
+    let myTasks = [];
 
     if (currentUser) {
-        const myTasks = [];
-
         const processTemplate = (template, plan, planKey) => {
             if (!plan || !plan.publishedAt) return;
             template.blocks.forEach(block => {
@@ -211,7 +214,7 @@ export default function FuncionarioDashboard() {
                 isOff = !sched || sched.isOff || sched.shift === 'Folga' || sched.shift === 'Férias' || sched.shift === 'Licença';
             }
 
-            if (isOff) {
+            if (isOff && i > 0) {
                 const dayNamesShort = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
                 nextDaysOff.push(`${dayNamesShort[d.getDay()]} ${d.getDate()}`);
                 if (nextDaysOff.length >= 2) {
@@ -289,6 +292,10 @@ export default function FuncionarioDashboard() {
         return <div className={styles.loading}>A carregar...</div>;
     }
 
+    const visibleTasks = showAllTasks ? myTasks : myTasks.slice(0, 2);
+    const visibleColleaguesToday = showAllColleaguesToday ? colleaguesToday : colleaguesToday.slice(0, 2);
+    const visibleColleaguesTomorrow = showAllColleaguesTomorrow ? colleaguesTomorrow : colleaguesTomorrow.slice(0, 2);
+    const visibleDaysOff = showAllDaysOff ? nextDaysOff : nextDaysOff.slice(0, 2);
     const myTodayDisplay = currentWeekDisplay.find(d => d.isToday) || currentWeekDisplay[0];
     const shiftHours = myTodayDisplay?.shift === 'Noite' ? 12 : 8;
     const progressPercent = Math.min((elapsedTime / (shiftHours * 3600 * 1000)) * 100, 100);
@@ -307,7 +314,7 @@ export default function FuncionarioDashboard() {
                 <div className={styles.container}>
                     <div className={styles.welcomeSection}>
                         <h1>Olá, {currentUser?.name?.split(' ')[0] || 'Utilizador'}</h1>
-                        <p>{getGreeting()}</p>
+                        <p>{myTodayDisplay?.isDayOff ? 'Aproveite a sua folga hoje.' : getGreeting()}</p>
                     </div>
 
                     {/* Bento Grid Layout */}
@@ -410,13 +417,22 @@ export default function FuncionarioDashboard() {
                         </div>
 
                         {/* Widget 2: Colegas em Turno */}
-                        <div className={styles.widget} onClick={() => router.push('/funcionario/escala')} style={{ cursor: 'pointer' }}>
+                        <div className={styles.widget}>
                             <div className={styles.widgetHeader}>
                                 <Users className={styles.widgetIcon} size={20} />
                                 <span>Colegas Hoje <span style={{ fontWeight: 400, color: '#94a3b8' }}>({currentWeekDisplay[0]?.date.split('-').slice(1).reverse().join('/')})</span></span>
+                                {colleaguesToday.length > 2 && (
+                                    <button
+                                        type="button"
+                                        className={styles.inlineExpandButton}
+                                        onClick={() => setShowAllColleaguesToday((prev) => !prev)}
+                                    >
+                                        {showAllColleaguesToday ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+                                    </button>
+                                )}
                             </div>
                             <div style={{ marginTop: '8px', display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
-                                {colleaguesToday.length > 0 ? colleaguesToday.map((c, i) => (
+                                {colleaguesToday.length > 0 ? visibleColleaguesToday.map((c, i) => (
                                     <span key={i} style={{ background: '#f1f5f9', color: '#334155', padding: '2px 6px', borderRadius: '8px', fontSize: '0.75rem', fontWeight: '500' }}>
                                         {c.name} <span style={{ color: '#0077b6', fontWeight: 'bold' }}>({c.rawCode})</span>
                                     </span>
@@ -424,32 +440,62 @@ export default function FuncionarioDashboard() {
                                     <span style={{ color: '#94a3b8', fontSize: '0.9rem' }}>Nenhum colega em serviço hoje.</span>
                                 )}
                             </div>
+                            <button type="button" className={styles.widgetMiniLink} onClick={() => router.push('/funcionario/escala')}>
+                                Ver escala
+                            </button>
                         </div>
 
                         {/* Widget 3: Tasks (Medium) */}
-                        <div className={styles.widget} onClick={() => router.push('/funcionario/tarefas')} style={{ cursor: 'pointer' }}>
+                        <div className={styles.widget}>
                             <div className={styles.widgetHeader}>
                                 <ListChecks className={styles.widgetIcon} size={20} />
                                 <span>Próx. Tarefa</span>
+                                {myTasks.length > 2 && (
+                                    <button
+                                        type="button"
+                                        className={styles.inlineExpandButton}
+                                        onClick={() => setShowAllTasks((prev) => !prev)}
+                                    >
+                                        {showAllTasks ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+                                    </button>
+                                )}
                             </div>
                             <div className={styles.metricBig} style={{ fontSize: nextTaskInfo ? '1.1rem' : '1.8rem', lineHeight: '1.2', marginTop: '8px' }}>
                                 {nextTaskInfo || pendingTasks}
                             </div>
                             <div className={styles.metricLabel}>{nextTaskInfo ? `${pendingTasks} na fila` : 'Pendentes'}</div>
-                            <div className={styles.widgetArrow}>
-                                <ArrowRight size={16} />
-                            </div>
+                            {visibleTasks.length > 1 && (
+                                <div className={styles.compactList}>
+                                    {visibleTasks.slice(1).map((task, index) => (
+                                        <div key={`${task.label}-${index}`} className={styles.compactListItem}>
+                                            {task.label.split(' — ')[0]}
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                            <button type="button" className={styles.widgetMiniLink} onClick={() => router.push('/funcionario/tarefas')}>
+                                Ver tarefas
+                            </button>
                         </div>
 
                         {/* Widget 4: Next Off (Medium) */}
-                        <div className={styles.widget} onClick={() => router.push('/funcionario/escala')}>
+                        <div className={styles.widget}>
                             <div className={styles.widgetHeader}>
                                 <Calendar className={styles.widgetIcon} size={20} />
                                 <span style={{ textTransform: 'uppercase' }}>Próximas Folgas</span>
+                                {nextDaysOff.length > 2 && (
+                                    <button
+                                        type="button"
+                                        className={styles.inlineExpandButton}
+                                        onClick={() => setShowAllDaysOff((prev) => !prev)}
+                                    >
+                                        {showAllDaysOff ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+                                    </button>
+                                )}
                             </div>
 
                             <div style={{ display: 'flex', flexDirection: 'column', height: '100%', justifyContent: 'center', gap: '8px', marginTop: '12px' }}>
-                                {nextDaysOff.length > 0 ? nextDaysOff.map((folga, idx) => (
+                                {visibleDaysOff.length > 0 ? visibleDaysOff.map((folga, idx) => (
                                     <div key={idx} style={{
                                         display: 'flex', alignItems: 'center', gap: '12px', background: '#f8fafc',
                                         padding: '10px 14px', borderRadius: '12px', border: '1px solid #e2e8f0',
@@ -466,13 +512,25 @@ export default function FuncionarioDashboard() {
                                     <span style={{ color: '#94a3b8', fontSize: '0.9rem', textAlign: 'center' }}>Sem folgas à vista</span>
                                 )}
                             </div>
+                            <button type="button" className={styles.widgetMiniLink} onClick={() => router.push('/funcionario/escala')}>
+                                Ver escala
+                            </button>
                         </div>
 
                         {/* Widget Amanhã (Medium) */}
-                        <div className={styles.widget} onClick={() => router.push('/funcionario/escala')}>
+                        <div className={styles.widget}>
                             <div className={styles.widgetHeader}>
                                 <Sun className={styles.widgetIcon} size={20} />
                                 <span>Amanhã</span>
+                                {colleaguesTomorrow.length > 2 && !currentWeekDisplay[1]?.isDayOff && (
+                                    <button
+                                        type="button"
+                                        className={styles.inlineExpandButton}
+                                        onClick={() => setShowAllColleaguesTomorrow((prev) => !prev)}
+                                    >
+                                        {showAllColleaguesTomorrow ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+                                    </button>
+                                )}
                             </div>
 
                             <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
@@ -496,7 +554,7 @@ export default function FuncionarioDashboard() {
                                         {currentWeekDisplay[1]?.isDayOff ? (
                                             <span style={{ color: '#15803d', fontSize: '0.85rem', fontWeight: '500' }}>Dia de Descanso 🎉</span>
                                         ) : (
-                                            colleaguesTomorrow.length > 0 ? colleaguesTomorrow.map((c, i) => (
+                                            colleaguesTomorrow.length > 0 ? visibleColleaguesTomorrow.map((c, i) => (
                                                 <span key={i} style={{ background: '#f8fafc', border: '1px solid #e2e8f0', color: '#475569', padding: '2px 6px', borderRadius: '8px', fontSize: '0.75rem', fontWeight: '500' }}>
                                                     {c.name} <span style={{ color: '#0077b6' }}>({c.rawCode})</span>
                                                 </span>
@@ -507,6 +565,9 @@ export default function FuncionarioDashboard() {
                                     </div>
                                 </div>
                             </div>
+                            <button type="button" className={styles.widgetMiniLink} onClick={() => router.push('/funcionario/escala')}>
+                                Ver escala
+                            </button>
                         </div>
 
                         {/* Widget 5: Schedule Strip (Wide) */}
