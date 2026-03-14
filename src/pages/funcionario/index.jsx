@@ -220,69 +220,46 @@ export default function FuncionarioDashboard() {
             }
         }
 
-        // Calculate colleagues working today (same shift type: Day or Night)
-        const todayStr = new Date().toISOString().slice(0, 10);
-        let myTodaySched = null;
-        if (scheduleData) {
-            myTodaySched = scheduleData.schedules[currentUser.id]?.[todayStr];
-        }
+        const isWorkingShift = (sched) => sched && !sched.isOff && sched.shift !== 'Folga' && sched.shift !== 'Férias' && sched.shift !== 'Licença';
+        const getScheduleForDate = (employeeId, dateStr) => {
+            const dateObj = new Date(`${dateStr}T12:00:00`);
+            const year = dateObj.getFullYear();
+            const month = dateObj.getMonth();
 
-        if (myTodaySched && !myTodaySched.isOff && myTodaySched.shift !== 'Folga' && myTodaySched.shift !== 'Férias' && myTodaySched.shift !== 'Licença') {
-            const isMyNightShift = myTodaySched.shift === 'Noite';
+            if (scheduleData && year === scheduleData.year && month === scheduleData.month) {
+                return scheduleData.schedules[employeeId]?.[dateStr] || null;
+            }
 
-            employees.forEach(emp => {
-                if (emp.id === currentUser.id) return;
+            if (nextScheduleData && year === nextScheduleData.year && month === nextScheduleData.month) {
+                return nextScheduleData.schedules[employeeId]?.[dateStr] || null;
+            }
 
-                // Exclude Cozinha roles
-                if (emp.role?.toLowerCase().includes('cozinha') || emp.name.toLowerCase().includes('cozinha')) return;
+            return null;
+        };
 
-                const empSched = scheduleData?.schedules[emp.id]?.[todayStr];
-                if (empSched && !empSched.isOff && empSched.shift !== 'Folga' && empSched.shift !== 'Férias' && empSched.shift !== 'Licença') {
-                    const isEmpNightShift = empSched.shift === 'Noite';
-
-                    if (isMyNightShift === isEmpNightShift) {
-                        colleaguesToday.push({ name: emp.name.split(' ')[0], rawCode: empSched.rawCode });
-                    }
-                }
+        const getWorkingColleaguesForDate = (dateStr) => employees
+            .filter((emp) => {
+                if (emp.id === currentUser.id) return false;
+                if (emp.role?.toLowerCase().includes('cozinha') || emp.name?.toLowerCase().includes('cozinha')) return false;
+                return isWorkingShift(getScheduleForDate(emp.id, dateStr));
+            })
+            .map((emp) => {
+                const empSched = getScheduleForDate(emp.id, dateStr);
+                return {
+                    name: emp.name.split(' ')[0],
+                    rawCode: empSched?.rawCode || empSched?.shift || ''
+                };
             });
-        }
+
+        // Calculate colleagues working today
+        const todayStr = new Date().toISOString().slice(0, 10);
+        colleaguesToday = getWorkingColleaguesForDate(todayStr);
 
         // Calculate colleagues working tomorrow
         const tomorrow = new Date();
         tomorrow.setDate(tomorrow.getDate() + 1);
         const tomorrowStr = tomorrow.toISOString().slice(0, 10);
-        let myTomorrowSched = null;
-        if (scheduleData) {
-            myTomorrowSched = scheduleData.schedules[currentUser.id]?.[tomorrowStr];
-            // If tomorrow falls in the next month, we might need to check nextScheduleData (simplification here)
-            if (!myTomorrowSched && nextScheduleData) {
-                myTomorrowSched = nextScheduleData.schedules[currentUser.id]?.[tomorrowStr];
-            }
-        }
-
-        if (myTomorrowSched && !myTomorrowSched.isOff && myTomorrowSched.shift !== 'Folga' && myTomorrowSched.shift !== 'Férias' && myTomorrowSched.shift !== 'Licença') {
-            const isMyTomorrowNightShift = myTomorrowSched.shift === 'Noite';
-
-            employees.forEach(emp => {
-                if (emp.id === currentUser.id) return;
-
-                // Exclude Cozinha roles
-                if (emp.role?.toLowerCase().includes('cozinha') || emp.name.toLowerCase().includes('cozinha')) return;
-
-                let empSched = scheduleData?.schedules[emp.id]?.[tomorrowStr];
-                if (!empSched && nextScheduleData) {
-                    empSched = nextScheduleData.schedules[emp.id]?.[tomorrowStr];
-                }
-
-                if (empSched && !empSched.isOff && empSched.shift !== 'Folga' && empSched.shift !== 'Férias' && empSched.shift !== 'Licença') {
-                    const isEmpTomorrowNightShift = empSched.shift === 'Noite';
-
-                    if (isMyTomorrowNightShift === isEmpTomorrowNightShift) {
-                        colleaguesTomorrow.push({ name: emp.name.split(' ')[0], rawCode: empSched.rawCode });
-                    }
-                }
-            });
-        }
+        colleaguesTomorrow = getWorkingColleaguesForDate(tomorrowStr);
     }
 
     const handleClockIn = () => {
@@ -444,7 +421,7 @@ export default function FuncionarioDashboard() {
                                         {c.name} <span style={{ color: '#0077b6', fontWeight: 'bold' }}>({c.rawCode})</span>
                                     </span>
                                 )) : (
-                                    <span style={{ color: '#94a3b8', fontSize: '0.9rem' }}>Nenhum colega neste turno.</span>
+                                    <span style={{ color: '#94a3b8', fontSize: '0.9rem' }}>Nenhum colega em serviço hoje.</span>
                                 )}
                             </div>
                         </div>
