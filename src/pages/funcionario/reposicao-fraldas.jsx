@@ -237,6 +237,19 @@ export default function FraldasReposicaoFuncionarioPage() {
         };
     }, [patientSections, patientDayState]);
 
+    const getPatientReplenishOptions = (patient) => {
+        const ownItems = diaperInventory
+            .filter((item) => item.origin === 'Própria' && item.patientName === patient.name)
+            .sort((a, b) => a.name.localeCompare(b.name));
+
+        const seen = new Set();
+        return [...ownItems, ...diaperInventory.filter((item) => item.origin === 'Casa')].filter((item) => {
+            if (!item?.id || seen.has(item.id)) return false;
+            seen.add(item.id);
+            return true;
+        });
+    };
+
     const openPatientModal = (patient) => {
         const state = patientDayState[patient.id];
         setReplaceModal(patient);
@@ -758,11 +771,23 @@ export default function FraldasReposicaoFuncionarioPage() {
             {replaceModal && (
                 <div
                     onClick={closeReplaceModal}
-                    style={{ position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.55)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px' }}
+                    style={{ position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.55)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '8px' }}
                 >
                     <div
                         onClick={(e) => e.stopPropagation()}
-                        style={{ background: 'white', padding: '24px 20px 20px', borderRadius: '28px', width: '100%', maxWidth: '420px', maxHeight: 'calc(100vh - 32px)', overflowY: 'auto', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)', position: 'relative' }}
+                        style={{
+                            background: 'white',
+                            borderRadius: '24px',
+                            width: '100%',
+                            maxWidth: '420px',
+                            height: 'min(720px, calc(100dvh - 16px))',
+                            maxHeight: 'calc(100dvh - 16px)',
+                            boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)',
+                            position: 'relative',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            overflow: 'hidden'
+                        }}
                     >
                         <button
                             type="button"
@@ -787,32 +812,35 @@ export default function FraldasReposicaoFuncionarioPage() {
                             <X size={20} />
                         </button>
 
-                        <div style={{ textAlign: 'center', marginBottom: '20px' }}>
-                            <div style={{ display: 'inline-flex', background: '#e0f2fe', color: '#0284c7', padding: '16px', borderRadius: '50%', marginBottom: '14px' }}>
-                                <Box size={30} />
+                        <div style={{ padding: '18px 16px 12px', borderBottom: '1px solid #e2e8f0', background: 'linear-gradient(180deg, #ffffff 0%, #f8fbff 100%)', flexShrink: 0 }}>
+                            <div style={{ textAlign: 'center' }}>
+                                <div style={{ display: 'inline-flex', background: '#e0f2fe', color: '#0284c7', padding: '12px', borderRadius: '50%', marginBottom: '10px' }}>
+                                    <Box size={24} />
+                                </div>
+                                <h2 style={{ margin: '0 0 4px 0', fontSize: '22px', color: '#0f172a', lineHeight: 1.1 }}>{replaceModal.name}</h2>
+                                <p style={{ margin: 0, color: '#64748b', fontSize: '13px', lineHeight: 1.3 }}>
+                                    Conte, escolha a reposição e guarde.
+                                </p>
                             </div>
-                            <h2 style={{ margin: '0 0 6px 0', fontSize: '26px', color: '#0f172a' }}>{replaceModal.name}</h2>
-                            <p style={{ margin: 0, color: '#64748b', fontSize: '15px', lineHeight: 1.4 }}>
-                                Passo 1: conte. Passo 2: diga quantas vai repor.
-                            </p>
                         </div>
 
-                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '12px', marginBottom: '20px' }}>
-                            <div style={{ background: '#eff6ff', borderRadius: '18px', padding: '14px', textAlign: 'center', border: '1px solid #bfdbfe' }}>
-                                <div style={{ fontSize: '12px', fontWeight: 800, color: '#1d4ed8', textTransform: 'uppercase' }}>Agora</div>
-                                <div style={{ fontSize: '30px', fontWeight: 900, color: '#1d4ed8', lineHeight: 1 }}>{currentRoomStock === '' ? '-' : currentRoomStock}</div>
+                        <div style={{ padding: '12px 16px 10px', display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '10px', borderBottom: '1px solid #e2e8f0', flexShrink: 0 }}>
+                            <div style={{ background: '#eff6ff', borderRadius: '16px', padding: '10px', textAlign: 'center', border: '1px solid #bfdbfe' }}>
+                                <div style={{ fontSize: '11px', fontWeight: 800, color: '#1d4ed8', textTransform: 'uppercase' }}>Agora</div>
+                                <div style={{ fontSize: '24px', fontWeight: 900, color: '#1d4ed8', lineHeight: 1 }}>{currentRoomStock === '' ? '-' : currentRoomStock}</div>
                             </div>
-                            <div style={{ background: '#f0fdf4', borderRadius: '18px', padding: '14px', textAlign: 'center', border: '1px solid #bbf7d0' }}>
-                                <div style={{ fontSize: '12px', fontWeight: 800, color: '#15803d', textTransform: 'uppercase' }}>Depois</div>
-                                <div style={{ fontSize: '30px', fontWeight: 900, color: '#15803d', lineHeight: 1 }}>
+                            <div style={{ background: '#f0fdf4', borderRadius: '16px', padding: '10px', textAlign: 'center', border: '1px solid #bbf7d0' }}>
+                                <div style={{ fontSize: '11px', fontWeight: 800, color: '#15803d', textTransform: 'uppercase' }}>Depois</div>
+                                <div style={{ fontSize: '24px', fontWeight: 900, color: '#15803d', lineHeight: 1 }}>
                                     {(Number(currentRoomStock) || 0) + (Number(replenishAmount) || 0)}
                                 </div>
                             </div>
                         </div>
 
-                        <form onSubmit={handleSaveReplace}>
+                        <form onSubmit={handleSaveReplace} style={{ display: 'flex', flexDirection: 'column', minHeight: 0, flex: 1 }}>
+                            <div style={{ padding: '12px 16px 0', overflowY: 'auto', minHeight: 0, display: 'flex', flexDirection: 'column', gap: '12px' }}>
                             {isDirectFamilySupplyPatient(replaceModal) ? (
-                                <div className={formStyles.formGroup} style={{ marginBottom: '18px' }}>
+                                <div className={formStyles.formGroup} style={{ marginBottom: '0' }}>
                                     <label style={{ display: 'block', fontSize: '13px', fontWeight: 900, color: '#475569', marginBottom: '8px', textTransform: 'uppercase' }}>
                                         Fralda própria no quarto
                                     </label>
@@ -820,14 +848,14 @@ export default function FraldasReposicaoFuncionarioPage() {
                                         <button
                                             type="button"
                                             onClick={() => setDirectSupplyStatus('ok')}
-                                            style={{ padding: '18px', borderRadius: '14px', border: directSupplyStatus === 'ok' ? '2px solid #16A34A' : '1px solid #CBD5E1', background: directSupplyStatus === 'ok' ? '#DCFCE7' : 'white', color: '#166534', fontWeight: '900', cursor: 'pointer' }}
+                                            style={{ padding: '14px', borderRadius: '14px', border: directSupplyStatus === 'ok' ? '2px solid #16A34A' : '1px solid #CBD5E1', background: directSupplyStatus === 'ok' ? '#DCFCE7' : 'white', color: '#166534', fontWeight: '900', cursor: 'pointer' }}
                                         >
                                             OK, tem fralda
                                         </button>
                                         <button
                                             type="button"
                                             onClick={() => setDirectSupplyStatus('missing')}
-                                            style={{ padding: '18px', borderRadius: '14px', border: directSupplyStatus === 'missing' ? '2px solid #DC2626' : '1px solid #CBD5E1', background: directSupplyStatus === 'missing' ? '#FEE2E2' : 'white', color: '#B91C1C', fontWeight: '900', cursor: 'pointer' }}
+                                            style={{ padding: '14px', borderRadius: '14px', border: directSupplyStatus === 'missing' ? '2px solid #DC2626' : '1px solid #CBD5E1', background: directSupplyStatus === 'missing' ? '#FEE2E2' : 'white', color: '#B91C1C', fontWeight: '900', cursor: 'pointer' }}
                                         >
                                             Sem fralda
                                         </button>
@@ -835,8 +863,8 @@ export default function FraldasReposicaoFuncionarioPage() {
                                 </div>
                             ) : (
                                 <>
-                                    <div className={formStyles.formGroup} style={{ marginBottom: '18px' }}>
-                                        <label style={{ display: 'block', fontSize: '13px', fontWeight: 900, color: '#475569', marginBottom: '8px', textTransform: 'uppercase' }}>
+                                    <div className={formStyles.formGroup} style={{ marginBottom: '0' }}>
+                                        <label style={{ display: 'block', fontSize: '12px', fontWeight: 900, color: '#475569', marginBottom: '6px', textTransform: 'uppercase' }}>
                                             1. Quantas estão no armário?
                                         </label>
                                         <input
@@ -845,13 +873,16 @@ export default function FraldasReposicaoFuncionarioPage() {
                                             required
                                             value={currentRoomStock}
                                             onChange={(e) => setCurrentRoomStock(e.target.value)}
+                                            onFocus={(e) => e.target.select()}
+                                            onClick={(e) => e.target.select()}
+                                            inputMode="numeric"
                                             style={{
                                                 width: '100%',
-                                                padding: '18px',
-                                                fontSize: '36px',
+                                                padding: '14px',
+                                                fontSize: '30px',
                                                 textAlign: 'center',
                                                 fontWeight: '900',
-                                                borderRadius: '18px',
+                                                borderRadius: '16px',
                                                 border: '2px solid #cbd5e1',
                                                 background: '#f8fafc',
                                                 color: '#0f172a'
@@ -862,17 +893,17 @@ export default function FraldasReposicaoFuncionarioPage() {
 
                                     {currentRoomStock !== '' && (
                                         <>
-                                            <div style={{ marginBottom: '18px', background: '#f8fafc', borderRadius: '18px', padding: '14px', border: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                            <div style={{ background: '#f8fafc', borderRadius: '16px', padding: '10px 12px', border: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', gap: '8px' }}>
                                                 <AlertCircle size={20} color="#0284c7" />
-                                                <div style={{ fontSize: '15px', fontWeight: 800, color: '#0f172a' }}>
+                                                <div style={{ fontSize: '13px', fontWeight: 800, color: '#0f172a', lineHeight: 1.25 }}>
                                                     {Number(currentRoomStock) >= TARGET_STOCK
                                                         ? 'Já está com 10 ou mais.'
                                                         : `Faltam ${Math.max(0, TARGET_STOCK - Number(currentRoomStock))} para chegar a 10.`}
                                                 </div>
                                             </div>
 
-                                            <div className={formStyles.formGroup} style={{ marginBottom: '18px' }}>
-                                                <label style={{ display: 'block', fontSize: '13px', fontWeight: 900, color: '#475569', marginBottom: '8px', textTransform: 'uppercase' }}>
+                                            <div className={formStyles.formGroup} style={{ marginBottom: '0' }}>
+                                                <label style={{ display: 'block', fontSize: '12px', fontWeight: 900, color: '#475569', marginBottom: '6px', textTransform: 'uppercase' }}>
                                                     2. Quantas vai repor agora?
                                                 </label>
                                                 <input
@@ -880,28 +911,31 @@ export default function FraldasReposicaoFuncionarioPage() {
                                                     min="0"
                                                     value={replenishAmount}
                                                     onChange={(e) => setReplenishAmount(e.target.value)}
+                                                    onFocus={(e) => e.target.select()}
+                                                    onClick={(e) => e.target.select()}
+                                                    inputMode="numeric"
                                                     style={{
                                                         width: '100%',
-                                                        padding: '18px',
-                                                        fontSize: '36px',
+                                                        padding: '14px',
+                                                        fontSize: '30px',
                                                         textAlign: 'center',
                                                         fontWeight: '900',
-                                                        borderRadius: '18px',
+                                                        borderRadius: '16px',
                                                         border: '2px solid #cbd5e1',
                                                         background: '#fff',
                                                         color: '#0f172a'
                                                     }}
                                                 />
 
-                                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: '8px', marginTop: '10px' }}>
+                                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: '6px', marginTop: '8px' }}>
                                                     {[0, Math.max(0, TARGET_STOCK - (Number(currentRoomStock) || 0)), Math.max(0, Math.ceil((TARGET_STOCK - (Number(currentRoomStock) || 0)) / 2))].filter((value, index, arr) => arr.indexOf(value) === index).map((value) => (
                                                         <button
                                                             key={value}
                                                             type="button"
                                                             onClick={() => setReplenishAmount(String(value))}
                                                             style={{
-                                                                padding: '12px',
-                                                                borderRadius: '14px',
+                                                                padding: '10px',
+                                                                borderRadius: '12px',
                                                                 border: '1px solid #cbd5e1',
                                                                 background: Number(replenishAmount) === value ? '#0f172a' : '#fff',
                                                                 color: Number(replenishAmount) === value ? '#fff' : '#0f172a',
@@ -916,47 +950,47 @@ export default function FraldasReposicaoFuncionarioPage() {
                                             </div>
 
                                             {Number(replenishAmount) > 0 && (
-                                                <div className={formStyles.formGroup} style={{ marginBottom: '18px' }}>
-                                                    <label style={{ display: 'block', fontSize: '13px', fontWeight: 900, color: '#475569', marginBottom: '8px', textTransform: 'uppercase' }}>
+                                                <div className={formStyles.formGroup} style={{ marginBottom: '0' }}>
+                                                    <label style={{ display: 'block', fontSize: '12px', fontWeight: 900, color: '#475569', marginBottom: '6px', textTransform: 'uppercase' }}>
                                                         3. Que fralda vai usar?
                                                     </label>
                                                     <select
                                                         value={selectedReplenishDiaperId}
                                                         onChange={(e) => setSelectedReplenishDiaperId(e.target.value)}
-                                                        style={{ width: '100%', padding: '14px', borderRadius: '14px', border: '1px solid #cbd5e1', fontSize: '16px', fontWeight: '800', color: '#0f172a', background: 'white', cursor: 'pointer' }}
+                                                        style={{ width: '100%', padding: '12px', borderRadius: '14px', border: '1px solid #cbd5e1', fontSize: '15px', fontWeight: '800', color: '#0f172a', background: 'white', cursor: 'pointer' }}
                                                     >
-                                                        {!selectedReplenishDiaperId && <option value="">Escolha a fralda</option>}
-                                                        {replaceModal.origin === 'Própria' && (
-                                                            <option value={replaceModal.diaperId}>Fraldas próprias</option>
-                                                        )}
-                                                        {diaperInventory.filter((item) => item.origin === 'Casa').map((item) => (
-                                                            <option key={item.id} value={item.id}>{item.name} ({item.stockDepot} no depósito)</option>
-                                                        ))}
-                                                    </select>
-                                                </div>
+                                                    {!selectedReplenishDiaperId && <option value="">Escolha a fralda</option>}
+                                                    {getPatientReplenishOptions(replaceModal).map((item) => (
+                                                        <option key={item.id} value={item.id}>{item.name} ({item.stockDepot} no depósito)</option>
+                                                    ))}
+                                                </select>
+                                            </div>
                                             )}
                                         </>
                                     )}
                                 </>
                             )}
+                            </div>
 
-                            <button
-                                type="submit"
-                                style={{
-                                    width: '100%',
-                                    padding: '18px',
-                                    background: '#0284c7',
-                                    color: 'white',
-                                    border: 'none',
-                                    borderRadius: '18px',
-                                    fontWeight: '900',
-                                    fontSize: '20px',
-                                    cursor: 'pointer',
-                                    boxShadow: '0 6px 16px rgba(2, 132, 199, 0.24)'
-                                }}
-                            >
-                                Guardar
-                            </button>
+                            <div style={{ padding: '12px 16px 16px', borderTop: '1px solid #e2e8f0', background: 'white', flexShrink: 0 }}>
+                                <button
+                                    type="submit"
+                                    style={{
+                                        width: '100%',
+                                        padding: '15px',
+                                        background: '#0284c7',
+                                        color: 'white',
+                                        border: 'none',
+                                        borderRadius: '16px',
+                                        fontWeight: '900',
+                                        fontSize: '18px',
+                                        cursor: 'pointer',
+                                        boxShadow: '0 6px 16px rgba(2, 132, 199, 0.24)'
+                                    }}
+                                >
+                                    Guardar
+                                </button>
+                            </div>
                         </form>
                     </div>
                 </div>

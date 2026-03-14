@@ -1,42 +1,22 @@
 import Head from 'next/head';
 import { useState, useMemo, useEffect, startTransition, useRef } from 'react';
-import { DndContext, DragOverlay, PointerSensor, useSensor, useSensors, useDraggable, useDroppable } from '@dnd-kit/core';
+import { DndContext, DragOverlay, useDraggable, useDroppable } from '@dnd-kit/core';
 import styles from '@/styles/AdminPages.module.css';
 import planStyles from '@/styles/PlanoDiario.module.css';
 import Header from '@/components/layout/Header';
 import BottomNav from '@/components/layout/BottomNav';
 import Sidebar from '@/components/layout/Sidebar';
-import Avatar from '@/components/ui/Avatar';
 import { useApp } from '../_app';
 import { useData } from '@/contexts/DataContext';
 import { planoDiarioTemplate, planoDiarioNoturnoTemplate } from '@/data/planoDiarioTemplate';
 import {
-    ClipboardList, CheckCircle, Clock, Check, Users, AlertCircle, Calendar, Send, Sun, Moon, ArrowRight, X, UserX, RotateCcw, Save
+    ClipboardList, CheckCircle, Clock, Check, Calendar, Send, Sun, Moon, X, RotateCcw, ChevronDown
 } from 'lucide-react';
 
 function getLocalISODate() {
     const now = new Date();
     now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
     return now.toISOString().slice(0, 10);
-}
-
-function DraggableEmployee({ id, name, role, draggableEnabled = true }) {
-    const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({ id: `employee:${id}`, disabled: !draggableEnabled });
-    const style = {
-        transform: transform ? `translate3d(${transform.x}px, ${transform.y}px, 0)` : undefined,
-        opacity: isDragging ? 0.5 : 1,
-        touchAction: draggableEnabled ? 'none' : 'auto'
-    };
-
-    return (
-        <div ref={setNodeRef} style={style} {...(draggableEnabled ? listeners : {})} {...(draggableEnabled ? attributes : {})} className={`${planStyles.draggableEmployee} ${isDragging ? planStyles.dragging : ''}`}>
-            <Avatar name={name} size="sm" />
-            <div className={planStyles.empInfo}>
-                <span className={planStyles.empName}>{name.split(' ')[0]}</span>
-                <span className={planStyles.empRole}>{role}</span>
-            </div>
-        </div>
-    );
 }
 
 function DraggableResident({ id, resident, status, customName, onCycleStatus, onUpdateName, onDelete, draggableEnabled = true }) {
@@ -220,8 +200,21 @@ function ResidentDropZone({ id, residents, sourceId, residentStatuses, customRes
     );
 }
 
-function TaskSlot({ taskId, label, isExtra, customLabels, onUpdateCustomLabel, assignedName, employees, onAssign, isMobileView = false }) {
-    const dropId = `task:${taskId}`;
+function TaskSlot({
+    taskId,
+    label,
+    isExtra,
+    customLabels,
+    onUpdateCustomLabel,
+    assignedName,
+    assignedEmployeeId,
+    employees,
+    onAssign,
+    isMobileView = false,
+    slotIndex = null,
+    slotLabel = null,
+}) {
+    const dropId = slotIndex === null ? `task:${taskId}` : `task:${taskId}:${slotIndex}`;
     const { isOver, setNodeRef } = useDroppable({ id: dropId });
 
     const displayLabel = customLabels && customLabels[taskId] ? customLabels[taskId] : label;
@@ -249,8 +242,9 @@ function TaskSlot({ taskId, label, isExtra, customLabels, onUpdateCustomLabel, a
                 )}
             </div>
             <div ref={setNodeRef} className={`${planStyles.taskSlot} ${isOver ? planStyles.slotOver : ''}`} onClick={(e) => { e.stopPropagation(); }}>
+                {slotLabel && <span className={planStyles.slotBadge}>{slotLabel}</span>}
                 <span className={assignedName ? planStyles.assignedName : planStyles.unassignedName}>
-                    {assignedName || (isMobileView ? 'Selecionar responsável' : 'Arrastar ou Selecionar')}
+                    {assignedName || 'Selecionar responsável'}
                 </span>
                 {assignedName && (
                     <button
@@ -263,7 +257,7 @@ function TaskSlot({ taskId, label, isExtra, customLabels, onUpdateCustomLabel, a
                 )}
                 {isMobileView ? (
                     <select
-                        value={assignedName ? employees.find(e => e.name.split(' ')[0] === assignedName || e.name === assignedName)?.id || "" : ""}
+                        value={assignedEmployeeId || ""}
                         onChange={(e) => onAssign(e.target.value)}
                         className={planStyles.mobileAssignSelect}
                     >
@@ -273,7 +267,7 @@ function TaskSlot({ taskId, label, isExtra, customLabels, onUpdateCustomLabel, a
                     </select>
                 ) : (
                     <select
-                        value={assignedName ? employees.find(e => e.name.split(' ')[0] === assignedName || e.name === assignedName)?.id || "" : ""}
+                        value={assignedEmployeeId || ""}
                         onChange={(e) => onAssign(e.target.value)}
                         className={planStyles.slotSelect}
                     >
@@ -289,7 +283,7 @@ function TaskSlot({ taskId, label, isExtra, customLabels, onUpdateCustomLabel, a
 
 export default function AdminTarefasPage() {
     const { isAdmin, toggleMode, currentUser } = useApp();
-    const { employees, dailyPlans, updateDailyPlan, publishDailyPlan, isHydrated } = useData();
+    const { employees, dailyPlans, updateDailyPlan, publishDailyPlan, isHydrated, diaperPatients } = useData();
 
     // YYYY-MM-DD local logic
     const [selectedDate, setSelectedDate] = useState(() => getLocalISODate());
@@ -301,12 +295,11 @@ export default function AdminTarefasPage() {
     const [residentStatuses, setResidentStatuses] = useState({});
     const [customResidentNames, setCustomResidentNames] = useState({});
     const [isMobileView, setIsMobileView] = useState(false);
+    const [mobileOpenSections, setMobileOpenSections] = useState({});
     const residentCounterRef = useRef(0);
 
     const planKey = period === 'DAY' ? selectedDate : `${selectedDate}_NIGHT`;
     const currentTemplate = period === 'DAY' ? planoDiarioTemplate : planoDiarioNoturnoTemplate;
-
-    const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }));
 
     useEffect(() => {
         const updateViewportMode = () => {
@@ -346,9 +339,50 @@ export default function AdminTarefasPage() {
 
     const getEmployeeName = (id) => employees.find(e => e.id == id)?.name.split(' ')[0] || null;
 
-    const handleAssign = (taskId, employeeId) => {
+    const toggleMobileSection = (sectionKey) => {
+        setMobileOpenSections((prev) => ({
+            ...prev,
+            [sectionKey]: !prev[sectionKey]
+        }));
+    };
+
+    const isSectionOpen = (sectionKey) => !!mobileOpenSections[sectionKey];
+
+    const residentOptions = useMemo(
+        () => diaperPatients
+            .map((patient) => patient?.name)
+            .filter(Boolean)
+            .sort((a, b) => a.localeCompare(b, 'pt-PT')),
+        [diaperPatients]
+    );
+
+    const getAssignmentArray = (taskId, assigneeCount = 1) => {
+        const currentValue = localAssignments[taskId];
+        if (assigneeCount <= 1) {
+            return currentValue ? [currentValue] : [null];
+        }
+
+        if (Array.isArray(currentValue)) {
+            return Array.from({ length: assigneeCount }, (_, index) => currentValue[index] || null);
+        }
+
+        return Array.from({ length: assigneeCount }, (_, index) => (index === 0 ? currentValue || null : null));
+    };
+
+    const handleAssign = (taskId, employeeId, slotIndex = null, assigneeCount = 1) => {
         let newAssignments;
-        if (!employeeId || employeeId === 'unassign') {
+        if (assigneeCount > 1) {
+            const nextAssignments = getAssignmentArray(taskId, assigneeCount);
+            const targetIndex = slotIndex ?? 0;
+            nextAssignments[targetIndex] = (!employeeId || employeeId === 'unassign') ? null : employeeId;
+            const filteredAssignments = nextAssignments.filter(Boolean);
+            newAssignments = { ...localAssignments };
+            if (filteredAssignments.length === 0) {
+                delete newAssignments[taskId];
+            } else {
+                newAssignments[taskId] = nextAssignments;
+            }
+        } else if (!employeeId || employeeId === 'unassign') {
             newAssignments = { ...localAssignments };
             delete newAssignments[taskId];
         } else {
@@ -356,6 +390,20 @@ export default function AdminTarefasPage() {
         }
         setLocalAssignments(newAssignments);
         updateDailyPlan(planKey, newAssignments, customLabels, localGroupResidents, residentStatuses, customResidentNames);
+    };
+
+    const handleResidentTaskSelection = (taskId, baseLabel, residentName) => {
+        const trimmedResident = residentName?.trim();
+        const nextLabels = { ...customLabels };
+
+        if (!trimmedResident) {
+            delete nextLabels[taskId];
+        } else {
+            nextLabels[taskId] = `${baseLabel} — ${trimmedResident}`;
+        }
+
+        setCustomLabels(nextLabels);
+        updateDailyPlan(planKey, localAssignments, nextLabels, localGroupResidents, residentStatuses, customResidentNames);
     };
 
     const handleUpdateCustomLabel = (taskId, newLabel) => {
@@ -439,13 +487,7 @@ export default function AdminTarefasPage() {
         const activeIdStr = active.id.toString();
         const overIdStr = over.id.toString();
 
-        if (activeIdStr.startsWith('employee:') || !activeIdStr.startsWith('resident:')) {
-            const employeeId = activeIdStr.startsWith('employee:') ? activeIdStr.replace('employee:', '') : activeIdStr;
-            if (overIdStr.startsWith("task:")) {
-                const taskId = overIdStr.replace("task:", "");
-                handleAssign(taskId, employeeId);
-            }
-        } else if (activeIdStr.startsWith('resident:')) {
+        if (activeIdStr.startsWith('resident:')) {
             const [, sourceTaskId, residentName] = activeIdStr.split(':');
             if (overIdStr.startsWith('resident_drop:')) {
                 const [, dropTaskId, dropCol] = overIdStr.split(':');
@@ -499,7 +541,6 @@ export default function AdminTarefasPage() {
 
     if (!isHydrated) return <div>A carregar...</div>;
 
-    const activeEmployee = activeDragItem?.type === 'employee' ? employees.find(e => e.id.toString() === activeDragItem.id.toString().replace('employee:', '')) : null;
     const activeResidentName = activeDragItem?.type === 'resident' ? activeDragItem.id.split(':')[2] : null;
 
     const currentPlan = dailyPlans[planKey];
@@ -563,23 +604,8 @@ export default function AdminTarefasPage() {
                         </div>
                     </div>
 
-                    <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
-                        <div className={planStyles.grid}>
-
-                            {/* Employees Sidebar */}
-                            <div className={planStyles.employeesCol}>
-                                <h2>Equipa</h2>
-                                <p className={planStyles.helperText}>
-                                    {isMobileView ? 'No telemóvel, use o seletor dentro de cada tarefa.' : 'Arraste o funcionário para a tarefa ou atribua na caixa.'}
-                                </p>
-                                <div className={planStyles.employeesList}>
-                                    {employees.filter(e => !e.isAdmin).map(emp => (
-                                        <DraggableEmployee key={emp.id} id={emp.id} name={emp.name} role={emp.role} draggableEnabled={!isMobileView} />
-                                    ))}
-                                </div>
-                            </div>
-
-                            {/* Plan Canvas */}
+                    <DndContext onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
+                        <div className={planStyles.planOnly}>
                             <div className={planStyles.planCol}>
                                 <div className={planStyles.blocksStack}>
                                     {currentTemplate.blocks.map(block => {
@@ -594,22 +620,37 @@ export default function AdminTarefasPage() {
                                                         {/* Unassigned Pool */}
                                                         {localGroupResidents?.[block.id]?.unassigned?.length > 0 && (
                                                             <div className={planStyles.unassignedCard}>
-                                                                <div className={planStyles.unassignedHeader}>
-                                                                    <span>Utentes Não Atribuídos</span>
-                                                                    <button onClick={() => handleAddNewResident(block.id, 'unassigned')} className={planStyles.actionLink}>+ Adicionar à Lista</button>
-                                                                </div>
-                                                                <ResidentDropZone
-                                                                    id={`resident_drop:${block.id}:unassigned`}
-                                                                    residents={localGroupResidents?.[block.id]?.unassigned || []}
-                                                                    sourceId={block.id}
-                                                                    residentStatuses={residentStatuses ? Object.fromEntries(Object.entries(residentStatuses).filter(([k]) => k.startsWith(block.id + ':')).map(([k, v]) => [k.split(':')[1], v])) : {}}
-                                                                    customResidentNames={customResidentNames}
-                                                                    onCycleStatus={(rName) => handleCycleResidentStatus(block.id, rName)}
-                                                                    onUpdateName={handleUpdateResidentName}
-                                                                    onDelete={handleDeleteResident}
-                                                                    draggableEnabled={!isMobileView}
-                                                                    emptyText={isMobileView ? 'Sem utentes nesta lista.' : 'Arraste utentes para aqui...'}
-                                                                />
+                                                                <button
+                                                                    type="button"
+                                                                    className={`${planStyles.mobileSectionToggle} ${isSectionOpen(`${block.id}:unassigned`) ? planStyles.mobileSectionToggleOpen : ''} ${planStyles.inlineSectionToggle}`}
+                                                                    onClick={() => toggleMobileSection(`${block.id}:unassigned`)}
+                                                                >
+                                                                    <div>
+                                                                        <strong>Utentes não atribuídos</strong>
+                                                                        <span>{localGroupResidents?.[block.id]?.unassigned?.length || 0} pessoas</span>
+                                                                    </div>
+                                                                    <ChevronDown size={18} />
+                                                                </button>
+                                                                {isSectionOpen(`${block.id}:unassigned`) && (
+                                                                    <>
+                                                                        <div className={planStyles.unassignedHeader}>
+                                                                            <span>Lista livre</span>
+                                                                            <button onClick={() => handleAddNewResident(block.id, 'unassigned')} className={planStyles.actionLink}>+ Adicionar à Lista</button>
+                                                                        </div>
+                                                                        <ResidentDropZone
+                                                                            id={`resident_drop:${block.id}:unassigned`}
+                                                                            residents={localGroupResidents?.[block.id]?.unassigned || []}
+                                                                            sourceId={block.id}
+                                                                            residentStatuses={residentStatuses ? Object.fromEntries(Object.entries(residentStatuses).filter(([k]) => k.startsWith(block.id + ':')).map(([k, v]) => [k.split(':')[1], v])) : {}}
+                                                                            customResidentNames={customResidentNames}
+                                                                            onCycleStatus={(rName) => handleCycleResidentStatus(block.id, rName)}
+                                                                            onUpdateName={handleUpdateResidentName}
+                                                                            onDelete={handleDeleteResident}
+                                                                            draggableEnabled={!isMobileView}
+                                                                            emptyText="Sem utentes nesta lista."
+                                                                        />
+                                                                    </>
+                                                                )}
                                                             </div>
                                                         )}
 
@@ -626,34 +667,50 @@ export default function AdminTarefasPage() {
                                                                             taskId={taskId}
                                                                             label="Atribuir Responsável"
                                                                             assignedName={localAssignments[taskId] ? getEmployeeName(localAssignments[taskId]) : null}
+                                                                            assignedEmployeeId={localAssignments[taskId] || ""}
                                                                             employees={employees}
                                                                             onAssign={(empId) => handleAssign(taskId, empId)}
                                                                             isMobileView={isMobileView}
                                                                         />
                                                                         <div className={planStyles.columnCard}>
-                                                                            <div className={planStyles.residentsHeader}>
-                                                                                Utentes ({colName})
-                                                                            </div>
-                                                                            <ResidentDropZone
-                                                                                id={`resident_drop:${block.id}:${colIdx}`}
-                                                                                residents={localGroupResidents?.[block.id]?.[colIdx] || []}
-                                                                                sourceId={block.id}
-                                                                                residentStatuses={residentStatuses ? Object.fromEntries(Object.entries(residentStatuses).filter(([k]) => k.startsWith(block.id + ':')).map(([k, v]) => [k.split(':')[1], v])) : {}}
-                                                                                customResidentNames={customResidentNames}
-                                                                                onCycleStatus={(rName) => handleCycleResidentStatus(block.id, rName)}
-                                                                                onUpdateName={handleUpdateResidentName}
-                                                                                onDelete={handleDeleteResident}
-                                                                                draggableEnabled={!isMobileView}
-                                                                                emptyText={isMobileView ? 'Sem utentes atribuídos.' : 'Arraste utentes para aqui...'}
-                                                                            />
-                                                                            <div className={planStyles.residentsFooter}>
-                                                                                <button
-                                                                                    onClick={() => handleAddNewResident(block.id, colIdx)}
-                                                                                    className={planStyles.actionLink}
-                                                                                >
-                                                                                    + Adicionar Pessoa Extra
-                                                                                </button>
-                                                                            </div>
+                                                                            <button
+                                                                                type="button"
+                                                                                className={`${planStyles.mobileSectionToggle} ${isSectionOpen(`${block.id}:${colIdx}`) ? planStyles.mobileSectionToggleOpen : ''} ${planStyles.inlineSectionToggle}`}
+                                                                                onClick={() => toggleMobileSection(`${block.id}:${colIdx}`)}
+                                                                            >
+                                                                                <div>
+                                                                                    <strong>Utentes atribuídos</strong>
+                                                                                    <span>{(localGroupResidents?.[block.id]?.[colIdx] || []).length} pessoas</span>
+                                                                                </div>
+                                                                                <ChevronDown size={18} />
+                                                                            </button>
+                                                                            {isSectionOpen(`${block.id}:${colIdx}`) && (
+                                                                                <>
+                                                                                    <div className={planStyles.residentsHeader}>
+                                                                                        {colName}
+                                                                                    </div>
+                                                                                    <ResidentDropZone
+                                                                                        id={`resident_drop:${block.id}:${colIdx}`}
+                                                                                        residents={localGroupResidents?.[block.id]?.[colIdx] || []}
+                                                                                        sourceId={block.id}
+                                                                                        residentStatuses={residentStatuses ? Object.fromEntries(Object.entries(residentStatuses).filter(([k]) => k.startsWith(block.id + ':')).map(([k, v]) => [k.split(':')[1], v])) : {}}
+                                                                                        customResidentNames={customResidentNames}
+                                                                                        onCycleStatus={(rName) => handleCycleResidentStatus(block.id, rName)}
+                                                                                        onUpdateName={handleUpdateResidentName}
+                                                                                        onDelete={handleDeleteResident}
+                                                                                        draggableEnabled={!isMobileView}
+                                                                                        emptyText="Sem utentes atribuídos."
+                                                                                    />
+                                                                                    <div className={planStyles.residentsFooter}>
+                                                                                        <button
+                                                                                            onClick={() => handleAddNewResident(block.id, colIdx)}
+                                                                                            className={planStyles.actionLink}
+                                                                                        >
+                                                                                            + Adicionar Pessoa Extra
+                                                                                        </button>
+                                                                                    </div>
+                                                                                </>
+                                                                            )}
                                                                         </div>
                                                                     </div>
                                                                 );
@@ -696,17 +753,58 @@ export default function AdminTarefasPage() {
                                                         {block.items?.map(item => (
                                                             <div key={item.id} className={planStyles.simpleTaskCard}>
                                                                 <div className={planStyles.simpleTaskTitle}>{item.label}</div>
-                                                                <TaskSlot
-                                                                    taskId={item.id}
-                                                                    label="Atribuir Responsável"
-                                                                    isExtra={item.isExtra}
-                                                                    customLabels={customLabels}
-                                                                    onUpdateCustomLabel={handleUpdateCustomLabel}
-                                                                    assignedName={localAssignments[item.id] ? getEmployeeName(localAssignments[item.id]) : null}
-                                                                    employees={employees}
-                                                                    onAssign={(empId) => handleAssign(item.id, empId)}
-                                                                    isMobileView={isMobileView}
-                                                                />
+                                                                {item.residentSelection && (
+                                                                    <div className={planStyles.residentTaskPicker}>
+                                                                        <span className={planStyles.residentTaskLabel}>Utente</span>
+                                                                        <select
+                                                                            value={customLabels[item.id]?.startsWith(`${item.label} — `) ? customLabels[item.id].replace(`${item.label} — `, '') : ""}
+                                                                            onChange={(e) => handleResidentTaskSelection(item.id, item.label, e.target.value)}
+                                                                            className={planStyles.residentTaskSelect}
+                                                                        >
+                                                                            <option value="">Selecionar utente...</option>
+                                                                            {residentOptions.map((residentName) => (
+                                                                                <option key={residentName} value={residentName}>{residentName}</option>
+                                                                            ))}
+                                                                        </select>
+                                                                    </div>
+                                                                )}
+                                                                {(item.assigneeCount || 1) > 1 ? (
+                                                                    <div className={planStyles.multiTaskSlots}>
+                                                                        {Array.from({ length: item.assigneeCount || 1 }, (_, slotIndex) => {
+                                                                            const assignedEmployeeId = getAssignmentArray(item.id, item.assigneeCount || 1)[slotIndex];
+                                                                            return (
+                                                                                <TaskSlot
+                                                                                    key={`${item.id}_${slotIndex}`}
+                                                                                    taskId={item.id}
+                                                                                    label="Atribuir Responsável"
+                                                                                    isExtra={item.isExtra}
+                                                                                    customLabels={customLabels}
+                                                                                    onUpdateCustomLabel={handleUpdateCustomLabel}
+                                                                                    assignedName={assignedEmployeeId ? getEmployeeName(assignedEmployeeId) : null}
+                                                                                    assignedEmployeeId={assignedEmployeeId || ""}
+                                                                                    employees={employees}
+                                                                                    onAssign={(empId) => handleAssign(item.id, empId, slotIndex, item.assigneeCount || 1)}
+                                                                                    isMobileView={isMobileView}
+                                                                                    slotIndex={slotIndex}
+                                                                                    slotLabel={item.slotLabels?.[slotIndex] || `Responsável ${slotIndex + 1}`}
+                                                                                />
+                                                                            );
+                                                                        })}
+                                                                    </div>
+                                                                ) : (
+                                                                    <TaskSlot
+                                                                        taskId={item.id}
+                                                                        label="Atribuir Responsável"
+                                                                        isExtra={item.isExtra}
+                                                                        customLabels={customLabels}
+                                                                        onUpdateCustomLabel={handleUpdateCustomLabel}
+                                                                        assignedName={localAssignments[item.id] ? getEmployeeName(localAssignments[item.id]) : null}
+                                                                        assignedEmployeeId={localAssignments[item.id] || ""}
+                                                                        employees={employees}
+                                                                        onAssign={(empId) => handleAssign(item.id, empId)}
+                                                                        isMobileView={isMobileView}
+                                                                    />
+                                                                )}
                                                             </div>
                                                         ))}
                                                     </div>
@@ -719,14 +817,6 @@ export default function AdminTarefasPage() {
                         </div>
 
                         <DragOverlay>
-                            {!isMobileView && activeDragItem?.type === 'employee' && activeEmployee ? (
-                                <div className={`${planStyles.draggableEmployee} ${planStyles.dragging}`}>
-                                    <Avatar name={activeEmployee.name} size="sm" />
-                                    <div className={planStyles.empInfo}>
-                                        <span className={planStyles.empName}>{activeEmployee.name.split(' ')[0]}</span>
-                                    </div>
-                                </div>
-                            ) : null}
                             {!isMobileView && activeDragItem?.type === 'resident' && activeResidentName ? (
                                 <div className={planStyles.residentDragPreview}>
                                     {activeResidentName}

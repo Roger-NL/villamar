@@ -22,6 +22,48 @@ const toISODate = (d) => {
 };
 
 const cloneInventory = (items = []) => items.map((item) => ({ ...item }));
+const CUSTOM_DEPOT_OPTION = '__custom__';
+
+const slugifySegment = (value = '') => value
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '');
+
+const buildInventoryName = ({ diaperKind, diaperSize, origin, patientName }) => {
+    const kindLabel = diaperKind === 'cueca-fralda' ? 'Cueca-Fralda' : 'Fraldas';
+    const sizeLabel = (diaperSize || '').toUpperCase();
+    return origin === 'Própria' && patientName
+        ? `${kindLabel} ${sizeLabel} ${patientName}`.trim()
+        : `${kindLabel} ${sizeLabel}`.trim();
+};
+
+const buildCustomInventoryItem = (form, stockDepot) => {
+    const packSize = Number(form.packSize || (form.diaperKind === 'cueca-fralda' ? 14 : 20));
+    const safeOrigin = form.origin || 'Própria';
+    const safePatientName = (form.patientName || '').trim();
+    const safeKind = form.diaperKind || 'fralda';
+    const safeSize = (form.diaperSize || '').toUpperCase();
+
+    return {
+        id: `${safeOrigin === 'Própria' ? 'propria' : 'casa'}-${slugifySegment(safePatientName || 'geral')}-${slugifySegment(safeKind)}-${slugifySegment(safeSize)}`,
+        name: buildInventoryName({
+            diaperKind: safeKind,
+            diaperSize: safeSize,
+            origin: safeOrigin,
+            patientName: safePatientName
+        }),
+        category: 'fralda',
+        origin: safeOrigin,
+        patientName: safeOrigin === 'Própria' ? safePatientName : null,
+        stockDepot: Number(stockDepot || 0),
+        packSize,
+        diaperKind: safeKind,
+        diaperSize: safeSize
+    };
+};
+
 const serializeInventory = (items = []) => JSON.stringify(
     [...items]
         .map((item) => ({
@@ -53,7 +95,15 @@ export default function FraldasPage() {
 
     // Formulários e Modais
     const [showDepotForm, setShowDepotForm] = useState(false);
-    const [depotForm, setDepotForm] = useState({ name: '', stockDepot: '', origin: 'Casa', patientName: '' });
+    const [depotForm, setDepotForm] = useState({
+        name: '',
+        stockDepot: '',
+        origin: 'Casa',
+        patientName: '',
+        diaperKind: 'fralda',
+        diaperSize: 'M',
+        packSize: '20'
+    });
 
     const [showPatientForm, setShowPatientForm] = useState(false);
     const [patientForm, setPatientForm] = useState({ name: '', diaperId: '', origin: 'Casa' });
@@ -98,6 +148,11 @@ export default function FraldasPage() {
         [depotForm.name]
     );
 
+    const customDepotPreview = useMemo(() => {
+        if (depotForm.name !== CUSTOM_DEPOT_OPTION) return null;
+        return buildCustomInventoryItem(depotForm, Number(depotForm.stockDepot || 0));
+    }, [depotForm]);
+
     const orderedDiaperPatients = useMemo(() => (
         diaperPatients && diaperPatients.length > 0
             ? sortDiaperPatientsByPlan(
@@ -117,6 +172,24 @@ export default function FraldasPage() {
             )
             : []
     ), [diaperPatients]);
+
+    const patientNameOptions = useMemo(
+        () => orderedDiaperPatients.map((patient) => patient.name),
+        [orderedDiaperPatients]
+    );
+
+    const getPatientReplenishOptions = (patient) => {
+        const ownItems = diaperInventory
+            .filter((item) => item.origin === 'Própria' && item.patientName === patient.name)
+            .sort((a, b) => a.name.localeCompare(b.name));
+
+        const seen = new Set();
+        return [...ownItems, ...diaperInventory.filter((item) => item.origin === 'Casa')].filter((item) => {
+            if (!item?.id || seen.has(item.id)) return false;
+            seen.add(item.id);
+            return true;
+        });
+    };
 
     const inventoryDirty = useMemo(
         () => draftInventory !== null && serializeInventory(draftInventory) !== serializeInventory(diaperInventory),
@@ -293,17 +366,39 @@ export default function FraldasPage() {
     const handleAddDepot = (e) => {
         e.preventDefault();
         if (!depotForm.name.trim()) return;
-        const selectedCatalogItem = DIAPER_INVENTORY_CATALOG.find((item) => item.id === depotForm.name);
-        if (!selectedCatalogItem) return;
         const customStock = depotForm.stockDepot === '' ? null : Number(depotForm.stockDepot);
+        const source = draftInventory ?? cloneInventory(diaperInventory);
+        let selectedCatalogItem = null;
+
+        if (depotForm.name === CUSTOM_DEPOT_OPTION) {
+            if (depotForm.origin === 'Própria' && !depotForm.patientName.trim()) {
+                alert('Escolha o utente para a referência própria.');
+                return;
+            }
+
+            selectedCatalogItem = buildCustomInventoryItem(depotForm, Number.isNaN(customStock) || customStock === null ? 0 : customStock);
+        } else {
+            selectedCatalogItem = DIAPER_INVENTORY_CATALOG.find((item) => item.id === depotForm.name);
+            if (!selectedCatalogItem) return;
+        }
+
+        const existingIndex = source.findIndex((item) => item.id === selectedCatalogItem.id);
         setDraftInventory((current) => {
             const base = current ?? cloneInventory(diaperInventory);
-            return [...base, {
+            const newItem = {
                 ...selectedCatalogItem,
                 stockDepot: Number.isNaN(customStock) || customStock === null ? (selectedCatalogItem.stockDepot || 0) : customStock
-            }];
+            };
+
+            if (existingIndex >= 0) {
+                return base.map((item, index) => (
+                    index === existingIndex ? newItem : item
+                ));
+            }
+
+            return [...base, newItem];
         });
-        setDepotForm({ name: '', stockDepot: '', origin: 'Casa', patientName: '' });
+        setDepotForm({ name: '', stockDepot: '', origin: 'Casa', patientName: '', diaperKind: 'fralda', diaperSize: 'M', packSize: '20' });
         setShowDepotForm(false);
     };
 
@@ -1011,17 +1106,54 @@ export default function FraldasPage() {
                                                     {availableCatalogItems.map((item) => (
                                                         <option key={item.id} value={item.id}>{item.name}</option>
                                                     ))}
+                                                    <option value={CUSTOM_DEPOT_OPTION}>Nova referência personalizada</option>
                                                 </select>
                                             </div>
-                                            <div className={formStyles.formGroup} style={{ flex: 1 }}>
-                                                <label>Para quem</label>
-                                                <input
-                                                    type="text"
-                                                    value={selectedDepotCatalogItem?.patientName || (selectedDepotCatalogItem?.origin === 'Casa' ? 'Casa' : '')}
-                                                    readOnly
-                                                    placeholder="Escolha a referência"
-                                                />
-                                            </div>
+                                            {depotForm.name === CUSTOM_DEPOT_OPTION ? (
+                                                <>
+                                                    <div className={formStyles.formGroup} style={{ flex: 1 }}>
+                                                        <label>Origem</label>
+                                                        <select
+                                                            value={depotForm.origin}
+                                                            onChange={e => setDepotForm({
+                                                                ...depotForm,
+                                                                origin: e.target.value,
+                                                                patientName: e.target.value === 'Casa' ? '' : depotForm.patientName
+                                                            })}
+                                                        >
+                                                            <option value="Casa">Casa</option>
+                                                            <option value="Própria">Própria</option>
+                                                        </select>
+                                                    </div>
+                                                    <div className={formStyles.formGroup} style={{ flex: 1 }}>
+                                                        <label>Para quem</label>
+                                                        {depotForm.origin === 'Própria' ? (
+                                                            <select
+                                                                value={depotForm.patientName}
+                                                                onChange={e => setDepotForm({ ...depotForm, patientName: e.target.value })}
+                                                                required
+                                                            >
+                                                                <option value="">Selecione o utente...</option>
+                                                                {patientNameOptions.map((name) => (
+                                                                    <option key={name} value={name}>{name}</option>
+                                                                ))}
+                                                            </select>
+                                                        ) : (
+                                                            <input type="text" value="Casa" readOnly />
+                                                        )}
+                                                    </div>
+                                                </>
+                                            ) : (
+                                                <div className={formStyles.formGroup} style={{ flex: 1 }}>
+                                                    <label>Para quem</label>
+                                                    <input
+                                                        type="text"
+                                                        value={selectedDepotCatalogItem?.patientName || (selectedDepotCatalogItem?.origin === 'Casa' ? 'Casa' : '')}
+                                                        readOnly
+                                                        placeholder="Escolha a referência"
+                                                    />
+                                                </div>
+                                            )}
                                             <div className={formStyles.formGroup} style={{ flex: 1 }}>
                                                 <label>Quantidade inicial</label>
                                                 <input
@@ -1034,13 +1166,58 @@ export default function FraldasPage() {
                                             </div>
                                         </div>
 
-                                        {selectedDepotCatalogItem && (
+                                        {depotForm.name === CUSTOM_DEPOT_OPTION && (
+                                            <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap', marginBottom: '16px' }}>
+                                                <div className={formStyles.formGroup} style={{ flex: 1 }}>
+                                                    <label>Tipo</label>
+                                                    <select
+                                                        value={depotForm.diaperKind}
+                                                        onChange={e => setDepotForm({
+                                                            ...depotForm,
+                                                            diaperKind: e.target.value,
+                                                            packSize: e.target.value === 'cueca-fralda' ? '14' : '20'
+                                                        })}
+                                                    >
+                                                        <option value="fralda">Fralda normal</option>
+                                                        <option value="cueca-fralda">Cueca-fralda</option>
+                                                    </select>
+                                                </div>
+                                                <div className={formStyles.formGroup} style={{ flex: 1 }}>
+                                                    <label>Tamanho</label>
+                                                    <select
+                                                        value={depotForm.diaperSize}
+                                                        onChange={e => setDepotForm({ ...depotForm, diaperSize: e.target.value })}
+                                                    >
+                                                        <option value="XS">XS</option>
+                                                        <option value="S">S</option>
+                                                        <option value="M">M</option>
+                                                        <option value="L">L</option>
+                                                        <option value="G">G</option>
+                                                        <option value="XL">XL</option>
+                                                        <option value="XXL">XXL</option>
+                                                    </select>
+                                                </div>
+                                                <div className={formStyles.formGroup} style={{ flex: 1 }}>
+                                                    <label>Pacote padrão</label>
+                                                    <input
+                                                        type="number"
+                                                        min="1"
+                                                        value={depotForm.packSize}
+                                                        onChange={e => setDepotForm({ ...depotForm, packSize: e.target.value })}
+                                                    />
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {(selectedDepotCatalogItem || customDepotPreview) && (
                                             <div style={{ marginBottom: '16px', background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: '14px', padding: '12px', display: 'flex', justifyContent: 'space-between', gap: '12px', flexWrap: 'wrap' }}>
                                                 <div style={{ fontSize: '13px', fontWeight: 800, color: '#0F172A' }}>
-                                                    {selectedDepotCatalogItem.origin === 'Casa' ? 'Estoque da casa' : 'Fralda própria'}
+                                                    {(selectedDepotCatalogItem || customDepotPreview).origin === 'Casa' ? 'Estoque da casa' : 'Fralda própria'}
                                                 </div>
                                                 <div style={{ fontSize: '13px', fontWeight: 700, color: '#64748B' }}>
-                                                    Pacote padrão: {getPackSize(selectedDepotCatalogItem)} | Pacotões: 46 ou 52
+                                                    {depotForm.name === CUSTOM_DEPOT_OPTION
+                                                        ? `${customDepotPreview?.name || 'Nova referência'} | Pacote padrão: ${customDepotPreview?.packSize || 20} | Pacotões: 46 ou 52`
+                                                        : `Pacote padrão: ${getPackSize(selectedDepotCatalogItem)} | Pacotões: 46 ou 52`}
                                                 </div>
                                             </div>
                                         )}
@@ -1352,13 +1529,10 @@ export default function FraldasPage() {
                                                     style={{ width: '100%', padding: '14px', borderRadius: '12px', border: '1px solid #D1D5DB', fontSize: '16px', fontWeight: 700 }}
                                                 >
                                                     {!selectedReplenishDiaperId && <option value="">Escolha a fralda</option>}
-                                                    {replaceModal.patient.origin === 'Própria' && replaceModal.patient.diaperId && (
-                                                        <option value={replaceModal.patient.diaperId}>
-                                                            {(diaperInventory.find((item) => item.id === replaceModal.patient.diaperId)?.name || getInventoryItemConfig(replaceModal.patient.diaperId)?.name || 'Fralda própria')}
+                                                    {getPatientReplenishOptions(replaceModal.patient).map((item) => (
+                                                        <option key={item.id} value={item.id}>
+                                                            {item.name} ({item.stockDepot} no depósito)
                                                         </option>
-                                                    )}
-                                                    {diaperInventory.filter((item) => item.origin === 'Casa').map((item) => (
-                                                        <option key={item.id} value={item.id}>{item.name} ({item.stockDepot} no depósito)</option>
                                                     ))}
                                                 </select>
                                             </div>
