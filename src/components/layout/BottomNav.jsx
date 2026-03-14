@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { useMemo } from 'react';
 import { useRouter } from 'next/router';
 import styles from './BottomNav.module.css';
-import { Home, Calendar, ClipboardList, Settings, Users, Clock, CalendarDays, CheckSquare, Baby, Box } from 'lucide-react';
+import { Home, Calendar, ClipboardList, Settings, Users, Clock, CalendarDays, CheckSquare, Baby, Box, Syringe } from 'lucide-react';
 import { useApp } from '@/pages/_app';
 import { useData } from '@/contexts/DataContext';
 
@@ -11,6 +11,7 @@ const employeeNavItems = [
     { href: '/funcionario/presenca', icon: Clock, label: 'Ponto' },
     { href: '/funcionario/tarefas', icon: ClipboardList, label: 'Tarefas' },
     { href: '/funcionario/fraldas', icon: Baby, label: 'Fraldas' },
+    { href: '/funcionario/insulina', icon: Syringe, label: 'Insulina' },
     { href: '/funcionario/escala', icon: Calendar, label: 'Escala' },
 ];
 

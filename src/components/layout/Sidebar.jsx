@@ -4,7 +4,7 @@ import { useRouter } from 'next/router';
 import styles from './Sidebar.module.css';
 import {
     Home, Clock, CalendarDays, CheckSquare, Users,
-    Settings, BarChart3, ArrowLeftRight, FileText, CalendarRange, Package, Baby, Box
+    Settings, BarChart3, ArrowLeftRight, FileText, CalendarRange, Package, Baby, Box, Syringe
 } from 'lucide-react';
 import { useApp } from '@/pages/_app';
 import { useData } from '@/contexts/DataContext';
@@ -21,6 +21,7 @@ const adminSidebarItems = [
     {
         section: 'Gestão', items: [
             { href: '/admin/funcionarios', icon: Users, label: 'Funcionários' },
+            { href: '/admin/insulina', icon: Syringe, label: 'Insulina' },
             { href: '/admin/ferias-licencas', icon: CalendarRange, label: 'Férias & Licenças' },
             { href: '/admin/estoque', icon: Package, label: 'Estoque' },
             { href: '/admin/trocas', icon: ArrowLeftRight, label: 'Pedidos de Troca' },
@@ -39,6 +40,7 @@ const employeeSidebarItems = [
         section: 'Minha Área', items: [
             { href: '/funcionario', icon: Home, label: 'Início' },
             { href: '/funcionario/fraldas', icon: Baby, label: 'Muda de Fraldas' },
+            { href: '/funcionario/insulina', icon: Syringe, label: 'Insulina' },
             { href: '/funcionario/escala', icon: CalendarDays, label: 'Minha Escala' },
             { href: '/funcionario/tarefas', icon: CheckSquare, label: 'Minhas Tarefas' },
             { href: '/funcionario/presenca', icon: Clock, label: 'Meu Ponto' },

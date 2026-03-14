@@ -18,6 +18,8 @@ const STORAGE_KEYS = {
     ACTIVE_SESSIONS: 'villamar_active_sessions',
     SCHEDULES: 'villamar_schedules',
     INVENTORY: 'villamar_inventory',
+    INSULIN_PATIENTS: 'villamar_insulin_patients',
+    INSULIN_LOGS: 'villamar_insulin_logs',
     DAILY_PLANS: 'villamar_daily_plans',
     DAILY_ANNOUNCEMENTS: 'villamar_daily_announcements',
 };
@@ -33,6 +35,8 @@ export function DataProvider({ children }) {
     const [savedSchedules, setSavedSchedules] = useState({});
     const [leaves, setLeaves] = useState([]); // Férias e Licenças
     const [inventoryItems, setInventoryItems] = useState([]); // Estoque
+    const [insulinPatients, setInsulinPatients] = useState([]); // Utentes com controlo de insulina
+    const [insulinLogs, setInsulinLogs] = useState([]); // Registos de insulina
     const [diaperPatients, setDiaperPatients] = useState([]); // Utentes e as suas fraldas
     const [diaperLogs, setDiaperLogs] = useState([]); // Histórico de reposições
     const [dailyPlans, setDailyPlans] = useState({}); // Planos Diários de Tarefas (Assignments + Status)
@@ -50,6 +54,8 @@ export function DataProvider({ children }) {
             const savedTimeRecords = localStorage.getItem(STORAGE_KEYS.TIME_RECORDS);
             const savedActiveSessions = localStorage.getItem(STORAGE_KEYS.ACTIVE_SESSIONS);
             const savedSchedulesData = localStorage.getItem(STORAGE_KEYS.SCHEDULES);
+            const savedInsulinPatients = localStorage.getItem(STORAGE_KEYS.INSULIN_PATIENTS);
+            const savedInsulinLogs = localStorage.getItem(STORAGE_KEYS.INSULIN_LOGS);
             const savedDailyPlans = localStorage.getItem(STORAGE_KEYS.DAILY_PLANS);
             const savedDailyAnnouncements = localStorage.getItem(STORAGE_KEYS.DAILY_ANNOUNCEMENTS);
 
@@ -80,6 +86,8 @@ export function DataProvider({ children }) {
                 setActiveSessions(savedActiveSessions ? JSON.parse(savedActiveSessions) : {});
                 setSavedSchedules(savedSchedulesData ? JSON.parse(savedSchedulesData) : {});
                 setLeaves(savedLeaves ? JSON.parse(savedLeaves) : []);
+                setInsulinPatients(savedInsulinPatients ? JSON.parse(savedInsulinPatients) : []);
+                setInsulinLogs(savedInsulinLogs ? JSON.parse(savedInsulinLogs) : []);
                 setDailyPlans(savedDailyPlans ? JSON.parse(savedDailyPlans) : {});
                 setDailyAnnouncements(savedDailyAnnouncements ? JSON.parse(savedDailyAnnouncements) : []);
                 setIsHydrated(true);
@@ -128,6 +136,12 @@ export function DataProvider({ children }) {
             const unsubInventory = onSnapshot(collection(db, 'inventoryItems'), (snapshot) => {
                 setInventoryItems(snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id })));
             });
+            const unsubInsulinPatients = onSnapshot(collection(db, 'insulinPatients'), (snapshot) => {
+                setInsulinPatients(snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id })));
+            });
+            const unsubInsulinLogs = onSnapshot(collection(db, 'insulinLogs'), (snapshot) => {
+                setInsulinLogs(snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id })));
+            });
             const unsubDiaperPatients = onSnapshot(collection(db, 'diaperPatients'), (snapshot) => {
                 setDiaperPatients(snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id })));
             });
@@ -156,6 +170,8 @@ export function DataProvider({ children }) {
                 unsubSchedules();
                 unsubLeaves();
                 unsubInventory();
+                unsubInsulinPatients();
+                unsubInsulinLogs();
                 unsubDiaperPatients();
                 unsubDiaperLogs();
                 unsubDailyPlans();
@@ -200,10 +216,12 @@ export function DataProvider({ children }) {
             localStorage.setItem(STORAGE_KEYS.TIME_RECORDS, JSON.stringify(timeRecords));
             localStorage.setItem(STORAGE_KEYS.ACTIVE_SESSIONS, JSON.stringify(activeSessions));
             localStorage.setItem(STORAGE_KEYS.SCHEDULES, JSON.stringify(savedSchedules));
+            localStorage.setItem(STORAGE_KEYS.INSULIN_PATIENTS, JSON.stringify(insulinPatients));
+            localStorage.setItem(STORAGE_KEYS.INSULIN_LOGS, JSON.stringify(insulinLogs));
             localStorage.setItem(STORAGE_KEYS.DAILY_PLANS, JSON.stringify(dailyPlans));
             localStorage.setItem(STORAGE_KEYS.DAILY_ANNOUNCEMENTS, JSON.stringify(dailyAnnouncements));
         }
-    }, [employees, tasks, swapRequests, notifications, timeRecords, activeSessions, savedSchedules, dailyPlans, dailyAnnouncements, isHydrated]);
+    }, [employees, tasks, swapRequests, notifications, timeRecords, activeSessions, savedSchedules, insulinPatients, insulinLogs, dailyPlans, dailyAnnouncements, isHydrated]);
 
     // === NOTIFICATIONS ===
     const addNotification = useCallback(async (notification) => {
@@ -589,6 +607,43 @@ export function DataProvider({ children }) {
         else await deleteDB('inventoryItems', id);
     }, [db]);
 
+    // === INSULINA ===
+    const addInsulinPatient = useCallback(async (patient) => {
+        const newPatient = {
+            id: patient.id || Date.now().toString() + Math.random().toString().slice(2, 6),
+            active: true,
+            createdAt: new Date().toISOString(),
+            ...patient,
+        };
+        if (!db) setInsulinPatients(prev => [...prev, newPatient]);
+        else await writeDB('insulinPatients', newPatient.id, newPatient);
+        return newPatient;
+    }, [db]);
+
+    const updateInsulinPatient = useCallback(async (id, updates) => {
+        if (!db) {
+            setInsulinPatients(prev => prev.map(patient => patient.id === id ? { ...patient, ...updates } : patient));
+        } else {
+            await writeDB('insulinPatients', id, updates, true);
+        }
+    }, [db]);
+
+    const deleteInsulinPatient = useCallback(async (id) => {
+        if (!db) setInsulinPatients(prev => prev.filter(patient => patient.id !== id));
+        else await deleteDB('insulinPatients', id);
+    }, [db]);
+
+    const addInsulinLog = useCallback(async (log) => {
+        const newLog = {
+            id: Date.now().toString() + Math.random().toString().slice(2, 6),
+            timestamp: new Date().toISOString(),
+            ...log,
+        };
+        if (!db) setInsulinLogs(prev => [...prev, newLog]);
+        else await writeDB('insulinLogs', newLog.id, newLog);
+        return newLog;
+    }, [db]);
+
     // === FRALDAS (Pacientes e Logs) ===
     const addDiaperPatient = useCallback(async (patient) => {
         const newPatient = { id: Date.now().toString() + Math.random().toString().slice(2, 6), ...patient, createdAt: new Date().toISOString() };
@@ -683,7 +738,7 @@ export function DataProvider({ children }) {
 
     const value = {
         employees, tasks, swapRequests, notifications, timeRecords, activeSessions, savedSchedules, isHydrated, leaves, inventoryItems,
-        diaperPatients, diaperLogs, dailyPlans, dailyAnnouncements,
+        insulinPatients, insulinLogs, diaperPatients, diaperLogs, dailyPlans, dailyAnnouncements,
         addEmployee, updateEmployee, removeEmployee, getEmployeeById,
         addTask, updateTask, removeTask, toggleTaskComplete, getTasksByEmployee, getTasksByDate,
         addSwapRequest, approveSwapRequest, rejectSwapRequest, removeSwapRequest, getPendingSwaps,
@@ -693,6 +748,7 @@ export function DataProvider({ children }) {
         resetData, taskCategories: initialTaskCategories,
         addLeave, deleteLeave,
         addInventoryItem, updateInventoryItem, deleteInventoryItem,
+        addInsulinPatient, updateInsulinPatient, deleteInsulinPatient, addInsulinLog,
         addDiaperPatient, updateDiaperPatient, deleteDiaperPatient,
         addDiaperLog, updateDiaperLog, deleteDiaperLog,
         updateDailyPlan, publishDailyPlan, toggleDailyTaskComplete,
