@@ -7,11 +7,10 @@ import Sidebar from '@/components/layout/Sidebar';
 import Avatar from '@/components/ui/Avatar';
 import { useApp } from '../_app';
 import { useData } from '@/contexts/DataContext';
-import { mockCurrentUser } from '@/data/mockData';
 import { ArrowLeftRight, Check, X, Sun, Moon, Trash2 } from 'lucide-react';
 
 export default function AdminTrocasPage() {
-    const { isAdmin, toggleMode } = useApp();
+    const { isAdmin, toggleMode, currentUser } = useApp();
     const { swapRequests, approveSwapRequest, rejectSwapRequest, removeSwapRequest, isHydrated } = useData();
 
     const getStatusStyle = (status) => {
@@ -52,7 +51,7 @@ export default function AdminTrocasPage() {
                 <title>Trocas - Admin Villa Mar</title>
             </Head>
 
-            <Header user={mockCurrentUser} isAdmin={isAdmin} onModeSwitch={toggleMode} />
+            <Header user={currentUser} isAdmin={isAdmin} onModeSwitch={toggleMode} />
             <Sidebar isAdmin={true} />
             <BottomNav isAdmin={true} />
 

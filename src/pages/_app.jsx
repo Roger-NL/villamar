@@ -26,6 +26,9 @@ function GlobalAuthListener({ children }) {
         }
 
         const unsubscribe = onAuthStateChanged(auth, async (user) => {
+            const isAdminRoute = router.pathname.startsWith('/admin');
+            const isEmployeeRoute = router.pathname.startsWith('/funcionario');
+
             if (user) {
                 try {
                     const docRef = doc(db, 'employees', user.uid);
@@ -33,14 +36,24 @@ function GlobalAuthListener({ children }) {
 
                     if (docSnap.exists()) {
                         const userData = docSnap.data();
+                        const hasAdminAccess = Boolean(userData.isAdmin || userData.role === 'Administrador');
                         setCurrentUser({
-                            id: userData.id,
+                            id: userData.id || user.uid,
                             name: userData.name,
                             role: userData.role,
                             email: userData.email,
                             avatar: userData.avatar || null,
+                            isAdmin: hasAdminAccess,
                         });
-                        setIsAdmin(true);
+                        setIsAdmin(hasAdminAccess);
+
+                        if (hasAdminAccess) {
+                            if (router.pathname === '/' || isEmployeeRoute) {
+                                router.push('/admin');
+                            }
+                        } else if (isAdminRoute || router.pathname === '/') {
+                            router.push('/funcionario');
+                        }
                     } else {
                         setCurrentUser({
                             id: user.uid,
@@ -48,8 +61,13 @@ function GlobalAuthListener({ children }) {
                             role: 'Administrador',
                             email: user.email,
                             avatar: null,
+                            isAdmin: true,
                         });
                         setIsAdmin(true);
+
+                        if (router.pathname === '/' || isEmployeeRoute) {
+                            router.push('/admin');
+                        }
                     }
                 } catch (err) {
                     console.error("Erro ao obter perfil de admin (possível bloqueador/firewall):", err);
@@ -60,12 +78,13 @@ function GlobalAuthListener({ children }) {
                         role: 'Administrador',
                         email: user.email,
                         avatar: null,
+                        isAdmin: true,
                     });
                     setIsAdmin(true);
-                }
 
-                if (router.pathname === '/') {
-                    router.push('/admin');
+                    if (router.pathname === '/' || isEmployeeRoute) {
+                        router.push('/admin');
+                    }
                 }
             } else if (isHydrated && employees?.length > 0) {
                 const savedEmpId = localStorage.getItem('villamar_employee_session');
@@ -77,22 +96,28 @@ function GlobalAuthListener({ children }) {
                             name: savedUser.name,
                             role: savedUser.role,
                             avatar: null,
+                            isAdmin: false,
                         });
                         setIsAdmin(false);
                         if (router.pathname === '/') {
                             router.push('/funcionario');
+                        } else if (isAdminRoute) {
+                            router.push('/funcionario');
                         }
                     } else {
                         setCurrentUser(null);
+                        setIsAdmin(false);
                         localStorage.removeItem('villamar_employee_session');
                         if (router.pathname !== '/') router.push('/');
                     }
                 } else {
                     setCurrentUser(null);
+                    setIsAdmin(false);
                     if (router.pathname !== '/') router.push('/');
                 }
             } else if (isHydrated) {
                 setCurrentUser(null);
+                setIsAdmin(false);
                 if (router.pathname !== '/') router.push('/');
             }
             setIsChecking(false);

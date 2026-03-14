@@ -5,7 +5,6 @@ import BottomNav from '@/components/layout/BottomNav';
 import Sidebar from '@/components/layout/Sidebar';
 import { useApp } from '../_app';
 import { useData } from '@/contexts/DataContext';
-import { mockCurrentUser } from '@/data/mockData';
 import Avatar from '@/components/ui/Avatar';
 import {
     Settings, Bell, Shield, Users, Database, LogOut, ChevronRight, X,
@@ -18,12 +17,16 @@ import { useRouter } from 'next/router';
 export default function AdminConfiguracoesPage() {
     const router = useRouter();
     const { isAdmin, toggleMode, currentUser } = useApp();
-    const user = currentUser || mockCurrentUser;
+    const user = currentUser;
     const { resetData } = useData();
     const [notifications, setNotifications] = useState(true);
     const [showResetModal, setShowResetModal] = useState(false);
     const [selectedItems, setSelectedItems] = useState([]);
     const [isResetting, setIsResetting] = useState(false);
+
+    if (!user) {
+        return <div>A carregar...</div>;
+    }
 
     const resetOptions = [
         { id: 'tasks', label: 'Tarefas e Atividades', icon: <ClipboardList size={18} />, color: '#F59E0B' },

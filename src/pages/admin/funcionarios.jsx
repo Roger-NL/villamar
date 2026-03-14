@@ -9,7 +9,7 @@ import Avatar from '@/components/ui/Avatar';
 import { useApp } from '../_app';
 import { useData } from '@/contexts/DataContext';
 import { auth } from '@/config/firebase';
-import { mockCurrentUser, mockEmployees } from '@/data/mockData';
+import { mockEmployees } from '@/data/mockData';
 import { Users, Plus, X, Trash2, UserPlus, Mail, Shield, Lock } from 'lucide-react';
 
 export default function AdminFuncionariosPage() {
@@ -189,7 +189,7 @@ export default function AdminFuncionariosPage() {
                 <title>Funcionários - Admin Villa Mar</title>
             </Head>
 
-            <Header user={mockCurrentUser} isAdmin={isAdmin} onModeSwitch={toggleMode} />
+            <Header user={currentUser} isAdmin={isAdmin} onModeSwitch={toggleMode} />
             <Sidebar isAdmin={true} />
             <BottomNav isAdmin={true} />
 

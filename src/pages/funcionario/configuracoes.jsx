@@ -7,14 +7,13 @@ import BottomNav from '@/components/layout/BottomNav';
 import Sidebar from '@/components/layout/Sidebar';
 import { useApp } from '../_app';
 import { useData } from '@/contexts/DataContext';
-import { mockCurrentUser } from '@/data/mockData';
 import Avatar from '@/components/ui/Avatar';
 import { User, Bell, Moon, Shield, LogOut, ChevronRight, Check, X, Lock, Save } from 'lucide-react';
 
 export default function ConfiguracoesPage() {
     const { isAdmin, toggleMode, currentUser, setCurrentUser } = useApp();
     const { updateEmployee } = useData();
-    const [user, setUser] = useState(currentUser || mockCurrentUser);
+    const [user, setUser] = useState(currentUser);
 
     useEffect(() => {
         if (currentUser) {
@@ -36,6 +35,10 @@ export default function ConfiguracoesPage() {
     const [confirmPin, setConfirmPin] = useState('');
     const [pinError, setPinError] = useState('');
     const [pinSuccess, setPinSuccess] = useState('');
+
+    if (!user) {
+        return <div>A carregar...</div>;
+    }
 
     const handleSaveProfile = async (e) => {
         e.preventDefault();
