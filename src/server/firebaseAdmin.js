@@ -1,13 +1,59 @@
 import crypto from 'node:crypto';
+import fs from 'node:fs';
+import path from 'node:path';
+
+function normalizeServiceAccount(parsed) {
+    if (!parsed) return null;
+
+    const projectId = parsed.project_id || parsed.projectId || '';
+    const clientEmail = parsed.client_email || parsed.clientEmail || '';
+    const privateKey = (parsed.private_key || parsed.privateKey || '').replace(/\\n/g, '\n');
+
+    if (!projectId || !clientEmail || !privateKey) {
+        return null;
+    }
+
+    return {
+        projectId,
+        clientEmail,
+        privateKey
+    };
+}
+
+function readServiceAccountFromFile(filePath) {
+    if (!filePath) return null;
+
+    try {
+        if (!fs.existsSync(filePath)) return null;
+        const raw = fs.readFileSync(filePath, 'utf8');
+        return normalizeServiceAccount(JSON.parse(raw));
+    } catch {
+        return null;
+    }
+}
+
+function findDownloadedServiceAccount() {
+    const homeDir = process.env.HOME;
+    if (!homeDir) return null;
+
+    const downloadsDir = path.join(homeDir, 'Downloads');
+    if (!fs.existsSync(downloadsDir)) return null;
+
+    try {
+        const match = fs
+            .readdirSync(downloadsDir)
+            .find((fileName) => /^villamar-c5e82-firebase-adminsdk-.*\.json$/i.test(fileName));
+
+        if (!match) return null;
+        return readServiceAccountFromFile(path.join(downloadsDir, match));
+    } catch {
+        return null;
+    }
+}
 
 function readServiceAccount() {
     if (process.env.FIREBASE_ADMIN_SERVICE_ACCOUNT_JSON) {
-        const parsed = JSON.parse(process.env.FIREBASE_ADMIN_SERVICE_ACCOUNT_JSON);
-        return {
-            projectId: parsed.project_id || parsed.projectId,
-            clientEmail: parsed.client_email || parsed.clientEmail,
-            privateKey: (parsed.private_key || parsed.privateKey || '').replace(/\\n/g, '\n')
-        };
+        return normalizeServiceAccount(JSON.parse(process.env.FIREBASE_ADMIN_SERVICE_ACCOUNT_JSON));
     }
 
     if (
@@ -15,12 +61,19 @@ function readServiceAccount() {
         process.env.FIREBASE_ADMIN_CLIENT_EMAIL &&
         process.env.FIREBASE_ADMIN_PRIVATE_KEY
     ) {
-        return {
+        return normalizeServiceAccount({
             projectId: process.env.FIREBASE_ADMIN_PROJECT_ID,
             clientEmail: process.env.FIREBASE_ADMIN_CLIENT_EMAIL,
             privateKey: process.env.FIREBASE_ADMIN_PRIVATE_KEY.replace(/\\n/g, '\n')
-        };
+        });
     }
+
+    const credentialsPath = process.env.FIREBASE_ADMIN_SERVICE_ACCOUNT_PATH || process.env.GOOGLE_APPLICATION_CREDENTIALS;
+    const fromConfiguredPath = readServiceAccountFromFile(credentialsPath);
+    if (fromConfiguredPath) return fromConfiguredPath;
+
+    const downloadedAccount = findDownloadedServiceAccount();
+    if (downloadedAccount) return downloadedAccount;
 
     return null;
 }
@@ -82,5 +135,10 @@ export async function getIdentityToolkitAccessToken() {
 }
 
 export function getFirebaseAdminProjectId() {
-    return process.env.FIREBASE_ADMIN_PROJECT_ID || process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || '';
+    return (
+        process.env.FIREBASE_ADMIN_PROJECT_ID ||
+        readServiceAccount()?.projectId ||
+        process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID ||
+        ''
+    );
 }
