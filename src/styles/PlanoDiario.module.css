@@ -336,6 +336,10 @@
     cursor: pointer;
 }
 
+.mobileAssignSelect {
+    display: none;
+}
+
 .groupBlockBody {
     padding: 24px;
     display: flex;
@@ -471,6 +475,107 @@
 
     .taskSlot {
         max-width: none;
+    }
+}
+
+@media (max-width: 767px) {
+    .grid {
+        gap: 18px;
+    }
+
+    .planCol {
+        order: 1;
+    }
+
+    .employeesCol {
+        order: 2;
+        position: static;
+        top: auto;
+        max-height: none;
+        padding: 18px;
+        border-radius: 20px;
+    }
+
+    .employeesCol h2 {
+        font-size: 1.05rem;
+    }
+
+    .helperText {
+        margin-bottom: 14px;
+        font-size: 0.86rem;
+    }
+
+    .employeesList {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+    }
+
+    .draggableEmployee {
+        padding: 12px;
+        border-radius: 16px;
+        box-shadow: none;
+    }
+
+    .draggableEmployee:hover {
+        transform: none;
+        box-shadow: none;
+    }
+
+    .empName {
+        font-size: 0.9rem;
+    }
+
+    .empRole {
+        font-size: 0.78rem;
+    }
+
+    .groupBlockBody,
+    .blockColumnsPadded,
+    .simpleTasksGrid,
+    .blockList {
+        padding: 16px;
+    }
+
+    .assignmentColumn,
+    .unassignedCard,
+    .columnCard,
+    .simpleTaskCard {
+        border-radius: 18px;
+    }
+
+    .taskRow {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 10px;
+    }
+
+    .taskLabel {
+        font-size: 0.92rem;
+    }
+
+    .taskSlot {
+        max-width: none;
+        padding: 12px;
+        gap: 10px;
+        flex-wrap: wrap;
+    }
+
+    .slotSelect {
+        display: none;
+    }
+
+    .mobileAssignSelect {
+        display: block;
+        width: 100%;
+        border: 1px solid rgba(148, 163, 184, 0.28);
+        border-radius: 12px;
+        padding: 10px 12px;
+        font: inherit;
+        font-weight: 600;
+        color: #334155;
+        background: #fff;
+        outline: none;
     }
 }
 

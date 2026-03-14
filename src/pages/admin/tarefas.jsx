@@ -20,16 +20,16 @@ function getLocalISODate() {
     return now.toISOString().slice(0, 10);
 }
 
-function DraggableEmployee({ id, name, role }) {
-    const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({ id: `employee:${id}` });
+function DraggableEmployee({ id, name, role, draggableEnabled = true }) {
+    const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({ id: `employee:${id}`, disabled: !draggableEnabled });
     const style = {
         transform: transform ? `translate3d(${transform.x}px, ${transform.y}px, 0)` : undefined,
         opacity: isDragging ? 0.5 : 1,
-        touchAction: 'none'
+        touchAction: draggableEnabled ? 'none' : 'auto'
     };
 
     return (
-        <div ref={setNodeRef} style={style} {...listeners} {...attributes} className={`${planStyles.draggableEmployee} ${isDragging ? planStyles.dragging : ''}`}>
+        <div ref={setNodeRef} style={style} {...(draggableEnabled ? listeners : {})} {...(draggableEnabled ? attributes : {})} className={`${planStyles.draggableEmployee} ${isDragging ? planStyles.dragging : ''}`}>
             <Avatar name={name} size="sm" />
             <div className={planStyles.empInfo}>
                 <span className={planStyles.empName}>{name.split(' ')[0]}</span>
@@ -39,8 +39,8 @@ function DraggableEmployee({ id, name, role }) {
     );
 }
 
-function DraggableResident({ id, resident, status, customName, onCycleStatus, onUpdateName, onDelete }) {
-    const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({ id: id });
+function DraggableResident({ id, resident, status, customName, onCycleStatus, onUpdateName, onDelete, draggableEnabled = true }) {
+    const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({ id: id, disabled: !draggableEnabled });
     const [isEditing, setIsEditing] = useState(false);
     const [editValue, setEditValue] = useState(customName || resident);
 
@@ -57,7 +57,7 @@ function DraggableResident({ id, resident, status, customName, onCycleStatus, on
         borderRadius: isDragging ? '8px' : '0',
         color: '#475569',
         fontSize: '0.95rem',
-        cursor: 'grab',
+        cursor: draggableEnabled ? 'grab' : 'default',
         ...(isDragging ? { boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)', zIndex: 100 } : {})
     };
 
@@ -86,7 +86,7 @@ function DraggableResident({ id, resident, status, customName, onCycleStatus, on
     }, [customName, resident]);
 
     return (
-        <div ref={setNodeRef} style={style} {...(!isEditing ? listeners : {})} {...(!isEditing ? attributes : {})}>
+        <div ref={setNodeRef} style={style} {...(!isEditing && draggableEnabled ? listeners : {})} {...(!isEditing && draggableEnabled ? attributes : {})}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                 {isEditing ? (
                     <input
@@ -195,7 +195,7 @@ function InlineEditableExtra({ id, defaultLabel, customLabels, onUpdateLabel }) 
     );
 }
 
-function ResidentDropZone({ id, residents, sourceId, residentStatuses, customResidentNames, onCycleStatus, onUpdateName, onDelete }) {
+function ResidentDropZone({ id, residents, sourceId, residentStatuses, customResidentNames, onCycleStatus, onUpdateName, onDelete, draggableEnabled = true, emptyText = 'Arraste utentes para aqui...' }) {
     const { isOver, setNodeRef } = useDroppable({ id });
     return (
         <div
@@ -212,14 +212,15 @@ function ResidentDropZone({ id, residents, sourceId, residentStatuses, customRes
                     onCycleStatus={onCycleStatus}
                     onUpdateName={onUpdateName}
                     onDelete={(rName) => onDelete && onDelete(sourceId, rName)}
+                    draggableEnabled={draggableEnabled}
                 />
             ))}
-            {residents.length === 0 && <div className={planStyles.residentEmpty}>Arraste utentes para aqui...</div>}
+            {residents.length === 0 && <div className={planStyles.residentEmpty}>{emptyText}</div>}
         </div>
     );
 }
 
-function TaskSlot({ taskId, label, isExtra, customLabels, onUpdateCustomLabel, assignedName, employees, onAssign }) {
+function TaskSlot({ taskId, label, isExtra, customLabels, onUpdateCustomLabel, assignedName, employees, onAssign, isMobileView = false }) {
     const dropId = `task:${taskId}`;
     const { isOver, setNodeRef } = useDroppable({ id: dropId });
 
@@ -249,7 +250,7 @@ function TaskSlot({ taskId, label, isExtra, customLabels, onUpdateCustomLabel, a
             </div>
             <div ref={setNodeRef} className={`${planStyles.taskSlot} ${isOver ? planStyles.slotOver : ''}`} onClick={(e) => { e.stopPropagation(); }}>
                 <span className={assignedName ? planStyles.assignedName : planStyles.unassignedName}>
-                    {assignedName || "Arrastar ou Selecionar"}
+                    {assignedName || (isMobileView ? 'Selecionar responsável' : 'Arrastar ou Selecionar')}
                 </span>
                 {assignedName && (
                     <button
@@ -260,15 +261,27 @@ function TaskSlot({ taskId, label, isExtra, customLabels, onUpdateCustomLabel, a
                         <X size={14} />
                     </button>
                 )}
-                <select
-                    value={assignedName ? employees.find(e => e.name.split(' ')[0] === assignedName || e.name === assignedName)?.id || "" : ""}
-                    onChange={(e) => onAssign(e.target.value)}
-                    className={planStyles.slotSelect}
-                >
-                    <option value="" disabled>Atribuir...</option>
-                    <option value="unassign">-- Remover --</option>
-                    {employees.map(e => <option key={e.id} value={e.id}>{e.name.split(' ')[0]}</option>)}
-                </select>
+                {isMobileView ? (
+                    <select
+                        value={assignedName ? employees.find(e => e.name.split(' ')[0] === assignedName || e.name === assignedName)?.id || "" : ""}
+                        onChange={(e) => onAssign(e.target.value)}
+                        className={planStyles.mobileAssignSelect}
+                    >
+                        <option value="">Selecionar...</option>
+                        <option value="unassign">-- Remover --</option>
+                        {employees.map(e => <option key={e.id} value={e.id}>{e.name.split(' ')[0]}</option>)}
+                    </select>
+                ) : (
+                    <select
+                        value={assignedName ? employees.find(e => e.name.split(' ')[0] === assignedName || e.name === assignedName)?.id || "" : ""}
+                        onChange={(e) => onAssign(e.target.value)}
+                        className={planStyles.slotSelect}
+                    >
+                        <option value="" disabled>Atribuir...</option>
+                        <option value="unassign">-- Remover --</option>
+                        {employees.map(e => <option key={e.id} value={e.id}>{e.name.split(' ')[0]}</option>)}
+                    </select>
+                )}
             </div>
         </div>
     );
@@ -287,12 +300,24 @@ export default function AdminTarefasPage() {
     const [localGroupResidents, setLocalGroupResidents] = useState({});
     const [residentStatuses, setResidentStatuses] = useState({});
     const [customResidentNames, setCustomResidentNames] = useState({});
+    const [isMobileView, setIsMobileView] = useState(false);
     const residentCounterRef = useRef(0);
 
     const planKey = period === 'DAY' ? selectedDate : `${selectedDate}_NIGHT`;
     const currentTemplate = period === 'DAY' ? planoDiarioTemplate : planoDiarioNoturnoTemplate;
 
     const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }));
+
+    useEffect(() => {
+        const updateViewportMode = () => {
+            setIsMobileView(window.innerWidth < 768);
+        };
+
+        updateViewportMode();
+        window.addEventListener('resize', updateViewportMode);
+
+        return () => window.removeEventListener('resize', updateViewportMode);
+    }, []);
 
     useEffect(() => {
         if (isHydrated) {
@@ -544,10 +569,12 @@ export default function AdminTarefasPage() {
                             {/* Employees Sidebar */}
                             <div className={planStyles.employeesCol}>
                                 <h2>Equipa</h2>
-                                <p className={planStyles.helperText}>Arraste o funcionário para a tarefa ou atribua na caixa.</p>
+                                <p className={planStyles.helperText}>
+                                    {isMobileView ? 'No telemóvel, use o seletor dentro de cada tarefa.' : 'Arraste o funcionário para a tarefa ou atribua na caixa.'}
+                                </p>
                                 <div className={planStyles.employeesList}>
                                     {employees.filter(e => !e.isAdmin).map(emp => (
-                                        <DraggableEmployee key={emp.id} id={emp.id} name={emp.name} role={emp.role} />
+                                        <DraggableEmployee key={emp.id} id={emp.id} name={emp.name} role={emp.role} draggableEnabled={!isMobileView} />
                                     ))}
                                 </div>
                             </div>
@@ -580,6 +607,8 @@ export default function AdminTarefasPage() {
                                                                     onCycleStatus={(rName) => handleCycleResidentStatus(block.id, rName)}
                                                                     onUpdateName={handleUpdateResidentName}
                                                                     onDelete={handleDeleteResident}
+                                                                    draggableEnabled={!isMobileView}
+                                                                    emptyText={isMobileView ? 'Sem utentes nesta lista.' : 'Arraste utentes para aqui...'}
                                                                 />
                                                             </div>
                                                         )}
@@ -599,6 +628,7 @@ export default function AdminTarefasPage() {
                                                                             assignedName={localAssignments[taskId] ? getEmployeeName(localAssignments[taskId]) : null}
                                                                             employees={employees}
                                                                             onAssign={(empId) => handleAssign(taskId, empId)}
+                                                                            isMobileView={isMobileView}
                                                                         />
                                                                         <div className={planStyles.columnCard}>
                                                                             <div className={planStyles.residentsHeader}>
@@ -613,6 +643,8 @@ export default function AdminTarefasPage() {
                                                                                 onCycleStatus={(rName) => handleCycleResidentStatus(block.id, rName)}
                                                                                 onUpdateName={handleUpdateResidentName}
                                                                                 onDelete={handleDeleteResident}
+                                                                                draggableEnabled={!isMobileView}
+                                                                                emptyText={isMobileView ? 'Sem utentes atribuídos.' : 'Arraste utentes para aqui...'}
                                                                             />
                                                                             <div className={planStyles.residentsFooter}>
                                                                                 <button
@@ -673,6 +705,7 @@ export default function AdminTarefasPage() {
                                                                     assignedName={localAssignments[item.id] ? getEmployeeName(localAssignments[item.id]) : null}
                                                                     employees={employees}
                                                                     onAssign={(empId) => handleAssign(item.id, empId)}
+                                                                    isMobileView={isMobileView}
                                                                 />
                                                             </div>
                                                         ))}
@@ -686,7 +719,7 @@ export default function AdminTarefasPage() {
                         </div>
 
                         <DragOverlay>
-                            {activeDragItem?.type === 'employee' && activeEmployee ? (
+                            {!isMobileView && activeDragItem?.type === 'employee' && activeEmployee ? (
                                 <div className={`${planStyles.draggableEmployee} ${planStyles.dragging}`}>
                                     <Avatar name={activeEmployee.name} size="sm" />
                                     <div className={planStyles.empInfo}>
@@ -694,7 +727,7 @@ export default function AdminTarefasPage() {
                                     </div>
                                 </div>
                             ) : null}
-                            {activeDragItem?.type === 'resident' && activeResidentName ? (
+                            {!isMobileView && activeDragItem?.type === 'resident' && activeResidentName ? (
                                 <div className={planStyles.residentDragPreview}>
                                     {activeResidentName}
                                 </div>
