@@ -1040,7 +1040,7 @@ export default function FraldasPage() {
                                                     {selectedDepotCatalogItem.origin === 'Casa' ? 'Estoque da casa' : 'Fralda própria'}
                                                 </div>
                                                 <div style={{ fontSize: '13px', fontWeight: 700, color: '#64748B' }}>
-                                                    Pacote padrão: {getPackSize(selectedDepotCatalogItem)} | Pacotão: 52
+                                                    Pacote padrão: {getPackSize(selectedDepotCatalogItem)} | Pacotões: 46 ou 52
                                                 </div>
                                             </div>
                                         )}
@@ -1131,7 +1131,10 @@ export default function FraldasPage() {
                                                     <button title={`+Pacote (${getPackSize(item)})`} onClick={() => handleUpdateDepot(item.id, getPackSize(item))} style={{ border: 'none', background: '#166534', color: 'white', width: '100%', padding: '12px 0', borderRadius: '10px', cursor: 'pointer', fontWeight: 800, fontSize: '15px', marginTop: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
                                                         <Plus size={16} /> Adicionar Pacote (+{getPackSize(item)})
                                                     </button>
-                                                    <button title="+Pacotão (52)" onClick={() => handleUpdateDepot(item.id, 52)} style={{ border: 'none', background: '#0F766E', color: 'white', width: '100%', padding: '12px 0', borderRadius: '10px', cursor: 'pointer', fontWeight: 800, fontSize: '15px', marginTop: '4px' }}>
+                                                    <button title="+Pacotão (46)" onClick={() => handleUpdateDepot(item.id, 46)} style={{ border: 'none', background: '#0F766E', color: 'white', width: '100%', padding: '12px 0', borderRadius: '10px', cursor: 'pointer', fontWeight: 800, fontSize: '15px', marginTop: '4px' }}>
+                                                        Adicionar Pacotão (+46)
+                                                    </button>
+                                                    <button title="+Pacotão (52)" onClick={() => handleUpdateDepot(item.id, 52)} style={{ border: 'none', background: '#115E59', color: 'white', width: '100%', padding: '12px 0', borderRadius: '10px', cursor: 'pointer', fontWeight: 800, fontSize: '15px', marginTop: '4px' }}>
                                                         Adicionar Pacotão (+52)
                                                     </button>
                                                 </div>
@@ -1227,7 +1230,10 @@ export default function FraldasPage() {
                                                     <button title={`+Pacote (${getPackSize(item)})`} onClick={() => handleUpdateDepot(item.id, getPackSize(item))} style={{ border: 'none', background: '#0284C7', color: 'white', width: '100%', padding: '12px 0', borderRadius: '10px', cursor: 'pointer', fontWeight: 800, fontSize: '15px', marginTop: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
                                                         <Plus size={16} /> Adicionar Pacote (+{getPackSize(item)})
                                                     </button>
-                                                    <button title="+Pacotão (52)" onClick={() => handleUpdateDepot(item.id, 52)} style={{ border: 'none', background: '#0369A1', color: 'white', width: '100%', padding: '12px 0', borderRadius: '10px', cursor: 'pointer', fontWeight: 800, fontSize: '15px', marginTop: '4px' }}>
+                                                    <button title="+Pacotão (46)" onClick={() => handleUpdateDepot(item.id, 46)} style={{ border: 'none', background: '#0369A1', color: 'white', width: '100%', padding: '12px 0', borderRadius: '10px', cursor: 'pointer', fontWeight: 800, fontSize: '15px', marginTop: '4px' }}>
+                                                        Adicionar Pacotão (+46)
+                                                    </button>
+                                                    <button title="+Pacotão (52)" onClick={() => handleUpdateDepot(item.id, 52)} style={{ border: 'none', background: '#075985', color: 'white', width: '100%', padding: '12px 0', borderRadius: '10px', cursor: 'pointer', fontWeight: 800, fontSize: '15px', marginTop: '4px' }}>
                                                         Adicionar Pacotão (+52)
                                                     </button>
                                                 </div>
