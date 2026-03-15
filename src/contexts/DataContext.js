@@ -664,6 +664,14 @@ export function DataProvider({ children }) {
         return newNote;
     }, [db]);
 
+    const updateMedicalNote = useCallback(async (id, updates) => {
+        if (!db) {
+            setMedicalNotes(prev => prev.map(note => note.id === id ? { ...note, ...updates } : note));
+        } else {
+            await writeDB('medicalNotes', id, updates, true);
+        }
+    }, [db]);
+
     // === FRALDAS (Pacientes e Logs) ===
     const addDiaperPatient = useCallback(async (patient) => {
         const newPatient = { id: Date.now().toString() + Math.random().toString().slice(2, 6), ...patient, createdAt: new Date().toISOString() };
@@ -768,7 +776,7 @@ export function DataProvider({ children }) {
         resetData, taskCategories: initialTaskCategories,
         addLeave, deleteLeave,
         addInventoryItem, updateInventoryItem, deleteInventoryItem,
-        addInsulinPatient, updateInsulinPatient, deleteInsulinPatient, addInsulinLog, addMedicalNote,
+        addInsulinPatient, updateInsulinPatient, deleteInsulinPatient, addInsulinLog, addMedicalNote, updateMedicalNote,
         addDiaperPatient, updateDiaperPatient, deleteDiaperPatient,
         addDiaperLog, updateDiaperLog, deleteDiaperLog,
         updateDailyPlan, publishDailyPlan, toggleDailyTaskComplete,

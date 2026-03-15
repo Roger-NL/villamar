@@ -1,6 +1,5 @@
 import Head from 'next/head';
-import { useEffect, useMemo, useState } from 'react';
-import { useRouter } from 'next/router';
+import { useMemo, useState } from 'react';
 import styles from '@/styles/Dashboard.module.css';
 import formStyles from '@/styles/Forms.module.css';
 import Header from '@/components/layout/Header';
@@ -10,17 +9,17 @@ import Card from '@/components/ui/Card';
 import { useApp } from '@/pages/_app';
 import { useData } from '@/contexts/DataContext';
 import { mergeInsulinPatients } from '@/data/insulinDefaults';
+import { OFFICIAL_DIAPER_PATIENTS } from '@/data/diaperConfig.mjs';
 import { isMedicalRole } from '@/lib/medicalAccess';
-import { CheckCircle2, ClipboardPlus, Clock3, Droplets, NotebookPen, Syringe } from 'lucide-react';
+import { CheckCircle2, Clock3, Droplets, NotebookPen, ShieldCheck, Syringe } from 'lucide-react';
 
 function getCurrentTimeValue() {
     return new Date().toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit', hour12: false });
 }
 
 export default function FuncionarioAreaMedicaPage() {
-    const router = useRouter();
     const { isAdmin, toggleMode, currentUser } = useApp();
-    const { insulinPatients, insulinLogs, medicalNotes, addInsulinLog, addMedicalNote, isHydrated } = useData();
+    const { insulinPatients, insulinLogs, medicalNotes, addInsulinLog, addMedicalNote, updateMedicalNote, isHydrated } = useData();
 
     const [activeSection, setActiveSection] = useState('insulina');
     const [selectedPatientId, setSelectedPatientId] = useState('');
@@ -31,14 +30,36 @@ export default function FuncionarioAreaMedicaPage() {
     const [noteText, setNoteText] = useState('');
     const [toast, setToast] = useState('');
 
-    const availablePatients = useMemo(() => mergeInsulinPatients(insulinPatients || []), [insulinPatients]);
-    const todayStr = new Date().toISOString().split('T')[0];
+    const availableInsulinPatients = useMemo(() => mergeInsulinPatients(insulinPatients || []), [insulinPatients]);
+    const availableNotePatients = useMemo(() => {
+        const byName = new Map();
 
-    useEffect(() => {
-        if (isHydrated && currentUser && !isMedicalRole(currentUser.role) && !isAdmin) {
-            router.replace('/funcionario');
-        }
-    }, [currentUser, isHydrated, isAdmin, router]);
+        (OFFICIAL_DIAPER_PATIENTS || []).forEach((name) => {
+            if (!name) return;
+            byName.set(name.trim().toLowerCase(), { id: `resident:${name.trim().toLowerCase()}`, name });
+        });
+
+        (insulinPatients || []).forEach((patient) => {
+            const name = patient?.name;
+            if (!name) return;
+            const key = name.trim().toLowerCase();
+            if (!byName.has(key)) {
+                byName.set(key, { id: `resident:${key}`, name });
+            }
+        });
+
+        (medicalNotes || []).forEach((note) => {
+            const name = note?.patientName;
+            if (!name) return;
+            const key = name.trim().toLowerCase();
+            if (!byName.has(key)) {
+                byName.set(key, { id: `resident:${key}`, name });
+            }
+        });
+
+        return Array.from(byName.values()).sort((a, b) => a.name.localeCompare(b.name, 'pt-PT'));
+    }, [insulinPatients, medicalNotes]);
+    const todayStr = new Date().toISOString().split('T')[0];
 
     const todayInsulinLogs = useMemo(() => (
         (insulinLogs || [])
@@ -54,7 +75,7 @@ export default function FuncionarioAreaMedicaPage() {
 
     const handleInsulinSubmit = async (event) => {
         event.preventDefault();
-        const patient = availablePatients.find((entry) => entry.id === selectedPatientId);
+        const patient = availableInsulinPatients.find((entry) => entry.id === selectedPatientId);
         if (!patient) return;
 
         await addInsulinLog({
@@ -78,7 +99,7 @@ export default function FuncionarioAreaMedicaPage() {
 
     const handleMedicalNoteSubmit = async (event) => {
         event.preventDefault();
-        const patient = availablePatients.find((entry) => entry.id === notePatientId);
+        const patient = availableNotePatients.find((entry) => entry.id === notePatientId);
         if (!patient || !noteText.trim()) return;
 
         await addMedicalNote({
@@ -98,6 +119,20 @@ export default function FuncionarioAreaMedicaPage() {
     };
 
     if (!isHydrated) return null;
+
+    const canDoctorReview = isMedicalRole(currentUser?.role);
+
+    const handleMarkReviewed = async (note) => {
+        if (!note?.id) return;
+        if (!canDoctorReview) return;
+        if (note.reviewedAt) return;
+
+        await updateMedicalNote(note.id, {
+            reviewedAt: new Date().toISOString(),
+            reviewedById: currentUser?.id || '',
+            reviewedByName: currentUser?.name || ''
+        });
+    };
 
     return (
         <>
@@ -168,7 +203,7 @@ export default function FuncionarioAreaMedicaPage() {
                                         <label>Utente *</label>
                                         <select value={selectedPatientId} onChange={(e) => setSelectedPatientId(e.target.value)} required>
                                             <option value="">Selecionar utente</option>
-                                            {availablePatients.map((patient) => (
+                                            {availableInsulinPatients.map((patient) => (
                                                 <option key={patient.id} value={patient.id}>{patient.name}</option>
                                             ))}
                                         </select>
@@ -236,7 +271,7 @@ export default function FuncionarioAreaMedicaPage() {
                                         <label>Utente *</label>
                                         <select value={notePatientId} onChange={(e) => setNotePatientId(e.target.value)} required>
                                             <option value="">Selecionar utente</option>
-                                            {availablePatients.map((patient) => (
+                                            {availableNotePatients.map((patient) => (
                                                 <option key={patient.id} value={patient.id}>{patient.name}</option>
                                             ))}
                                         </select>
@@ -271,12 +306,42 @@ export default function FuncionarioAreaMedicaPage() {
                                     <div style={{ display: 'grid', gap: '12px' }}>
                                         {todayMedicalNotes.map((note) => (
                                             <div key={note.id} style={{ border: '1px solid #E2E8F0', borderRadius: '14px', padding: '14px 16px', background: '#F8FAFC' }}>
-                                                <div style={{ display: 'flex', justifyContent: 'space-between', gap: '12px', alignItems: 'center', marginBottom: '8px' }}>
-                                                    <strong style={{ color: '#0f172a' }}>{note.patientName}</strong>
-                                                    <span style={{ fontSize: '13px', color: '#64748b' }}>{note.reportedAt || note.timestamp?.slice(11, 16)}</span>
+                                                <div style={{ display: 'flex', justifyContent: 'space-between', gap: '12px', alignItems: 'flex-start', marginBottom: '8px' }}>
+                                                    <div style={{ display: 'grid', gap: '4px' }}>
+                                                        <strong style={{ color: '#0f172a' }}>{note.patientName}</strong>
+                                                        <div style={{ fontSize: '12px', color: '#64748b' }}>
+                                                            {note.reportedAt || note.timestamp?.slice(11, 16)} · Registado por {note.executorName}
+                                                        </div>
+                                                    </div>
+                                                    <div style={{ display: 'grid', gap: '8px', justifyItems: 'end' }}>
+                                                        {note.reviewedAt ? (
+                                                            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', background: '#DCFCE7', color: '#15803D', padding: '6px 10px', borderRadius: '999px', fontSize: '12px', fontWeight: 800 }}>
+                                                                <ShieldCheck size={14} />
+                                                                Visto pelo médico
+                                                            </span>
+                                                        ) : (
+                                                            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', background: '#FEF3C7', color: '#92400E', padding: '6px 10px', borderRadius: '999px', fontSize: '12px', fontWeight: 800 }}>
+                                                                Pendente do médico
+                                                            </span>
+                                                        )}
+
+                                                        {canDoctorReview && !note.reviewedAt && (
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => handleMarkReviewed(note)}
+                                                                style={{ border: 'none', background: '#0284c7', color: 'white', padding: '8px 10px', borderRadius: '10px', fontSize: '12px', fontWeight: 800, cursor: 'pointer' }}
+                                                            >
+                                                                Marcar como visto
+                                                            </button>
+                                                        )}
+                                                    </div>
                                                 </div>
                                                 <p style={{ margin: '0 0 8px 0', color: '#334155', lineHeight: 1.5 }}>{note.noteText}</p>
-                                                <div style={{ fontSize: '12px', color: '#64748b' }}>Registado por {note.executorName}</div>
+                                                {note.reviewedAt && (
+                                                    <div style={{ fontSize: '12px', color: '#64748b' }}>
+                                                        Revisto por {note.reviewedByName || 'Médico'} ({new Date(note.reviewedAt).toLocaleString('pt-PT', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit' })})
+                                                    </div>
+                                                )}
                                             </div>
                                         ))}
                                     </div>
