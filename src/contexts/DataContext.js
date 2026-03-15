@@ -20,6 +20,7 @@ const STORAGE_KEYS = {
     INVENTORY: 'villamar_inventory',
     INSULIN_PATIENTS: 'villamar_insulin_patients',
     INSULIN_LOGS: 'villamar_insulin_logs',
+    MEDICAL_NOTES: 'villamar_medical_notes',
     DAILY_PLANS: 'villamar_daily_plans',
     DAILY_ANNOUNCEMENTS: 'villamar_daily_announcements',
 };
@@ -37,6 +38,7 @@ export function DataProvider({ children }) {
     const [inventoryItems, setInventoryItems] = useState([]); // Estoque
     const [insulinPatients, setInsulinPatients] = useState([]); // Utentes com controlo de insulina
     const [insulinLogs, setInsulinLogs] = useState([]); // Registos de insulina
+    const [medicalNotes, setMedicalNotes] = useState([]); // Ocorrências e observações médicas
     const [diaperPatients, setDiaperPatients] = useState([]); // Utentes e as suas fraldas
     const [diaperLogs, setDiaperLogs] = useState([]); // Histórico de reposições
     const [dailyPlans, setDailyPlans] = useState({}); // Planos Diários de Tarefas (Assignments + Status)
@@ -56,6 +58,7 @@ export function DataProvider({ children }) {
             const savedSchedulesData = localStorage.getItem(STORAGE_KEYS.SCHEDULES);
             const savedInsulinPatients = localStorage.getItem(STORAGE_KEYS.INSULIN_PATIENTS);
             const savedInsulinLogs = localStorage.getItem(STORAGE_KEYS.INSULIN_LOGS);
+            const savedMedicalNotes = localStorage.getItem(STORAGE_KEYS.MEDICAL_NOTES);
             const savedDailyPlans = localStorage.getItem(STORAGE_KEYS.DAILY_PLANS);
             const savedDailyAnnouncements = localStorage.getItem(STORAGE_KEYS.DAILY_ANNOUNCEMENTS);
 
@@ -88,6 +91,7 @@ export function DataProvider({ children }) {
                 setLeaves(savedLeaves ? JSON.parse(savedLeaves) : []);
                 setInsulinPatients(savedInsulinPatients ? JSON.parse(savedInsulinPatients) : []);
                 setInsulinLogs(savedInsulinLogs ? JSON.parse(savedInsulinLogs) : []);
+                setMedicalNotes(savedMedicalNotes ? JSON.parse(savedMedicalNotes) : []);
                 setDailyPlans(savedDailyPlans ? JSON.parse(savedDailyPlans) : {});
                 setDailyAnnouncements(savedDailyAnnouncements ? JSON.parse(savedDailyAnnouncements) : []);
                 setIsHydrated(true);
@@ -142,6 +146,9 @@ export function DataProvider({ children }) {
             const unsubInsulinLogs = onSnapshot(collection(db, 'insulinLogs'), (snapshot) => {
                 setInsulinLogs(snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id })));
             });
+            const unsubMedicalNotes = onSnapshot(collection(db, 'medicalNotes'), (snapshot) => {
+                setMedicalNotes(snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id })));
+            });
             const unsubDiaperPatients = onSnapshot(collection(db, 'diaperPatients'), (snapshot) => {
                 setDiaperPatients(snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id })));
             });
@@ -172,6 +179,7 @@ export function DataProvider({ children }) {
                 unsubInventory();
                 unsubInsulinPatients();
                 unsubInsulinLogs();
+                unsubMedicalNotes();
                 unsubDiaperPatients();
                 unsubDiaperLogs();
                 unsubDailyPlans();
@@ -218,10 +226,11 @@ export function DataProvider({ children }) {
             localStorage.setItem(STORAGE_KEYS.SCHEDULES, JSON.stringify(savedSchedules));
             localStorage.setItem(STORAGE_KEYS.INSULIN_PATIENTS, JSON.stringify(insulinPatients));
             localStorage.setItem(STORAGE_KEYS.INSULIN_LOGS, JSON.stringify(insulinLogs));
+            localStorage.setItem(STORAGE_KEYS.MEDICAL_NOTES, JSON.stringify(medicalNotes));
             localStorage.setItem(STORAGE_KEYS.DAILY_PLANS, JSON.stringify(dailyPlans));
             localStorage.setItem(STORAGE_KEYS.DAILY_ANNOUNCEMENTS, JSON.stringify(dailyAnnouncements));
         }
-    }, [employees, tasks, swapRequests, notifications, timeRecords, activeSessions, savedSchedules, insulinPatients, insulinLogs, dailyPlans, dailyAnnouncements, isHydrated]);
+    }, [employees, tasks, swapRequests, notifications, timeRecords, activeSessions, savedSchedules, insulinPatients, insulinLogs, medicalNotes, dailyPlans, dailyAnnouncements, isHydrated]);
 
     // === NOTIFICATIONS ===
     const addNotification = useCallback(async (notification) => {
@@ -644,6 +653,17 @@ export function DataProvider({ children }) {
         return newLog;
     }, [db]);
 
+    const addMedicalNote = useCallback(async (note) => {
+        const newNote = {
+            id: Date.now().toString() + Math.random().toString().slice(2, 6),
+            timestamp: new Date().toISOString(),
+            ...note,
+        };
+        if (!db) setMedicalNotes(prev => [...prev, newNote]);
+        else await writeDB('medicalNotes', newNote.id, newNote);
+        return newNote;
+    }, [db]);
+
     // === FRALDAS (Pacientes e Logs) ===
     const addDiaperPatient = useCallback(async (patient) => {
         const newPatient = { id: Date.now().toString() + Math.random().toString().slice(2, 6), ...patient, createdAt: new Date().toISOString() };
@@ -738,7 +758,7 @@ export function DataProvider({ children }) {
 
     const value = {
         employees, tasks, swapRequests, notifications, timeRecords, activeSessions, savedSchedules, isHydrated, leaves, inventoryItems,
-        insulinPatients, insulinLogs, diaperPatients, diaperLogs, dailyPlans, dailyAnnouncements,
+        insulinPatients, insulinLogs, medicalNotes, diaperPatients, diaperLogs, dailyPlans, dailyAnnouncements,
         addEmployee, updateEmployee, removeEmployee, getEmployeeById,
         addTask, updateTask, removeTask, toggleTaskComplete, getTasksByEmployee, getTasksByDate,
         addSwapRequest, approveSwapRequest, rejectSwapRequest, removeSwapRequest, getPendingSwaps,
@@ -748,7 +768,7 @@ export function DataProvider({ children }) {
         resetData, taskCategories: initialTaskCategories,
         addLeave, deleteLeave,
         addInventoryItem, updateInventoryItem, deleteInventoryItem,
-        addInsulinPatient, updateInsulinPatient, deleteInsulinPatient, addInsulinLog,
+        addInsulinPatient, updateInsulinPatient, deleteInsulinPatient, addInsulinLog, addMedicalNote,
         addDiaperPatient, updateDiaperPatient, deleteDiaperPatient,
         addDiaperLog, updateDiaperLog, deleteDiaperLog,
         updateDailyPlan, publishDailyPlan, toggleDailyTaskComplete,

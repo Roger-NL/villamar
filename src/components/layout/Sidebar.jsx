@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import { useApp } from '@/pages/_app';
 import { useData } from '@/contexts/DataContext';
+import { isMedicalRole } from '@/lib/medicalAccess';
 
 const adminSidebarItems = [
     {
@@ -21,7 +22,7 @@ const adminSidebarItems = [
     {
         section: 'Gestão', items: [
             { href: '/admin/funcionarios', icon: Users, label: 'Funcionários' },
-            { href: '/admin/insulina', icon: Syringe, label: 'Insulina' },
+            { href: '/admin/area-medica', icon: Syringe, label: 'Área Médica' },
             { href: '/admin/ferias-licencas', icon: CalendarRange, label: 'Férias & Licenças' },
             { href: '/admin/estoque', icon: Package, label: 'Estoque' },
             { href: '/admin/trocas', icon: ArrowLeftRight, label: 'Pedidos de Troca' },
@@ -40,7 +41,7 @@ const employeeSidebarItems = [
         section: 'Minha Área', items: [
             { href: '/funcionario', icon: Home, label: 'Início' },
             { href: '/funcionario/fraldas', icon: Baby, label: 'Muda de Fraldas' },
-            { href: '/funcionario/insulina', icon: Syringe, label: 'Insulina' },
+            { href: '/funcionario/area-medica', icon: Syringe, label: 'Área Médica' },
             { href: '/funcionario/escala', icon: CalendarDays, label: 'Minha Escala' },
             { href: '/funcionario/tarefas', icon: CheckSquare, label: 'Minhas Tarefas' },
             { href: '/funcionario/presenca', icon: Clock, label: 'Meu Ponto' },
@@ -64,12 +65,21 @@ export default function Sidebar({ isAdmin = false }) {
     }, []);
 
     // Dynamically build employee items
-    let currentEmployeeItems = employeeSidebarItems.map(section => ({
-        section: section.section,
-        items: [...section.items]
-    }));
+    let currentEmployeeItems = isMedicalRole(currentUser?.role)
+        ? [
+            {
+                section: 'Área Médica',
+                items: [
+                    { href: '/funcionario/area-medica', icon: Syringe, label: 'Área Médica' },
+                ]
+            }
+        ]
+        : employeeSidebarItems.map(section => ({
+            section: section.section,
+            items: [...section.items]
+        }));
 
-    if (!isAdmin && currentUser && isHydrated && dailyPlans) {
+    if (!isAdmin && currentUser && !isMedicalRole(currentUser?.role) && isHydrated && dailyPlans) {
         const todayPlan = dailyPlans[todayStr];
 
         if (todayPlan && todayPlan.assignments && todayPlan.assignments['G_RepFraldas'] === currentUser.id) {

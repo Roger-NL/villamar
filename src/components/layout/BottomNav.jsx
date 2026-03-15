@@ -5,13 +5,14 @@ import styles from './BottomNav.module.css';
 import { Home, Calendar, ClipboardList, Settings, Users, Clock, CalendarDays, CheckSquare, Baby, Box, Syringe } from 'lucide-react';
 import { useApp } from '@/pages/_app';
 import { useData } from '@/contexts/DataContext';
+import { isMedicalRole } from '@/lib/medicalAccess';
 
 const employeeNavItems = [
     { href: '/funcionario', icon: Home, label: 'Início' },
     { href: '/funcionario/presenca', icon: Clock, label: 'Ponto' },
     { href: '/funcionario/tarefas', icon: ClipboardList, label: 'Tarefas' },
     { href: '/funcionario/fraldas', icon: Baby, label: 'Fraldas' },
-    { href: '/funcionario/insulina', icon: Syringe, label: 'Insulina' },
+    { href: '/funcionario/area-medica', icon: Syringe, label: 'Área Médica' },
     { href: '/funcionario/escala', icon: Calendar, label: 'Escala' },
 ];
 
@@ -32,9 +33,11 @@ export default function BottomNav({ isAdmin = false }) {
         return now.toISOString().slice(0, 10);
     }, []);
 
-    let currentEmployeeNavItems = [...employeeNavItems];
+    let currentEmployeeNavItems = isMedicalRole(currentUser?.role)
+        ? [{ href: '/funcionario/area-medica', icon: Syringe, label: 'Área Médica' }]
+        : [...employeeNavItems];
 
-    if (!isAdmin && currentUser && isHydrated && dailyPlans) {
+    if (!isAdmin && currentUser && !isMedicalRole(currentUser?.role) && isHydrated && dailyPlans) {
         const todayPlan = dailyPlans[todayStr];
 
         if (todayPlan && todayPlan.assignments && todayPlan.assignments['G_RepFraldas'] === currentUser.id) {

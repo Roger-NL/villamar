@@ -7,6 +7,7 @@ import { auth, db } from '@/config/firebase';
 import { onAuthStateChanged } from 'firebase/auth';
 import { doc, getDoc } from 'firebase/firestore';
 import { isSuperAdminEmail } from '@/lib/authRoles';
+import { isMedicalRole } from '@/lib/medicalAccess';
 
 // Context para modo Admin/Membro
 export const AppContext = createContext();
@@ -29,6 +30,7 @@ function GlobalAuthListener({ children }) {
         const unsubscribe = onAuthStateChanged(auth, async (user) => {
             const isAdminRoute = router.pathname.startsWith('/admin');
             const isEmployeeRoute = router.pathname.startsWith('/funcionario');
+            const isMedicalRoute = router.pathname.startsWith('/funcionario/area-medica');
 
             if (user) {
                 try {
@@ -50,9 +52,15 @@ function GlobalAuthListener({ children }) {
                         });
                         setIsAdmin(hasAdminAccess);
 
+                        const hasMedicalOnlyAccess = isMedicalRole(userData.role);
+
                         if (hasAdminAccess) {
                             if (router.pathname === '/' || isEmployeeRoute) {
                                 router.push('/admin');
+                            }
+                        } else if (hasMedicalOnlyAccess) {
+                            if (router.pathname === '/' || (isEmployeeRoute && !isMedicalRoute)) {
+                                router.push('/funcionario/area-medica');
                             }
                         } else if (isAdminRoute || router.pathname === '/') {
                             router.push('/funcionario');
@@ -106,7 +114,11 @@ function GlobalAuthListener({ children }) {
                             isAdmin: false,
                         });
                         setIsAdmin(false);
-                        if (router.pathname === '/') {
+                        if (isMedicalRole(savedUser.role)) {
+                            if (router.pathname === '/' || (isEmployeeRoute && !isMedicalRoute) || isAdminRoute) {
+                                router.push('/funcionario/area-medica');
+                            }
+                        } else if (router.pathname === '/') {
                             router.push('/funcionario');
                         } else if (isAdminRoute) {
                             router.push('/funcionario');
