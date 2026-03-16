@@ -151,6 +151,16 @@
     background: #f8fafc;
 }
 
+.profileMenuItemPrimary {
+    background: #eff6ff;
+    color: #0b63c9;
+    font-weight: 700;
+}
+
+.profileMenuItemPrimary:hover {
+    background: #dbeafe;
+}
+
 /* Menu Button (Mobile) */
 .menuButton {
     display: none;

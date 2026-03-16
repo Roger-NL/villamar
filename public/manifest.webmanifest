@@ -1,0 +1,17 @@
+{
+  "name": "Villa Mar",
+  "short_name": "Villa Mar",
+  "description": "Sistema interno da Villa Mar para operacao diaria da equipa, fraldas, area medica, escalas e tarefas.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#f5f5f7",
+  "theme_color": "#f5f5f7",
+  "icons": [
+    {
+      "src": "/favicon.ico",
+      "sizes": "64x64 32x32 24x24 16x16",
+      "type": "image/x-icon"
+    }
+  ]
+}

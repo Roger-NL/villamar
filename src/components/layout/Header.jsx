@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { useRouter } from 'next/router';
 import styles from './Header.module.css';
-import { Menu, X, User, LogOut, Home, Clock, CalendarDays, CheckSquare, Users, CalendarRange, Package, ArrowLeftRight, FileText, Settings } from 'lucide-react';
+import { Menu, X, User, LogOut, Home, Clock, CalendarDays, CheckSquare, Users, CalendarRange, Package, ArrowLeftRight, FileText, Settings, Download } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import Avatar from '../ui/Avatar';
 import { auth } from '@/config/firebase';
@@ -38,6 +38,8 @@ export default function Header({
 }) {
     const [profileMenuOpen, setProfileMenuOpen] = useState(false);
     const [mobileAdminMenuOpen, setMobileAdminMenuOpen] = useState(false);
+    const [deferredInstallPrompt, setDeferredInstallPrompt] = useState(null);
+    const [installReady, setInstallReady] = useState(false);
     const router = useRouter();
     const profileMenuRef = useRef(null);
 
@@ -50,6 +52,33 @@ export default function Header({
 
         document.addEventListener('mousedown', handleClickOutside);
         return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, []);
+
+    useEffect(() => {
+        const isStandalone = window.matchMedia?.('(display-mode: standalone)')?.matches || window.navigator.standalone;
+        if (isStandalone) {
+            setInstallReady(false);
+            return;
+        }
+
+        const handleBeforeInstallPrompt = (event) => {
+            event.preventDefault();
+            setDeferredInstallPrompt(event);
+            setInstallReady(true);
+        };
+
+        const handleAppInstalled = () => {
+            setDeferredInstallPrompt(null);
+            setInstallReady(false);
+        };
+
+        window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+        window.addEventListener('appinstalled', handleAppInstalled);
+
+        return () => {
+            window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+            window.removeEventListener('appinstalled', handleAppInstalled);
+        };
     }, []);
 
     const handleOpenProfile = () => {
@@ -68,6 +97,36 @@ export default function Header({
 
         localStorage.removeItem('villamar_employee_session');
         window.location.href = '/';
+    };
+
+    const handleInstallApp = async () => {
+        setProfileMenuOpen(false);
+
+        const isIos = /iphone|ipad|ipod/i.test(window.navigator.userAgent || '');
+        const isStandalone = window.matchMedia?.('(display-mode: standalone)')?.matches || window.navigator.standalone;
+
+        if (isStandalone) {
+            return;
+        }
+
+        if (deferredInstallPrompt) {
+            deferredInstallPrompt.prompt();
+            const choice = await deferredInstallPrompt.userChoice;
+            if (choice?.outcome !== 'accepted') {
+                setInstallReady(true);
+            } else {
+                setDeferredInstallPrompt(null);
+                setInstallReady(false);
+            }
+            return;
+        }
+
+        if (isIos) {
+            window.alert('No iPhone, toque em Partilhar e depois em "Adicionar ao ecrã principal".');
+            return;
+        }
+
+        window.alert('Se o navegador suportar instalação, use a opção "Instalar app" ou "Adicionar ao ecrã principal".');
     };
 
     return (
@@ -113,6 +172,14 @@ export default function Header({
                                 <button type="button" className={styles.profileMenuItem} onClick={handleOpenProfile}>
                                     <User size={16} />
                                     Perfil Pessoal
+                                </button>
+                                <button
+                                    type="button"
+                                    className={`${styles.profileMenuItem} ${styles.profileMenuItemPrimary}`}
+                                    onClick={handleInstallApp}
+                                >
+                                    <Download size={16} />
+                                    {installReady ? 'Download App' : 'Instalar App'}
                                 </button>
                                 <button type="button" className={styles.profileMenuItem} onClick={handleLogout}>
                                     <LogOut size={16} />

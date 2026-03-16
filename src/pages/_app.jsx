@@ -1,4 +1,5 @@
 import '@/styles/globals.css';
+import Head from 'next/head';
 import { useState, createContext, useContext, useEffect } from 'react';
 import { DataProvider, useData } from '@/contexts/DataContext';
 import ToastNotifications from '@/components/ui/Toast';
@@ -152,6 +153,25 @@ function GlobalAuthListener({ children }) {
     return children;
 }
 
+function PwaBoot() {
+    useEffect(() => {
+        if (typeof window === 'undefined') return;
+        if (!('serviceWorker' in navigator)) return;
+
+        const register = async () => {
+            try {
+                await navigator.serviceWorker.register('/sw.js');
+            } catch (error) {
+                console.error('Falha ao registar service worker:', error);
+            }
+        };
+
+        register();
+    }, []);
+
+    return null;
+}
+
 export default function App({ Component, pageProps }) {
     const [isAdmin, setIsAdmin] = useState(false);
     const [currentUser, setCurrentUser] = useState(null);
@@ -171,6 +191,18 @@ export default function App({ Component, pageProps }) {
     return (
         <DataProvider>
             <AppContext.Provider value={value}>
+                <Head>
+                    <meta name="application-name" content="Villa Mar" />
+                    <meta name="apple-mobile-web-app-capable" content="yes" />
+                    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+                    <meta name="apple-mobile-web-app-title" content="Villa Mar" />
+                    <meta name="format-detection" content="telephone=no" />
+                    <meta name="mobile-web-app-capable" content="yes" />
+                    <meta name="theme-color" content="#f5f5f7" />
+                    <link rel="manifest" href="/manifest.webmanifest" />
+                    <link rel="apple-touch-icon" href="/favicon.ico" />
+                </Head>
+                <PwaBoot />
                 <GlobalAuthListener>
                     <Component {...pageProps} />
                 </GlobalAuthListener>
