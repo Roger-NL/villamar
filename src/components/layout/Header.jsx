@@ -83,17 +83,23 @@ export default function Header({
         if (typeof document === 'undefined') return;
 
         const shouldLockPage = mobileAdminMenuOpen || installModalOpen;
-        const previousOverflow = document.body.style.overflow;
-        const previousTouchAction = document.body.style.touchAction;
+        const previousBodyOverflow = document.body.style.overflow;
+        const previousHtmlOverflow = document.documentElement.style.overflow;
+        const previousBodyOverscroll = document.body.style.overscrollBehavior;
+        const previousHtmlOverscroll = document.documentElement.style.overscrollBehavior;
 
         if (shouldLockPage) {
             document.body.style.overflow = 'hidden';
-            document.body.style.touchAction = 'none';
+            document.documentElement.style.overflow = 'hidden';
+            document.body.style.overscrollBehavior = 'none';
+            document.documentElement.style.overscrollBehavior = 'none';
         }
 
         return () => {
-            document.body.style.overflow = previousOverflow;
-            document.body.style.touchAction = previousTouchAction;
+            document.body.style.overflow = previousBodyOverflow;
+            document.documentElement.style.overflow = previousHtmlOverflow;
+            document.body.style.overscrollBehavior = previousBodyOverscroll;
+            document.documentElement.style.overscrollBehavior = previousHtmlOverscroll;
         };
     }, [mobileAdminMenuOpen, installModalOpen]);
 
