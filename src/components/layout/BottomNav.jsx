@@ -61,10 +61,17 @@ export default function BottomNav({ isAdmin = false }) {
                     <Link
                         key={item.href}
                         href={item.href}
-                        className={`${styles.navItem} ${isActive ? styles.active : ''}`}
+                        className={`${styles.navItem} ${item.label === 'Área Médica' ? styles.navItemMedical : ''} ${isActive ? styles.active : ''}`}
                     >
                         <Icon size={22} />
-                        <span>{item.label}</span>
+                        {item.label === 'Área Médica' ? (
+                            <span className={styles.navLabelTight}>
+                                <span>Área</span>
+                                <span>Médica</span>
+                            </span>
+                        ) : (
+                            <span>{item.label}</span>
+                        )}
                     </Link>
                 );
             })}
