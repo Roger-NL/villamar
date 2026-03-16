@@ -1,4 +1,5 @@
 import Head from 'next/head';
+import Link from 'next/link';
 import { useMemo, useState } from 'react';
 import styles from '@/styles/Dashboard.module.css';
 import formStyles from '@/styles/Forms.module.css';
@@ -260,6 +261,9 @@ export default function FuncionarioAreaMedicaPage() {
                                         ))}
                                     </div>
                                 )}
+                                <Link href="/funcionario/area-medica/registos-insulina" style={{ marginTop: '12px', display: 'inline-block', fontSize: '13px', fontWeight: 700, color: '#0284c7', textDecoration: 'none' }}>
+                                    Ver todos os registos
+                                </Link>
                             </Card>
                         </div>
                     ) : (
@@ -346,6 +350,9 @@ export default function FuncionarioAreaMedicaPage() {
                                         ))}
                                     </div>
                                 )}
+                                <Link href="/funcionario/area-medica/observacoes-clinicas" style={{ marginTop: '12px', display: 'inline-block', fontSize: '13px', fontWeight: 700, color: '#0284c7', textDecoration: 'none' }}>
+                                    Ver todas as observações
+                                </Link>
                             </Card>
                         </div>
                     )}

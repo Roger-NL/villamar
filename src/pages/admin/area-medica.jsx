@@ -1,4 +1,5 @@
 import Head from 'next/head';
+import Link from 'next/link';
 import { useMemo, useState } from 'react';
 import styles from '@/styles/AdminPages.module.css';
 import formStyles from '@/styles/Forms.module.css';
@@ -13,7 +14,7 @@ import { ClipboardPlus, Plus, Syringe, Trash2 } from 'lucide-react';
 
 export default function AdminAreaMedicaPage() {
     const { isAdmin, toggleMode, currentUser } = useApp();
-    const { insulinPatients, insulinLogs, medicalNotes, addInsulinPatient, deleteInsulinPatient, isHydrated } = useData();
+    const { insulinPatients, insulinLogs, medicalNotes, addInsulinPatient, deleteInsulinPatient, updateInsulinPatient, isHydrated } = useData();
     const [newPatientName, setNewPatientName] = useState('');
     const [toast, setToast] = useState('');
 
@@ -44,6 +45,27 @@ export default function AdminAreaMedicaPage() {
         await addInsulinPatient({ name: trimmedName });
         setNewPatientName('');
         setToast(`Utente ${trimmedName} adicionado à Área Médica.`);
+        setTimeout(() => setToast(''), 2500);
+    };
+
+    const handleRemovePatient = async (patient) => {
+        const key = patient?.name?.trim().toLowerCase();
+        if (!key) return;
+
+        const isProtected = protectedNames.has(key);
+        if (isProtected) {
+            const persisted = (insulinPatients || []).find((entry) => entry.name?.trim().toLowerCase() === key);
+            if (persisted) {
+                await updateInsulinPatient(persisted.id, { active: false });
+            } else {
+                await addInsulinPatient({ id: `insulin-disabled-${key.replace(/\s+/g, '-')}`, name: patient.name, active: false });
+            }
+            setToast(`Utente ${patient.name} removido dos monitorizados.`);
+        } else {
+            await deleteInsulinPatient(patient.id);
+            setToast(`Utente ${patient.name} removido dos monitorizados.`);
+        }
+
         setTimeout(() => setToast(''), 2500);
     };
 
@@ -99,24 +121,21 @@ export default function AdminAreaMedicaPage() {
 
                             <div style={{ display: 'grid', gap: '12px' }}>
                                 {patients.map((patient) => {
-                                    const isProtected = protectedNames.has(patient.name.trim().toLowerCase());
                                     return (
                                         <div key={patient.id} style={{ border: '1px solid #E2E8F0', background: '#F8FAFC', borderRadius: '14px', padding: '14px 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px' }}>
                                             <div>
                                                 <strong style={{ color: '#0f172a' }}>{patient.name}</strong>
                                                 <div style={{ fontSize: '13px', color: '#64748b', marginTop: '4px' }}>
-                                                    {isProtected ? 'Base inicial da casa' : 'Adicionado pela administração'}
+                                                    Utente monitorizado
                                                 </div>
                                             </div>
-                                            {!isProtected && (
-                                                <button
-                                                    type="button"
-                                                    onClick={() => deleteInsulinPatient(patient.id)}
-                                                    style={{ border: 'none', background: '#FEE2E2', color: '#DC2626', width: '38px', height: '38px', borderRadius: '12px', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
-                                                >
-                                                    <Trash2 size={18} />
-                                                </button>
-                                            )}
+                                            <button
+                                                type="button"
+                                                onClick={() => handleRemovePatient(patient)}
+                                                style={{ border: 'none', background: '#FEE2E2', color: '#DC2626', width: '38px', height: '38px', borderRadius: '12px', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
+                                            >
+                                                <Trash2 size={18} />
+                                            </button>
                                         </div>
                                     );
                                 })}
@@ -132,6 +151,9 @@ export default function AdminAreaMedicaPage() {
                                         <strong>Registos de insulina</strong>
                                     </div>
                                     <div style={{ fontSize: '28px', fontWeight: 800, color: '#0f172a' }}>{weekSummary.recentInsulinLogs.length}</div>
+                                    <Link href="/admin/area-medica/registos-insulina" style={{ marginTop: '8px', display: 'inline-block', fontSize: '13px', fontWeight: 700, color: '#0284c7', textDecoration: 'none' }}>
+                                        Ver todos os registos
+                                    </Link>
                                 </div>
 
                                 <div style={{ border: '1px solid #E2E8F0', borderRadius: '14px', padding: '14px 16px', background: 'white' }}>
@@ -140,6 +162,9 @@ export default function AdminAreaMedicaPage() {
                                         <strong>Observações clínicas</strong>
                                     </div>
                                     <div style={{ fontSize: '28px', fontWeight: 800, color: '#0f172a' }}>{weekSummary.recentMedicalNotes.length}</div>
+                                    <Link href="/admin/area-medica/observacoes-clinicas" style={{ marginTop: '8px', display: 'inline-block', fontSize: '13px', fontWeight: 700, color: '#0284c7', textDecoration: 'none' }}>
+                                        Ver todas as observações
+                                    </Link>
                                 </div>
                             </div>
                         </Card>
