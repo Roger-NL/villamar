@@ -79,6 +79,24 @@ export default function Header({
         };
     }, []);
 
+    useEffect(() => {
+        if (typeof document === 'undefined') return;
+
+        const shouldLockPage = mobileAdminMenuOpen || installModalOpen;
+        const previousOverflow = document.body.style.overflow;
+        const previousTouchAction = document.body.style.touchAction;
+
+        if (shouldLockPage) {
+            document.body.style.overflow = 'hidden';
+            document.body.style.touchAction = 'none';
+        }
+
+        return () => {
+            document.body.style.overflow = previousOverflow;
+            document.body.style.touchAction = previousTouchAction;
+        };
+    }, [mobileAdminMenuOpen, installModalOpen]);
+
     const handleOpenProfile = () => {
         setProfileMenuOpen(false);
         setMobileAdminMenuOpen(false);
