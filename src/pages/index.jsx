@@ -1,16 +1,14 @@
 import Head from 'next/head';
-import Image from 'next/image';
 import { useState } from 'react';
 import { useRouter } from 'next/router';
 import styles from '@/styles/Home.module.css';
 import formStyles from '@/styles/Forms.module.css';
 import { useApp } from './_app';
 import { useData } from '@/contexts/DataContext';
-import { db, auth } from '@/config/firebase';
-import { signInWithEmailAndPassword, createUserWithEmailAndPassword } from 'firebase/auth';
-import { doc, setDoc } from 'firebase/firestore';
+import { auth } from '@/config/firebase';
+import { signInWithEmailAndPassword } from 'firebase/auth';
 import Avatar from '@/components/ui/Avatar';
-import { User, Shield, ChevronRight, X, Lock, Mail, LogIn, Bell, ArrowLeft, UserPlus, CalendarDays, ClipboardCheck, Baby, Syringe, Smartphone, BarChart3, ShieldCheck, Sparkles } from 'lucide-react';
+import { User, Shield, ChevronRight, X, Lock, Mail, LogIn, ArrowLeft, CalendarDays, ClipboardCheck, Baby, Syringe, Smartphone, BarChart3, ShieldCheck, Sparkles, Clock3, FileText, Pill } from 'lucide-react';
 
 export default function Home() {
     const router = useRouter();
@@ -19,12 +17,10 @@ export default function Home() {
 
     const [showUserSelector, setShowUserSelector] = useState(false);
     const [showAdminLogin, setShowAdminLogin] = useState(false);
-    const [isRegisteringAdmin, setIsRegisteringAdmin] = useState(false);
 
     // Form Admins
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
-    const [adminName, setAdminName] = useState('');
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
 
@@ -68,7 +64,6 @@ export default function Home() {
         } else if (mode === 'admin') {
             setShowUserSelector(false);
             setShowAdminLogin(true);
-            setIsRegisteringAdmin(false);
             setError('');
         }
     };
@@ -111,27 +106,7 @@ export default function Home() {
         }
 
         try {
-            if (isRegisteringAdmin) {
-                if (!adminName) throw new Error("Preencha o seu nome completo.");
-                const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-                const user = userCredential.user;
-
-                const newUser = {
-                    id: user.uid,
-                    name: adminName,
-                    email: email,
-                    role: 'Administrador',
-                    isAdmin: true,
-                    status: 'absent',
-                    clockIn: null,
-                    clockOut: null,
-                    createdAt: new Date().toISOString()
-                };
-                await setDoc(doc(db, 'employees', user.uid), newUser);
-            } else {
-                await signInWithEmailAndPassword(auth, email, password);
-            }
-
+            await signInWithEmailAndPassword(auth, email, password);
             localStorage.removeItem('villamar_employee_session');
         } catch (err) {
             console.error("Auth error:", err);
@@ -180,7 +155,7 @@ export default function Home() {
                     <section className={styles.heroSection}>
                         <div className={styles.heroCopy}>
                             <div className={styles.brandPill}>
-                                <Image src="/villamar-mark.svg" alt="Marca Villa Mar" width={52} height={52} className={styles.brandMark} />
+                                <img src="/villamar-mark.svg" alt="Marca Villa Mar" width={52} height={52} className={styles.brandMark} />
                                 <div>
                                     <span className={styles.brandEyebrow}>Plataforma interna Villa Mar</span>
                                     <strong className={styles.brandName}>villamaracesso.pt</strong>
@@ -190,13 +165,13 @@ export default function Home() {
                             <div className={styles.heroHeading}>
                                 <span className={styles.heroBadge}>
                                     <Sparkles size={16} />
-                                    Tecnologia pensada a partir da rotina real da casa
+                                    Tudo o que a casa precisa, num só lugar
                                 </span>
-                                <h1>A plataforma interna da Villa Mar, com imagem de produto e alma de operação.</h1>
+                                <h1>Bem-vindos à plataforma interna da Villa Mar.</h1>
                                 <p>
-                                    Um sistema feito a pensar no que realmente acontece dentro da casa:
-                                    equipas, turnos, tarefas, fraldas, área médica, relatórios e gestão reunidos num ambiente claro,
-                                    bonito e pronto para funcionar todos os dias.
+                                    Aqui ficam reunidas as rotinas da casa:
+                                    equipa, turnos, tarefas, fraldas, área médica, relatórios e gestão.
+                                    Um ponto de entrada claro para quem trabalha, para quem coordena e para quem precisa encontrar tudo sem complicação.
                                 </p>
                             </div>
 
@@ -231,11 +206,13 @@ export default function Home() {
                         </div>
 
                         <div className={styles.heroVisual}>
-                            <div className={styles.loginPanel}>
-                                <div className={styles.loginPanelHeader}>
-                                    <span className={styles.sectionEyebrow}>Entrar agora</span>
-                                    <h2>Entrar é simples</h2>
-                                    <p>Dois acessos, duas leituras claras: equipa entra com PIN e direção entra com email e senha.</p>
+                            <div className={styles.visualBoard}>
+                                <div className={styles.visualBoardHeader}>
+                                    <div>
+                                        <span className={styles.sectionEyebrow}>Entrar agora</span>
+                                        <h2>Como quer entrar?</h2>
+                                        <p>Escolha o acesso certo para si. Equipa entra com PIN. Direção e administração entram com email e senha.</p>
+                                    </div>
                                 </div>
 
                                 <div className={styles.loginGrid}>
@@ -245,7 +222,7 @@ export default function Home() {
                                         </div>
                                         <div className={styles.accessInfo}>
                                             <h3>Equipa</h3>
-                                            <p>Entrada imediata para quem está em serviço, com PIN e acesso direto ao que precisa de fazer hoje.</p>
+                                            <p>Para quem está em serviço e precisa abrir o dia, consultar tarefas e seguir a rotina com rapidez.</p>
                                         </div>
                                         <div className={styles.accessMeta}>
                                             <span>{teamCount} profissionais na equipa</span>
@@ -259,7 +236,7 @@ export default function Home() {
                                         </div>
                                         <div className={styles.accessInfo}>
                                             <h3>Admin & Direção</h3>
-                                            <p>Acesso protegido para coordenação da casa, decisões, relatórios, utilizadores e controlo global da operação.</p>
+                                            <p>Para quem organiza a casa, acompanha a equipa, consulta relatórios e gere o funcionamento geral.</p>
                                         </div>
                                         <div className={styles.accessMeta}>
                                             <span>Entrada segura com email e senha</span>
@@ -272,24 +249,61 @@ export default function Home() {
                                     <span>Villa Mar v2.0</span>
                                     <span>Experiência otimizada para web, desktop e telemóvel</span>
                                 </div>
-                            </div>
 
-                            <div className={styles.heroArtFrame}>
-                                <Image src="/villamar-hero.svg" alt="Pré-visualização do sistema Villa Mar" width={840} height={660} className={styles.heroArt} priority />
-                            </div>
-                            <div className={styles.visualMiniCards}>
-                                <div className={styles.visualMiniCard}>
-                                    <Bell size={18} />
-                                    <div>
-                                        <strong>Operação diária num só lugar</strong>
-                                        <span>Tarefas, avisos, fraldas e gestão organizados de forma limpa e imediata.</span>
-                                    </div>
+                                <div className={styles.systemPreviewGrid}>
+                                    <article className={styles.previewCard}>
+                                        <div className={styles.previewCardIcon}>
+                                            <ClipboardCheck size={18} />
+                                        </div>
+                                        <div>
+                                            <strong>Plano do dia</strong>
+                                            <span>Responsáveis, áreas e tarefas principais organizadas logo à entrada.</span>
+                                        </div>
+                                    </article>
+
+                                    <article className={styles.previewCard}>
+                                        <div className={styles.previewCardIcon}>
+                                            <Baby size={18} />
+                                        </div>
+                                        <div>
+                                            <strong>Fraldas e stock</strong>
+                                            <span>Conferência, reposição e controlo do depósito sem perder o fio da operação.</span>
+                                        </div>
+                                    </article>
+
+                                    <article className={styles.previewCard}>
+                                        <div className={styles.previewCardIcon}>
+                                            <Syringe size={18} />
+                                        </div>
+                                        <div>
+                                            <strong>Área médica</strong>
+                                            <span>Insulina, observações clínicas e registos num fluxo simples de consultar.</span>
+                                        </div>
+                                    </article>
+
+                                    <article className={styles.previewCard}>
+                                        <div className={styles.previewCardIcon}>
+                                            <FileText size={18} />
+                                        </div>
+                                        <div>
+                                            <strong>Relatórios e gestão</strong>
+                                            <span>Dados da casa mais acessíveis para decidir e acompanhar com segurança.</span>
+                                        </div>
+                                    </article>
                                 </div>
-                                <div className={styles.visualMiniCard}>
-                                    <Smartphone size={18} />
-                                    <div>
-                                        <strong>Instalável no telemóvel</strong>
-                                        <span>Pronto para iPhone, Android, tablet e desktop, sem perder clareza nem velocidade.</span>
+
+                                <div className={styles.systemTimeline}>
+                                    <div className={styles.timelineItem}>
+                                        <Clock3 size={16} />
+                                        <span>Turnos, entradas e rotina diária concentrados no mesmo sítio.</span>
+                                    </div>
+                                    <div className={styles.timelineItem}>
+                                        <Pill size={16} />
+                                        <span>Acompanhamento mais claro para quem presta cuidados e para quem coordena.</span>
+                                    </div>
+                                    <div className={styles.timelineItem}>
+                                        <Smartphone size={16} />
+                                        <span>Preparado para telemóvel, tablet e computador, sem parecer um sistema improvisado.</span>
                                     </div>
                                 </div>
                             </div>
@@ -300,10 +314,10 @@ export default function Home() {
                         <div className={styles.sectionHeader}>
                             <div>
                                 <span className={styles.sectionEyebrow}>Porque resulta</span>
-                                <h2>Bonito na imagem, sólido na prática</h2>
+                                <h2>O dia a dia da casa, mais organizado e mais leve</h2>
                             </div>
                             <p>
-                                A apresentação mostra o produto como ele é: um sistema sério, criado para uma casa real, com necessidades reais.
+                                A ideia aqui é simples: menos procura, menos folhas soltas, menos dúvidas e mais clareza para quem trabalha e para quem coordena.
                             </p>
                         </div>
 
@@ -331,8 +345,8 @@ export default function Home() {
                     <div className={formStyles.modal} onClick={e => e.stopPropagation()} style={{ maxWidth: '400px', margin: '0 auto' }}>
                         <div className={formStyles.modalHeader} style={{ marginBottom: '24px' }}>
                             <h2 style={{ fontSize: '1.25rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                {isRegisteringAdmin ? <UserPlus size={20} className={styles.blueText} /> : <Shield size={20} className={styles.blueText} />}
-                                {isRegisteringAdmin ? 'Criar Acesso Admin' : 'Acesso Restrito Admin'}
+                                <Shield size={20} className={styles.blueText} />
+                                Acesso Restrito Admin
                             </h2>
                             <button className={formStyles.closeBtn} onClick={() => setShowAdminLogin(false)}>
                                 <X size={24} />
@@ -346,24 +360,6 @@ export default function Home() {
                         )}
 
                         <form onSubmit={handleAdminAuth} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                            {isRegisteringAdmin && (
-                                <div className={formStyles.formGroup}>
-                                    <label className={formStyles.label}>Nome Completo</label>
-                                    <div style={{ position: 'relative' }}>
-                                        <User size={18} style={{ position: 'absolute', left: '12px', top: '14px', color: '#9CA3AF' }} />
-                                        <input
-                                            type="text"
-                                            className={formStyles.input}
-                                            style={{ paddingLeft: '40px' }}
-                                            placeholder="Ex: Carlos Silva"
-                                            value={adminName}
-                                            onChange={(e) => setAdminName(e.target.value)}
-                                            required={isRegisteringAdmin}
-                                        />
-                                    </div>
-                                </div>
-                            )}
-
                             <div className={formStyles.formGroup}>
                                 <label className={formStyles.label}>Email da Direção</label>
                                 <div style={{ position: 'relative' }}>
@@ -401,29 +397,16 @@ export default function Home() {
                                 disabled={loading}
                                 style={{
                                     width: '100%', padding: '14px', marginTop: '8px',
-                                    background: isRegisteringAdmin ? '#3B82F6' : '#000', color: 'white', border: 'none', borderRadius: '12px',
+                                    background: '#000', color: 'white', border: 'none', borderRadius: '12px',
                                     fontWeight: '600', fontSize: '1rem', cursor: loading ? 'not-allowed' : 'pointer',
                                     display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '8px',
                                     opacity: loading ? 0.7 : 1
                                 }}
                             >
-                                {loading ? 'A validar...' : (isRegisteringAdmin ? 'Registar' : 'Aceder ao Painel')}
-                                {!loading && (isRegisteringAdmin ? <UserPlus size={18} /> : <LogIn size={18} />)}
+                                {loading ? 'A validar...' : 'Aceder ao Painel'}
+                                {!loading && <LogIn size={18} />}
                             </button>
                         </form>
-
-                        <div style={{ marginTop: '24px', textAlign: 'center', fontSize: '0.875rem' }}>
-                            <button
-                                onClick={() => {
-                                    setIsRegisteringAdmin(!isRegisteringAdmin);
-                                    setError('');
-                                }}
-                                type="button"
-                                style={{ background: 'none', border: 'none', color: '#6B7280', textDecoration: 'underline', cursor: 'pointer' }}
-                            >
-                                {isRegisteringAdmin ? 'Já possui conta? Iniciar Sessão' : 'Criar Conta de Direção'}
-                            </button>
-                        </div>
                     </div>
                 </div>
             )}

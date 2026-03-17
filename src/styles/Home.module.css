@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Fraunces:opsz,wght@9..144,600;9..144,700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Manrope:wght@600;700;800&display=swap');
 
 .main {
   position: relative;
@@ -110,7 +110,7 @@
   display: block;
   font-size: 12px;
   font-weight: 800;
-  letter-spacing: 0.12em;
+  letter-spacing: 0.09em;
   text-transform: uppercase;
   color: #0c4ea2;
 }
@@ -126,7 +126,7 @@
 .heroHeading {
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 16px;
 }
 
 .heroBadge {
@@ -138,23 +138,25 @@
   border-radius: 999px;
   background: rgba(12, 78, 162, 0.08);
   color: #0b63c9;
-  font-size: 13px;
+  font-size: 12.5px;
   font-weight: 700;
+  letter-spacing: 0.01em;
 }
 
 .heroHeading h1 {
   margin: 0;
-  font-family: 'Fraunces', Georgia, serif;
-  font-size: clamp(2.6rem, 5vw, 4.6rem);
-  line-height: 0.98;
-  letter-spacing: -0.05em;
+  font-family: 'Manrope', 'Inter', sans-serif;
+  font-size: clamp(2.45rem, 4.8vw, 4.25rem);
+  line-height: 1.04;
+  letter-spacing: -0.035em;
   color: #0f1e2f;
 }
 
 .heroHeading p {
   max-width: 640px;
   font-size: 17px;
-  line-height: 1.7;
+  line-height: 1.78;
+  letter-spacing: -0.01em;
   color: #56687c;
 }
 
@@ -223,31 +225,33 @@
 
 .heroVisual {
   padding: 22px;
+  display: block;
+}
+
+.visualBoard {
+  height: 100%;
   display: flex;
   flex-direction: column;
   gap: 16px;
 }
 
-.loginPanel {
-  padding: 22px;
-  border-radius: 28px;
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(235, 245, 255, 0.96));
-  border: 1px solid rgba(12, 78, 162, 0.08);
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
+.visualBoardHeader {
+  padding: 4px 2px 0;
 }
 
-.loginPanelHeader h2 {
+.visualBoardHeader h2 {
   margin: 0;
+  font-family: 'Manrope', 'Inter', sans-serif;
   font-size: clamp(1.7rem, 2vw, 2.2rem);
+  letter-spacing: -0.025em;
   color: #10253d;
 }
 
-.loginPanelHeader p {
-  margin: 8px 0 0;
+.visualBoardHeader p {
+  margin: 10px 0 0;
   font-size: 14px;
-  line-height: 1.65;
+  line-height: 1.72;
+  letter-spacing: -0.01em;
   color: #607489;
 }
 
@@ -267,28 +271,13 @@
   color: #6f8499;
 }
 
-.heroArtFrame {
-  position: relative;
-  overflow: hidden;
-  border-radius: 28px;
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(229, 243, 255, 0.96));
-  border: 1px solid rgba(12, 78, 162, 0.08);
-  min-height: 420px;
-}
-
-.heroArt {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-
-.visualMiniCards {
+.systemPreviewGrid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 12px;
 }
 
-.visualMiniCard {
+.previewCard {
   display: flex;
   gap: 12px;
   padding: 16px;
@@ -296,26 +285,57 @@
   background: rgba(255, 255, 255, 0.82);
   border: 1px solid rgba(12, 78, 162, 0.08);
   color: #1b3551;
+  min-height: 124px;
 }
 
-.visualMiniCard svg {
+.previewCardIcon {
+  width: 42px;
+  height: 42px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 14px;
+  background: linear-gradient(135deg, #0b63c9, #5cb9f3);
+  color: white;
   flex-shrink: 0;
-  color: #0b63c9;
-  margin-top: 2px;
 }
 
-.visualMiniCard strong {
+.previewCard strong {
   display: block;
   font-size: 14px;
   font-weight: 800;
 }
 
-.visualMiniCard span {
+.previewCard span {
   display: block;
   margin-top: 6px;
   font-size: 13px;
-  line-height: 1.5;
+  line-height: 1.62;
   color: #607489;
+}
+
+.systemTimeline {
+  display: grid;
+  gap: 10px;
+}
+
+.timelineItem {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 14px 16px;
+  border-radius: 18px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.92), rgba(241, 247, 255, 0.88));
+  border: 1px solid rgba(12, 78, 162, 0.08);
+  color: #50657b;
+  font-size: 13px;
+  line-height: 1.58;
+}
+
+.timelineItem svg {
+  color: #0b63c9;
+  flex-shrink: 0;
+  margin-top: 2px;
 }
 
 .pillarsShell {
@@ -344,14 +364,17 @@
 
 .sectionHeader h2 {
   margin: 0;
+  font-family: 'Manrope', 'Inter', sans-serif;
   font-size: clamp(1.8rem, 2vw, 2.3rem);
+  letter-spacing: -0.025em;
 }
 
 .sectionHeader p {
   max-width: 560px;
   justify-self: end;
   font-size: 15px;
-  line-height: 1.7;
+  line-height: 1.78;
+  letter-spacing: -0.01em;
   color: #607489;
 }
 
@@ -400,14 +423,17 @@
 
 .accessInfo h3 {
   margin: 0 0 8px;
+  font-family: 'Manrope', 'Inter', sans-serif;
   font-size: 25px;
+  letter-spacing: -0.025em;
   color: #0f1e2f;
 }
 
 .accessInfo p {
   margin: 0;
   font-size: 15px;
-  line-height: 1.68;
+  line-height: 1.72;
+  letter-spacing: -0.01em;
   color: #607489;
 }
 
@@ -461,13 +487,16 @@
 
 .pillarCard h3 {
   margin: 18px 0 8px;
+  font-family: 'Manrope', 'Inter', sans-serif;
   font-size: 18px;
+  letter-spacing: -0.02em;
   color: #132a43;
 }
 
 .pillarCard p {
   font-size: 14px;
-  line-height: 1.65;
+  line-height: 1.72;
+  letter-spacing: -0.01em;
   color: #61768b;
 }
 
@@ -580,15 +609,10 @@
   }
 
   .heroSection,
-  .accessGrid,
   .pillarsSection,
   .metricStrip,
-  .visualMiniCards {
+  .systemPreviewGrid {
     grid-template-columns: 1fr;
-  }
-
-  .heroArtFrame {
-    min-height: 320px;
   }
 
   .sectionHeader {
@@ -610,7 +634,6 @@
 
   .heroCopy,
   .heroVisual,
-  .accessSection,
   .pillarCard {
     border-radius: 24px;
   }
@@ -652,6 +675,10 @@
 
   .accessCard {
     padding: 20px;
+  }
+
+  .previewCard {
+    min-height: auto;
   }
 
   .accessInfo h3 {
