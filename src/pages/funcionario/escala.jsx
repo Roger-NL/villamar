@@ -238,8 +238,8 @@ export default function EscalaPage() {
                                                 const canSwap = !isMe;
 
                                                 return (
-                                                    <tr key={`${si}-${ei}`} className={`${escStyles.empRow} ${isMe ? styles.myRowHighlight : ''}`}>
-                                                        <td className={escStyles.nameCell}>
+                                                    <tr key={`${si}-${ei}`} className={`${escStyles.empRow} ${isMe ? escStyles.myRow : ''}`}>
+                                                        <td className={`${escStyles.nameCell} ${isMe ? escStyles.myNameCell : ''}`}>
                                                             <span className={escStyles.empName} style={{ fontWeight: isMe ? 700 : 500 }}>
                                                                 {emp.name.split(' ')[0]} {isMe && '(Eu)'}
                                                             </span>
@@ -265,7 +265,7 @@ export default function EscalaPage() {
                                                                         ${d.isWeekend ? escStyles.weekendC : ''} 
                                                                         ${d.isToday ? escStyles.todayC : ''} 
                                                                         ${d.dow === 0 ? escStyles.sundayBorder : ''}
-                                                                        ${canSwap ? styles.swappableCell : ''}
+                                                                        ${canSwap ? styles.swappable : ''}
                                                                     `}
                                                                     style={(!canSwap && !isMe) ? { opacity: 0.7, cursor: 'not-allowed' } : { cursor: canSwap ? 'pointer' : 'default' }}
                                                                     title={titleMsg}

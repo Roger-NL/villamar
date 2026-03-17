@@ -146,6 +146,7 @@
 /* Table wrapper */
 .tableWrap {
     overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
     background: white;
     border-radius: 10px;
     box-shadow: 0 1px 6px rgba(0, 0, 0, 0.06);
@@ -177,6 +178,7 @@
     border-bottom: 2px solid #dde1e9;
     border-right: 1px solid #dde1e9;
     min-width: 120px;
+    box-shadow: 1px 0 0 #dde1e9;
 }
 
 .dayHeader {
@@ -216,6 +218,7 @@
 
 .todayH {
     background: #dbeafe !important;
+    box-shadow: inset 2px 0 0 #2563eb, inset -2px 0 0 #2563eb;
 }
 
 .todayH .dayNum {
@@ -271,6 +274,7 @@
     align-items: center;
     gap: 6px;
     min-width: 120px;
+    box-shadow: 1px 0 0 #e2e8f0;
 }
 
 .empRow:hover .nameCell {
@@ -389,6 +393,26 @@
 .todayC {
     border-left: 2px solid #3b82f6 !important;
     border-right: 2px solid #3b82f6 !important;
+    background-image: linear-gradient(180deg, rgba(37, 99, 235, 0.08), rgba(37, 99, 235, 0.08));
+}
+
+.myRow td {
+    background-image: linear-gradient(180deg, rgba(37, 99, 235, 0.06), rgba(37, 99, 235, 0.06));
+}
+
+.myRow .nameCell {
+    background: #dbeafe;
+    border-right-color: #93c5fd;
+}
+
+.myNameCell {
+    background: #dbeafe !important;
+    border-right-color: #93c5fd !important;
+}
+
+.myNameCell .empName {
+    color: #1e3a8a;
+    font-weight: 800;
 }
 
 /* Sunday border (week separator) */
@@ -461,31 +485,39 @@
 
     .nameHeader,
     .nameCell {
-        min-width: 90px;
-        max-width: 90px;
+        min-width: 82px;
+        max-width: 82px;
+        padding: 3px 6px;
     }
 
     .empName {
-        max-width: 60px;
-        font-size: 10px;
+        max-width: 54px;
+        font-size: 9px;
     }
 
     .dayHeader,
     .cell {
-        min-width: 24px;
-        max-width: 24px;
+        min-width: 22px;
+        max-width: 22px;
     }
 
     .cell {
-        font-size: 9px;
-        padding: 2px 0;
+        font-size: 8px;
+        padding: 1px 0;
     }
 
     .dayNum {
-        font-size: 10px;
+        font-size: 9px;
     }
 
     .dayLabel {
         font-size: 7px;
+    }
+
+    .statsHeader,
+    .statCell {
+        min-width: 22px;
+        font-size: 8px;
+        padding: 2px 2px;
     }
 }

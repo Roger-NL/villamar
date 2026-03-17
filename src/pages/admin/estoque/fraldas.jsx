@@ -1,5 +1,5 @@
 import Head from 'next/head';
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import styles from '@/styles/AdminPages.module.css';
 import formStyles from '@/styles/Forms.module.css';
@@ -241,6 +241,20 @@ export default function FraldasPage() {
     const [depositUsageDate, setDepositUsageDate] = useState(todayStr);
     const [arrivalForm, setArrivalForm] = useState({ itemId: '', date: todayStr, quantity: '' });
     const [selectedWeeklyOwnSupplyPatientId, setSelectedWeeklyOwnSupplyPatientId] = useState('');
+    const [isCompactMobile, setIsCompactMobile] = useState(false);
+
+    useEffect(() => {
+        if (typeof window === 'undefined') return undefined;
+        const mediaQuery = window.matchMedia('(max-width: 768px)');
+        const updateCompactMode = () => setIsCompactMobile(mediaQuery.matches);
+        updateCompactMode();
+        if (mediaQuery.addEventListener) {
+            mediaQuery.addEventListener('change', updateCompactMode);
+            return () => mediaQuery.removeEventListener('change', updateCompactMode);
+        }
+        mediaQuery.addListener(updateCompactMode);
+        return () => mediaQuery.removeListener(updateCompactMode);
+    }, []);
 
     const selectedDay = useMemo(() => {
         const d = new Date();
@@ -963,14 +977,14 @@ export default function FraldasPage() {
 
                             {/* A Tabela Robusta em Container SCROLL para mobile */}
                             <div className={styles.tableWrapper} style={{ backgroundColor: 'white', borderRadius: '16px', border: '1px solid #E5E7EB', overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
-                                <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '800px', tableLayout: 'fixed' }}>
+                                <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: isCompactMobile ? '720px' : '800px', tableLayout: 'fixed' }}>
                                     <thead>
                                         <tr>
                                             <th style={{
-                                                padding: '16px',
+                                                padding: isCompactMobile ? '10px 8px' : '16px',
                                                 textAlign: 'left',
                                                 borderBottom: '2px solid #E5E7EB',
-                                                width: '200px',
+                                                width: isCompactMobile ? '168px' : '200px',
                                                 position: 'sticky',
                                                 left: 0,
                                                 zIndex: 6,
@@ -981,18 +995,18 @@ export default function FraldasPage() {
                                                 Utente
                                             </th>
                                             {weekDates.map(d => (
-                                                <th key={d.toISOString()} style={{ padding: '16px 8px', textAlign: 'center', borderBottom: '2px solid #E5E7EB', background: toISODate(d) === todayStr ? '#FEF9C3' : 'transparent', width: '100px' }}>
-                                                    <div style={{ fontSize: '12px', color: '#6B7280', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                                                <th key={d.toISOString()} style={{ padding: isCompactMobile ? '10px 4px' : '16px 8px', textAlign: 'center', borderBottom: '2px solid #E5E7EB', background: toISODate(d) === todayStr ? '#FEF9C3' : 'transparent', width: isCompactMobile ? '86px' : '100px' }}>
+                                                    <div style={{ fontSize: isCompactMobile ? '10px' : '12px', color: '#6B7280', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
                                                         {d.toLocaleDateString('pt-PT', { weekday: 'short' })}
                                                     </div>
-                                                    <div style={{ fontSize: '15px', color: '#111827', marginTop: '4px' }}>
+                                                    <div style={{ fontSize: isCompactMobile ? '13px' : '15px', color: '#111827', marginTop: '4px' }}>
                                                         {d.toLocaleDateString('pt-PT', { day: '2-digit', month: '2-digit' })}
                                                     </div>
                                                 </th>
                                             ))}
-                                            <th style={{ padding: '16px', textAlign: 'center', borderBottom: '2px solid #E5E7EB', background: '#F9FAFB', borderLeft: '1px solid #E5E7EB', width: '120px' }}>
-                                                <div style={{ fontSize: '12px', color: '#6B7280', textTransform: 'uppercase' }}>Consumo</div>
-                                                <div style={{ fontSize: '14px', color: '#111827', marginTop: '4px' }}>
+                                            <th style={{ padding: isCompactMobile ? '10px 6px' : '16px', textAlign: 'center', borderBottom: '2px solid #E5E7EB', background: '#F9FAFB', borderLeft: '1px solid #E5E7EB', width: isCompactMobile ? '104px' : '120px' }}>
+                                                <div style={{ fontSize: isCompactMobile ? '10px' : '12px', color: '#6B7280', textTransform: 'uppercase' }}>Consumo</div>
+                                                <div style={{ fontSize: isCompactMobile ? '12px' : '14px', color: '#111827', marginTop: '4px' }}>
                                                     {new Date(monthStats.focusMonthStr + '-01').toLocaleDateString('pt-PT', { month: 'long', year: 'numeric' })}
                                                 </div>
                                             </th>
@@ -1007,7 +1021,7 @@ export default function FraldasPage() {
                                             return (
                                                 <tr key={patient.id} style={{ borderBottom: '1px solid #E5E7EB' }}>
                                                     <td style={{
-                                                        padding: '16px',
+                                                        padding: isCompactMobile ? '10px 8px' : '16px',
                                                         borderRight: '1px solid #F3F4F6',
                                                         position: 'sticky',
                                                         left: 0,
@@ -1016,8 +1030,8 @@ export default function FraldasPage() {
                                                         boxShadow: '1px 0 0 #E5E7EB'
                                                     }}
                                                     >
-                                                        <strong style={{ display: 'block', fontSize: '15px', color: '#111827' }}>{patient.name}</strong>
-                                                        <span style={{ fontSize: '12px', color: '#6B7280', display: 'flex', alignItems: 'center', gap: '4px', marginTop: '4px', flexWrap: 'wrap' }}>
+                                                        <strong style={{ display: 'block', fontSize: isCompactMobile ? '13px' : '15px', color: '#111827' }}>{patient.name}</strong>
+                                                        <span style={{ fontSize: isCompactMobile ? '10px' : '12px', color: '#6B7280', display: 'flex', alignItems: 'center', gap: '4px', marginTop: '4px', flexWrap: 'wrap' }}>
                                                             {diaperType ? (
                                                                 <>
                                                                     <Baby size={12} />
@@ -1039,7 +1053,7 @@ export default function FraldasPage() {
                                                             )}
                                                         </span>
                                                         {patient.origin === 'Própria' && totalHouseReplenished > 0 && (
-                                                            <div style={{ marginTop: '6px', fontSize: '11px', fontWeight: 800, color: '#B91C1C' }}>
+                                                            <div style={{ marginTop: '6px', fontSize: isCompactMobile ? '10px' : '11px', fontWeight: 800, color: '#B91C1C' }}>
                                                                 Quantidade de fraldas da casa repostas no total: {totalHouseReplenished}
                                                             </div>
                                                         )}
@@ -1053,7 +1067,7 @@ export default function FraldasPage() {
                                                         const refillLog = buildDailyReplenishmentSummary(dayLogs.filter((log) => log.type === 'replenishment'));
 
                                                         return (
-                                                            <td key={dateStr} style={{ padding: '12px 8px', textAlign: 'center', background: dateStr === todayStr ? '#FEFCE8' : 'transparent', borderRight: '1px solid #F3F4F6', verticalAlign: 'middle' }}>
+                                                            <td key={dateStr} style={{ padding: isCompactMobile ? '8px 4px' : '12px 8px', textAlign: 'center', background: dateStr === todayStr ? '#FEFCE8' : 'transparent', borderRight: '1px solid #F3F4F6', verticalAlign: 'middle' }}>
                                                                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
                                                                     {refillLog ? (
                                                                         <button
@@ -1067,14 +1081,14 @@ export default function FraldasPage() {
                                                                                     Sem fralda
                                                                                 </div>
                                                                             ) : (
-                                                                                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px', background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: '14px', padding: '10px', minWidth: '88px' }}>
-                                                                                    <div style={{ fontSize: '11px', fontWeight: 800, color: '#64748B' }}>
+                                                                                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: isCompactMobile ? '4px' : '6px', background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: '14px', padding: isCompactMobile ? '8px 6px' : '10px', minWidth: isCompactMobile ? '78px' : '88px' }}>
+                                                                                    <div style={{ fontSize: isCompactMobile ? '10px' : '11px', fontWeight: 800, color: '#64748B' }}>
                                                                                         Tinha: <span style={{ color: '#0F172A' }}>{Number(refillLog.previousStock || 0)}</span>
                                                                                     </div>
-                                                                                    <div style={{ fontSize: '12px', fontWeight: 900, color: '#166534' }}>
+                                                                                    <div style={{ fontSize: isCompactMobile ? '11px' : '12px', fontWeight: 900, color: '#166534' }}>
                                                                                         Tem: {Number(refillLog.newStock || 0)}
                                                                                     </div>
-                                                                                    <div style={{ fontSize: '11px', fontWeight: 800, color: '#0284C7' }}>
+                                                                                    <div style={{ fontSize: isCompactMobile ? '10px' : '11px', fontWeight: 800, color: '#0284C7' }}>
                                                                                         Repostas: {Number(refillLog.amountAdded || 0)}
                                                                                     </div>
                                                                                 </div>
