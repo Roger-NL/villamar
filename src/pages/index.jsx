@@ -45,17 +45,17 @@ export default function Home() {
         {
             icon: ShieldCheck,
             title: 'Acesso por perfil',
-            description: 'Cada pessoa entra apenas no que precisa: equipa, administração, área médica e operações restritas.'
+            description: 'Cada pessoa entra apenas no que precisa, com clareza, segurança e menos ruído na operação diária.'
         },
         {
             icon: Smartphone,
             title: 'Telemóvel primeiro',
-            description: 'Feito para funcionar rápido no bolso, com leitura clara, instalação web app e uso prático no dia a dia.'
+            description: 'Pensado para bolso, corredor e rotina real: leitura clara, web app instalada e uso rápido em qualquer turno.'
         },
         {
             icon: BarChart3,
             title: 'Tudo ligado',
-            description: 'Relatórios, escalas, fraldas, tarefas, trocas e observações clínicas num ecossistema único e vivo.'
+            description: 'Escalas, tarefas, fraldas, trocas, relatórios e área médica ligados no mesmo ecossistema, sem folhas soltas.'
         }
     ];
 
@@ -162,10 +162,10 @@ export default function Home() {
         <>
             <Head>
                 <title>Villa Mar | Plataforma Interna</title>
-                <meta name="description" content="Plataforma interna da Villa Mar para organização diária da equipa, escalas, tarefas, fraldas, área médica e gestão." />
+                <meta name="description" content="A plataforma interna da Villa Mar para coordenar equipa, rotina diária, escalas, fraldas, área médica e gestão com elegância e clareza." />
                 <meta name="theme-color" content="#0C4EA2" />
                 <meta property="og:title" content="Villa Mar | Plataforma Interna" />
-                <meta property="og:description" content="Uma entrada elegante para o sistema que organiza escalas, tarefas, fraldas, relatórios e área médica da Villa Mar." />
+                <meta property="og:description" content="Uma entrada elegante para a plataforma que organiza a rotina, a equipa e a operação diária da Villa Mar." />
                 <meta property="og:image" content="/villamar-hero.svg" />
                 <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
                 <link rel="apple-touch-icon" href="/villamar-mark.svg" />
@@ -190,12 +190,13 @@ export default function Home() {
                             <div className={styles.heroHeading}>
                                 <span className={styles.heroBadge}>
                                     <Sparkles size={16} />
-                                    Sistema vivo, bonito e pronto para a rotina real
+                                    Tecnologia pensada a partir da rotina real da casa
                                 </span>
-                                <h1>Uma entrada à altura da Villa Mar, não só um ecrã de login.</h1>
+                                <h1>A plataforma interna da Villa Mar, com imagem de produto e alma de operação.</h1>
                                 <p>
-                                    Escalas, presenças, plano de tarefas, fraldas, área médica, relatórios e gestão num só ambiente.
-                                    Tudo online, instalado no telemóvel e pensado para ser claro tanto para a direção como para a equipa.
+                                    Um sistema feito a pensar no que realmente acontece dentro da casa:
+                                    equipas, turnos, tarefas, fraldas, área médica, relatórios e gestão reunidos num ambiente claro,
+                                    bonito e pronto para funcionar todos os dias.
                                 </p>
                             </div>
 
@@ -233,8 +234,8 @@ export default function Home() {
                             <div className={styles.loginPanel}>
                                 <div className={styles.loginPanelHeader}>
                                     <span className={styles.sectionEyebrow}>Entrar agora</span>
-                                    <h2>Escolha o seu acesso</h2>
-                                    <p>Equipa entra com PIN. Administração e direção entram com email e senha.</p>
+                                    <h2>Entrar é simples</h2>
+                                    <p>Dois acessos, duas leituras claras: equipa entra com PIN e direção entra com email e senha.</p>
                                 </div>
 
                                 <div className={styles.loginGrid}>
@@ -244,10 +245,10 @@ export default function Home() {
                                         </div>
                                         <div className={styles.accessInfo}>
                                             <h3>Equipa</h3>
-                                            <p>Entrada rápida para quem está em operação, com PIN e acesso às áreas de trabalho do dia.</p>
+                                            <p>Entrada imediata para quem está em serviço, com PIN e acesso direto ao que precisa de fazer hoje.</p>
                                         </div>
                                         <div className={styles.accessMeta}>
-                                            <span>{teamCount} colaboradores ativos</span>
+                                            <span>{teamCount} profissionais na equipa</span>
                                             <ChevronRight className={styles.arrow} />
                                         </div>
                                     </button>
@@ -258,10 +259,10 @@ export default function Home() {
                                         </div>
                                         <div className={styles.accessInfo}>
                                             <h3>Admin & Direção</h3>
-                                            <p>Acesso protegido para gestão, relatórios, configurações, equipas e controlo global da operação.</p>
+                                            <p>Acesso protegido para coordenação da casa, decisões, relatórios, utilizadores e controlo global da operação.</p>
                                         </div>
                                         <div className={styles.accessMeta}>
-                                            <span>Acesso protegido por email e senha</span>
+                                            <span>Entrada segura com email e senha</span>
                                             <ChevronRight className={styles.arrow} />
                                         </div>
                                     </button>
@@ -280,15 +281,15 @@ export default function Home() {
                                 <div className={styles.visualMiniCard}>
                                     <Bell size={18} />
                                     <div>
-                                        <strong>Operação diária num só sítio</strong>
-                                        <span>Tarefas, avisos, fraldas e controlo da casa sem ruído.</span>
+                                        <strong>Operação diária num só lugar</strong>
+                                        <span>Tarefas, avisos, fraldas e gestão organizados de forma limpa e imediata.</span>
                                     </div>
                                 </div>
                                 <div className={styles.visualMiniCard}>
                                     <Smartphone size={18} />
                                     <div>
                                         <strong>Instalável no telemóvel</strong>
-                                        <span>Funciona como app web, pronta para iPhone, Android, tablet e desktop.</span>
+                                        <span>Pronto para iPhone, Android, tablet e desktop, sem perder clareza nem velocidade.</span>
                                     </div>
                                 </div>
                             </div>
@@ -299,10 +300,10 @@ export default function Home() {
                         <div className={styles.sectionHeader}>
                             <div>
                                 <span className={styles.sectionEyebrow}>Porque resulta</span>
-                                <h2>Desenhado para parecer premium e funcionar como ferramenta séria</h2>
+                                <h2>Bonito na imagem, sólido na prática</h2>
                             </div>
                             <p>
-                                Não é uma landing a vender em voz alta. É uma apresentação limpa do que o produto já resolve dentro da casa.
+                                A apresentação mostra o produto como ele é: um sistema sério, criado para uma casa real, com necessidades reais.
                             </p>
                         </div>
 
