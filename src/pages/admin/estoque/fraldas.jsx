@@ -368,12 +368,6 @@ export default function FraldasPage() {
             );
             if (patient.diaperId) ownDiaperIds.add(patient.diaperId);
 
-            const ownStockNow = [...ownDiaperIds].reduce((sum, diaperId) => {
-                const ownItem = inventoryById.get(diaperId) || getInventoryItemConfig(diaperId);
-                return sum + Number(ownItem?.stockDepot || 0);
-            }, 0);
-            if (ownStockNow > 0) return;
-
             const patientLogs = (logsByPatient.get(patient.id) || []).sort((a, b) => a.moment - b.moment);
             if (!patientLogs.length) return;
 
