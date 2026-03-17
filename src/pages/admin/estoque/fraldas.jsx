@@ -401,7 +401,7 @@ export default function FraldasPage() {
             const amountAdded = Number(log.amountAdded || 0);
             if (!Number.isFinite(amountAdded) || amountAdded <= 0) return;
             const diaperItem = inventoryById.get(log.diaperId) || getInventoryItemConfig(log.diaperId);
-            if (!diaperItem || (diaperItem.origin !== 'Casa' && diaperItem.origin !== 'Própria')) return;
+            if (!diaperItem || diaperItem.origin !== 'Casa') return;
 
             const entries = histories.get(log.patientId) || [];
             entries.push({
@@ -409,7 +409,7 @@ export default function FraldasPage() {
                 date: log.date,
                 amountAdded,
                 origin: diaperItem.origin,
-                originLabel: diaperItem.origin === 'Casa' ? 'Casa' : 'Própria',
+                originLabel: 'Casa',
                 moment: getLogMoment(log)
             });
             histories.set(log.patientId, entries);
@@ -1116,8 +1116,8 @@ export default function FraldasPage() {
                                                                         </span>
                                                                         <span style={{
                                                                             fontWeight: 800,
-                                                                            color: entry.origin === 'Casa' ? '#B91C1C' : '#0369A1',
-                                                                            background: entry.origin === 'Casa' ? '#FEE2E2' : '#E0F2FE',
+                                                                            color: '#B91C1C',
+                                                                            background: '#FEE2E2',
                                                                             borderRadius: '999px',
                                                                             padding: '2px 6px'
                                                                         }}
