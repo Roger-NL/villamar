@@ -8,7 +8,7 @@ import { useData } from '@/contexts/DataContext';
 import { auth } from '@/config/firebase';
 import { signInWithEmailAndPassword } from 'firebase/auth';
 import Avatar from '@/components/ui/Avatar';
-import { User, Shield, ChevronRight, X, Lock, Mail, LogIn, ArrowLeft, CalendarDays, ClipboardCheck, Baby, Syringe, Smartphone, BarChart3, ShieldCheck, Sparkles, Clock3, FileText, Pill } from 'lucide-react';
+import { User, Shield, ChevronRight, X, Lock, Mail, LogIn, ArrowLeft, CalendarDays, ClipboardCheck, Baby, Syringe, Smartphone, BarChart3, ShieldCheck, Sparkles, FileText } from 'lucide-react';
 
 export default function Home() {
     const router = useRouter();
@@ -52,6 +52,28 @@ export default function Home() {
             icon: BarChart3,
             title: 'Tudo ligado',
             description: 'Escalas, tarefas, fraldas, trocas, relatórios e área médica ligados no mesmo ecossistema, sem folhas soltas.'
+        }
+    ];
+    const entryOverview = [
+        {
+            icon: ClipboardCheck,
+            title: 'Plano do dia',
+            description: 'Responsáveis, áreas e tarefas principais organizadas logo à entrada.'
+        },
+        {
+            icon: Baby,
+            title: 'Fraldas e stock',
+            description: 'Conferência, reposição e controlo do depósito sem perder o fio da operação.'
+        },
+        {
+            icon: Syringe,
+            title: 'Área médica',
+            description: 'Insulina, observações clínicas e registos num fluxo simples de consultar.'
+        },
+        {
+            icon: FileText,
+            title: 'Relatórios e gestão',
+            description: 'Informação da casa mais acessível para decidir e acompanhar com segurança.'
         }
     ];
 
@@ -245,65 +267,23 @@ export default function Home() {
                                     </button>
                                 </div>
 
-                                <div className={styles.loginFootnote}>
-                                    <span>Villa Mar v2.0</span>
-                                    <span>Experiência otimizada para web, desktop e telemóvel</span>
-                                </div>
-
-                                <div className={styles.systemPreviewGrid}>
-                                    <article className={styles.previewCard}>
-                                        <div className={styles.previewCardIcon}>
-                                            <ClipboardCheck size={18} />
-                                        </div>
-                                        <div>
-                                            <strong>Plano do dia</strong>
-                                            <span>Responsáveis, áreas e tarefas principais organizadas logo à entrada.</span>
-                                        </div>
-                                    </article>
-
-                                    <article className={styles.previewCard}>
-                                        <div className={styles.previewCardIcon}>
-                                            <Baby size={18} />
-                                        </div>
-                                        <div>
-                                            <strong>Fraldas e stock</strong>
-                                            <span>Conferência, reposição e controlo do depósito sem perder o fio da operação.</span>
-                                        </div>
-                                    </article>
-
-                                    <article className={styles.previewCard}>
-                                        <div className={styles.previewCardIcon}>
-                                            <Syringe size={18} />
-                                        </div>
-                                        <div>
-                                            <strong>Área médica</strong>
-                                            <span>Insulina, observações clínicas e registos num fluxo simples de consultar.</span>
-                                        </div>
-                                    </article>
-
-                                    <article className={styles.previewCard}>
-                                        <div className={styles.previewCardIcon}>
-                                            <FileText size={18} />
-                                        </div>
-                                        <div>
-                                            <strong>Relatórios e gestão</strong>
-                                            <span>Dados da casa mais acessíveis para decidir e acompanhar com segurança.</span>
-                                        </div>
-                                    </article>
-                                </div>
-
-                                <div className={styles.systemTimeline}>
-                                    <div className={styles.timelineItem}>
-                                        <Clock3 size={16} />
-                                        <span>Turnos, entradas e rotina diária concentrados no mesmo sítio.</span>
-                                    </div>
-                                    <div className={styles.timelineItem}>
-                                        <Pill size={16} />
-                                        <span>Acompanhamento mais claro para quem presta cuidados e para quem coordena.</span>
-                                    </div>
-                                    <div className={styles.timelineItem}>
-                                        <Smartphone size={16} />
-                                        <span>Preparado para telemóvel, tablet e computador, sem parecer um sistema improvisado.</span>
+                                <div className={styles.overviewPanel}>
+                                    <h3>No dia a dia, encontra aqui</h3>
+                                    <div className={styles.overviewList}>
+                                        {entryOverview.map((item) => {
+                                            const Icon = item.icon;
+                                            return (
+                                                <article key={item.title} className={styles.overviewItem}>
+                                                    <div className={styles.overviewItemIcon}>
+                                                        <Icon size={16} />
+                                                    </div>
+                                                    <div className={styles.overviewItemContent}>
+                                                        <strong>{item.title}</strong>
+                                                        <p>{item.description}</p>
+                                                    </div>
+                                                </article>
+                                            );
+                                        })}
                                     </div>
                                 </div>
                             </div>
