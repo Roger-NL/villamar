@@ -325,16 +325,64 @@ export default function FraldasPage() {
 
     const houseReplenishedTotalByPatient = useMemo(() => {
         const totals = new Map();
+        const logsByPatient = new Map();
+        const inventoryById = new Map(diaperInventory.map((item) => [item.id, item]));
+
         (diaperLogs || []).forEach((log) => {
             if (log.type !== 'replenishment' || !log.patientId) return;
             const amountAdded = Number(log.amountAdded || 0);
             if (!Number.isFinite(amountAdded) || amountAdded <= 0) return;
-            const diaperItem = diaperInventory.find((item) => item.id === log.diaperId) || getInventoryItemConfig(log.diaperId);
-            if (!diaperItem || diaperItem.origin !== 'Casa') return;
-            totals.set(log.patientId, (totals.get(log.patientId) || 0) + amountAdded);
+            const diaperItem = inventoryById.get(log.diaperId) || getInventoryItemConfig(log.diaperId);
+            if (!diaperItem) return;
+            const entries = logsByPatient.get(log.patientId) || [];
+            entries.push({
+                diaperId: log.diaperId,
+                origin: diaperItem.origin,
+                amountAdded,
+                moment: getLogMoment(log)
+            });
+            logsByPatient.set(log.patientId, entries);
         });
+
+        orderedDiaperPatients.forEach((patient) => {
+            if (patient.origin !== 'Própria') return;
+
+            const ownDiaperIds = new Set(
+                diaperInventory
+                    .filter((item) => item.origin === 'Própria' && item.patientName === patient.name)
+                    .map((item) => item.id)
+            );
+            if (patient.diaperId) ownDiaperIds.add(patient.diaperId);
+
+            const ownStockNow = [...ownDiaperIds].reduce((sum, diaperId) => {
+                const ownItem = inventoryById.get(diaperId) || getInventoryItemConfig(diaperId);
+                return sum + Number(ownItem?.stockDepot || 0);
+            }, 0);
+            if (ownStockNow > 0) return;
+
+            const patientLogs = (logsByPatient.get(patient.id) || []).sort((a, b) => a.moment - b.moment);
+            if (!patientLogs.length) return;
+
+            let fallbackStartIndex = 0;
+            for (let i = patientLogs.length - 1; i >= 0; i -= 1) {
+                if (ownDiaperIds.has(patientLogs[i].diaperId)) {
+                    fallbackStartIndex = i + 1;
+                    break;
+                }
+            }
+
+            const totalHouseReplenished = patientLogs
+                .slice(fallbackStartIndex)
+                .filter((entry) => entry.origin === 'Casa')
+                .reduce((sum, entry) => sum + entry.amountAdded, 0);
+
+            if (totalHouseReplenished > 0) {
+                totals.set(patient.id, totalHouseReplenished);
+            }
+        });
+
         return totals;
-    }, [diaperLogs, diaperInventory]);
+    }, [diaperLogs, diaperInventory, orderedDiaperPatients]);
 
     // Diaper usages of the selected day
     const usagesForSelectedDay = useMemo(() => {
