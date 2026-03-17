@@ -392,6 +392,39 @@ export default function FraldasPage() {
         return totals;
     }, [diaperLogs, diaperInventory, orderedDiaperPatients]);
 
+    const replenishmentHistoryByPatient = useMemo(() => {
+        const histories = new Map();
+        const inventoryById = new Map(diaperInventory.map((item) => [item.id, item]));
+
+        (diaperLogs || []).forEach((log) => {
+            if (log.type !== 'replenishment' || !log.patientId) return;
+            const amountAdded = Number(log.amountAdded || 0);
+            if (!Number.isFinite(amountAdded) || amountAdded <= 0) return;
+            const diaperItem = inventoryById.get(log.diaperId) || getInventoryItemConfig(log.diaperId);
+            if (!diaperItem || (diaperItem.origin !== 'Casa' && diaperItem.origin !== 'Própria')) return;
+
+            const entries = histories.get(log.patientId) || [];
+            entries.push({
+                id: log.id || `${log.patientId}-${log.date}-${log.time || ''}-${amountAdded}`,
+                date: log.date,
+                amountAdded,
+                origin: diaperItem.origin,
+                originLabel: diaperItem.origin === 'Casa' ? 'Casa' : 'Própria',
+                moment: getLogMoment(log)
+            });
+            histories.set(log.patientId, entries);
+        });
+
+        histories.forEach((entries, patientId) => {
+            histories.set(
+                patientId,
+                entries.sort((a, b) => b.moment - a.moment)
+            );
+        });
+
+        return histories;
+    }, [diaperLogs, diaperInventory]);
+
     // Diaper usages of the selected day
     const usagesForSelectedDay = useMemo(() => {
         const dateStr = toISODate(selectedDay);
@@ -1011,6 +1044,7 @@ export default function FraldasPage() {
                                             const diaperType = diaperInventory.find(d => d.id === patient.diaperId) || getInventoryItemConfig(patient.diaperId);
                                             const isDirectSupply = isDirectFamilySupplyPatient(patient);
                                             const totalHouseReplenished = Number(houseReplenishedTotalByPatient.get(patient.id) || 0);
+                                            const replenishmentHistory = replenishmentHistoryByPatient.get(patient.id) || [];
 
                                             return (
                                                 <tr key={patient.id} style={{ borderBottom: '1px solid #E5E7EB' }}>
@@ -1049,6 +1083,49 @@ export default function FraldasPage() {
                                                         {patient.origin === 'Própria' && totalHouseReplenished > 0 && (
                                                             <div style={{ marginTop: '6px', fontSize: isCompactMobile ? '10px' : '11px', fontWeight: 800, color: '#B91C1C' }}>
                                                                 Quantidade de fraldas da casa repostas no total: {totalHouseReplenished}
+                                                            </div>
+                                                        )}
+                                                        {patient.origin === 'Própria' && replenishmentHistory.length > 0 && (
+                                                            <div style={{
+                                                                marginTop: '8px',
+                                                                display: 'flex',
+                                                                flexDirection: 'column',
+                                                                gap: '4px'
+                                                            }}>
+                                                                {replenishmentHistory.slice(0, 6).map((entry) => (
+                                                                    <div
+                                                                        key={entry.id}
+                                                                        style={{
+                                                                            display: 'flex',
+                                                                            alignItems: 'center',
+                                                                            justifyContent: 'space-between',
+                                                                            gap: '8px',
+                                                                            fontSize: isCompactMobile ? '10px' : '11px',
+                                                                            color: '#475569',
+                                                                            background: '#F8FAFC',
+                                                                            border: '1px solid #E2E8F0',
+                                                                            borderRadius: '8px',
+                                                                            padding: isCompactMobile ? '4px 6px' : '5px 8px'
+                                                                        }}
+                                                                    >
+                                                                        <span style={{ fontWeight: 700, color: '#0F172A' }}>
+                                                                            {new Date(`${entry.date}T00:00:00`).toLocaleDateString('pt-PT', { day: '2-digit', month: '2-digit' })}
+                                                                        </span>
+                                                                        <span style={{ fontWeight: 800, color: '#0F172A' }}>
+                                                                            {entry.amountAdded}
+                                                                        </span>
+                                                                        <span style={{
+                                                                            fontWeight: 800,
+                                                                            color: entry.origin === 'Casa' ? '#B91C1C' : '#0369A1',
+                                                                            background: entry.origin === 'Casa' ? '#FEE2E2' : '#E0F2FE',
+                                                                            borderRadius: '999px',
+                                                                            padding: '2px 6px'
+                                                                        }}
+                                                                        >
+                                                                            {entry.originLabel}
+                                                                        </span>
+                                                                    </div>
+                                                                ))}
                                                             </div>
                                                         )}
                                                     </td>
