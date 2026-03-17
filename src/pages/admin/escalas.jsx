@@ -129,6 +129,12 @@ export default function AdminEscalasPage() {
         return String(code);
     };
 
+    const normalizeName = (value = '') => value
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .trim()
+        .toLowerCase();
+
     return (
         <>
             <Head>
@@ -189,13 +195,22 @@ export default function AdminEscalasPage() {
                     </div>
 
                     {localSchedule ? (
-                        <div className={escStyles.tableWrap}>
+                        <div className={escStyles.tableWrap} style={{ position: 'relative' }}>
                             <table className={escStyles.table}>
                                 <thead>
                                     <tr>
-                                        <th className={escStyles.nameHeader}>Nome</th>
+                                        <th
+                                            className={escStyles.nameHeader}
+                                            style={{ position: 'sticky', left: 0, zIndex: 120, background: '#f8fafc' }}
+                                        >
+                                            Nome
+                                        </th>
                                         {daysInMonth.map(d => (
-                                            <th key={d.num} className={`${escStyles.dayHeader} ${d.isWeekend ? escStyles.weekendH : ''} ${d.isToday ? escStyles.todayH : ''} ${d.dow === 0 ? escStyles.sundayBorder : ''}`}>
+                                            <th
+                                                key={d.num}
+                                                className={`${escStyles.dayHeader} ${d.isWeekend ? escStyles.weekendH : ''} ${d.isToday ? escStyles.todayH : ''} ${d.dow === 0 ? escStyles.sundayBorder : ''}`}
+                                                style={d.isToday ? { background: '#dbeafe', boxShadow: 'inset 2px 0 0 #2563eb, inset -2px 0 0 #2563eb' } : undefined}
+                                            >
                                                 <span className={escStyles.dayLabel}>{d.label}</span>
                                                 <span className={escStyles.dayNum}>{d.num}</span>
                                             </th>
@@ -217,7 +232,8 @@ export default function AdminEscalasPage() {
                                             {section.employees.map((emp, ei) => {
                                                 // Calcular stats
                                                 const codes = emp.days;
-                                                const isMe = String(emp.id) === String(currentUser?.id || '');
+                                                const isMe = String(emp.id) === String(currentUser?.id || '')
+                                                    || normalizeName(emp.name) === normalizeName(currentUser?.name || '');
                                                 let fds = 0, folgas = 0, dias = 0;
                                                 codes.forEach((code, idx) => {
                                                     const d = daysInMonth[idx];
@@ -232,7 +248,18 @@ export default function AdminEscalasPage() {
 
                                                 return (
                                                     <tr key={`${si}-${ei}`} className={`${escStyles.empRow} ${isMe ? escStyles.myRow : ''}`}>
-                                                        <td className={`${escStyles.nameCell} ${isMe ? escStyles.myNameCell : ''}`}>
+                                                        <td
+                                                            className={`${escStyles.nameCell} ${isMe ? escStyles.myNameCell : ''}`}
+                                                            style={{
+                                                                position: 'sticky',
+                                                                left: 0,
+                                                                zIndex: isMe ? 115 : 105,
+                                                                background: isMe ? '#dbeafe' : '#ffffff',
+                                                                boxShadow: isMe
+                                                                    ? 'inset 0 2px 0 #3b82f6, inset 0 -2px 0 #3b82f6, 1px 0 0 #cbd5e1'
+                                                                    : '1px 0 0 #e2e8f0'
+                                                            }}
+                                                        >
                                                             <div className={escStyles.nameCellContent}>
                                                                 <span className={escStyles.empName}>{emp.name.split(' ')[0]}</span>
                                                                 <span className={escStyles.empCode}>{emp.code}</span>
@@ -260,15 +287,18 @@ export default function AdminEscalasPage() {
                                                                         cursor: isSwapMode ? 'pointer' : 'default',
                                                                         border: isOrigin ? '2px dashed #3B82F6' : undefined,
                                                                         opacity: isSwapMode && !isOrigin && swapOrigin ? 0.7 : 1,
+                                                                        ...(isMe ? { boxShadow: 'inset 0 2px 0 #60a5fa, inset 0 -2px 0 #60a5fa' } : {}),
+                                                                        ...(d.isToday ? { borderLeft: '2px solid #2563eb', borderRight: '2px solid #2563eb' } : {}),
+                                                                        ...(isMe && d.isToday ? { backgroundColor: '#dbeafe' } : {})
                                                                     }}
                                                                 >
                                                                     {getCellText(code)}
                                                                 </td>
                                                             );
                                                         })}
-                                                        <td className={escStyles.statCell}>{fds}</td>
-                                                        <td className={escStyles.statCell}>{folgas}</td>
-                                                        <td className={escStyles.statCell}>{dias}</td>
+                                                        <td className={escStyles.statCell} style={isMe ? { boxShadow: 'inset 0 2px 0 #60a5fa, inset 0 -2px 0 #60a5fa' } : undefined}>{fds}</td>
+                                                        <td className={escStyles.statCell} style={isMe ? { boxShadow: 'inset 0 2px 0 #60a5fa, inset 0 -2px 0 #60a5fa' } : undefined}>{folgas}</td>
+                                                        <td className={escStyles.statCell} style={isMe ? { boxShadow: 'inset 0 2px 0 #60a5fa, inset 0 -2px 0 #60a5fa' } : undefined}>{dias}</td>
                                                     </tr>
                                                 );
                                             })}

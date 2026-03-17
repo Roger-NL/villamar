@@ -99,6 +99,12 @@ export default function EscalaPage() {
         return String(code);
     };
 
+    const normalizeName = (value = '') => value
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .trim()
+        .toLowerCase();
+
     // Abrir modal de troca ao clicar em célula
     const handleCellClick = (targetEmployee, date, targetShift) => {
         // Não pode trocar consigo mesmo
@@ -208,13 +214,22 @@ export default function EscalaPage() {
 
                     {/* Full Team Schedule Table */}
                     {scheduleData ? (
-                        <div className={escStyles.tableWrap}>
+                        <div className={escStyles.tableWrap} style={{ position: 'relative' }}>
                             <table className={escStyles.table}>
                                 <thead>
                                     <tr>
-                                        <th className={escStyles.nameHeader}>Nome</th>
+                                        <th
+                                            className={escStyles.nameHeader}
+                                            style={{ position: 'sticky', left: 0, zIndex: 120, background: '#f8fafc' }}
+                                        >
+                                            Nome
+                                        </th>
                                         {daysInMonth.map(d => (
-                                            <th key={d.num} className={`${escStyles.dayHeader} ${d.isWeekend ? escStyles.weekendH : ''} ${d.isToday ? escStyles.todayH : ''} ${d.dow === 0 ? escStyles.sundayBorder : ''}`}>
+                                            <th
+                                                key={d.num}
+                                                className={`${escStyles.dayHeader} ${d.isWeekend ? escStyles.weekendH : ''} ${d.isToday ? escStyles.todayH : ''} ${d.dow === 0 ? escStyles.sundayBorder : ''}`}
+                                                style={d.isToday ? { background: '#dbeafe', boxShadow: 'inset 2px 0 0 #2563eb, inset -2px 0 0 #2563eb' } : undefined}
+                                            >
                                                 <span className={escStyles.dayLabel}>{d.label}</span>
                                                 <span className={escStyles.dayNum}>{d.num}</span>
                                             </th>
@@ -232,14 +247,26 @@ export default function EscalaPage() {
                                             </tr>
                                             {section.employees.map((emp, ei) => {
                                                 const codes = emp.days;
-                                                const isMe = String(emp.id) === String(currentUser?.id || '');
+                                                const isMe = String(emp.id) === String(currentUser?.id || '')
+                                                    || normalizeName(emp.name) === normalizeName(currentUser?.name || '');
 
                                                 // Logica de trocas
                                                 const canSwap = !isMe;
 
                                                 return (
                                                     <tr key={`${si}-${ei}`} className={`${escStyles.empRow} ${isMe ? escStyles.myRow : ''}`}>
-                                                        <td className={`${escStyles.nameCell} ${isMe ? escStyles.myNameCell : ''}`}>
+                                                        <td
+                                                            className={`${escStyles.nameCell} ${isMe ? escStyles.myNameCell : ''}`}
+                                                            style={{
+                                                                position: 'sticky',
+                                                                left: 0,
+                                                                zIndex: isMe ? 115 : 105,
+                                                                background: isMe ? '#dbeafe' : '#ffffff',
+                                                                boxShadow: isMe
+                                                                    ? 'inset 0 2px 0 #3b82f6, inset 0 -2px 0 #3b82f6, 1px 0 0 #cbd5e1'
+                                                                    : '1px 0 0 #e2e8f0'
+                                                            }}
+                                                        >
                                                             <div className={escStyles.nameCellContent}>
                                                                 <span className={escStyles.empName} style={{ fontWeight: isMe ? 700 : 500 }}>
                                                                     {emp.name.split(' ')[0]} {isMe && '(Eu)'}
@@ -269,7 +296,12 @@ export default function EscalaPage() {
                                                                         ${d.dow === 0 ? escStyles.sundayBorder : ''}
                                                                         ${canSwap ? styles.swappable : ''}
                                                                     `}
-                                                                    style={(!canSwap && !isMe) ? { opacity: 0.7, cursor: 'not-allowed' } : { cursor: canSwap ? 'pointer' : 'default' }}
+                                                                    style={{
+                                                                        ...((!canSwap && !isMe) ? { opacity: 0.7, cursor: 'not-allowed' } : { cursor: canSwap ? 'pointer' : 'default' }),
+                                                                        ...(isMe ? { boxShadow: 'inset 0 2px 0 #60a5fa, inset 0 -2px 0 #60a5fa' } : {}),
+                                                                        ...(d.isToday ? { borderLeft: '2px solid #2563eb', borderRight: '2px solid #2563eb' } : {}),
+                                                                        ...(isMe && d.isToday ? { backgroundColor: '#dbeafe' } : {})
+                                                                    }}
                                                                     title={titleMsg}
                                                                     onClick={() => canSwap && handleCellClick(emp, formattedDate, code || 'Folga')}
                                                                 >
