@@ -198,9 +198,10 @@ export default function App({ Component, pageProps }) {
                     <meta name="apple-mobile-web-app-title" content="Villa Mar" />
                     <meta name="format-detection" content="telephone=no" />
                     <meta name="mobile-web-app-capable" content="yes" />
-                    <meta name="theme-color" content="#f5f5f7" />
+                    <meta name="theme-color" content="#0C4EA2" />
                     <link rel="manifest" href="/manifest.webmanifest" />
-                    <link rel="apple-touch-icon" href="/favicon.ico" />
+                    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+                    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
                 </Head>
                 <PwaBoot />
                 <GlobalAuthListener>

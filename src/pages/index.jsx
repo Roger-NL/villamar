@@ -1,15 +1,16 @@
 import Head from 'next/head';
-import { useState, useEffect } from 'react';
+import Image from 'next/image';
+import { useState } from 'react';
 import { useRouter } from 'next/router';
 import styles from '@/styles/Home.module.css';
 import formStyles from '@/styles/Forms.module.css';
 import { useApp } from './_app';
 import { useData } from '@/contexts/DataContext';
 import { db, auth } from '@/config/firebase';
-import { signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged } from 'firebase/auth';
-import { doc, getDoc, setDoc } from 'firebase/firestore';
+import { signInWithEmailAndPassword, createUserWithEmailAndPassword } from 'firebase/auth';
+import { doc, setDoc } from 'firebase/firestore';
 import Avatar from '@/components/ui/Avatar';
-import { User, Shield, ChevronRight, X, Lock, Mail, LogIn, Bell, ArrowLeft, UserPlus } from 'lucide-react';
+import { User, Shield, ChevronRight, X, Lock, Mail, LogIn, Bell, ArrowLeft, UserPlus, CalendarDays, ClipboardCheck, Baby, Syringe, Smartphone, BarChart3, ShieldCheck, Sparkles } from 'lucide-react';
 
 export default function Home() {
     const router = useRouter();
@@ -32,6 +33,31 @@ export default function Home() {
     const [enteredPin, setEnteredPin] = useState('');
     const [pinError, setPinError] = useState('');
 
+    const teamCount = employees.filter(emp => !emp.isAdmin && emp.role !== 'Administrador').length;
+    const unreadAlerts = notifications.filter(notification => !notification?.read).length || notifications.length;
+    const landingHighlights = [
+        { icon: CalendarDays, label: 'Escalas e presenças em tempo real' },
+        { icon: ClipboardCheck, label: 'Plano diário com tarefas por responsável' },
+        { icon: Baby, label: 'Fraldas, reposição e stock controlado' },
+        { icon: Syringe, label: 'Área médica com registos e observações' },
+    ];
+    const landingPillars = [
+        {
+            icon: ShieldCheck,
+            title: 'Acesso por perfil',
+            description: 'Cada pessoa entra apenas no que precisa: equipa, administração, área médica e operações restritas.'
+        },
+        {
+            icon: Smartphone,
+            title: 'Telemóvel primeiro',
+            description: 'Feito para funcionar rápido no bolso, com leitura clara, instalação web app e uso prático no dia a dia.'
+        },
+        {
+            icon: BarChart3,
+            title: 'Tudo ligado',
+            description: 'Relatórios, escalas, fraldas, tarefas, trocas e observações clínicas num ecossistema único e vivo.'
+        }
+    ];
 
 
     const handleOpenSelector = (mode) => {
@@ -135,44 +161,159 @@ export default function Home() {
     return (
         <>
             <Head>
-                <title>Villa Mar | Autenticação</title>
-                <meta name="theme-color" content="#F5F5F7" />
+                <title>Villa Mar | Plataforma Interna</title>
+                <meta name="description" content="Plataforma interna da Villa Mar para organização diária da equipa, escalas, tarefas, fraldas, área médica e gestão." />
+                <meta name="theme-color" content="#0C4EA2" />
+                <meta property="og:title" content="Villa Mar | Plataforma Interna" />
+                <meta property="og:description" content="Uma entrada elegante para o sistema que organiza escalas, tarefas, fraldas, relatórios e área médica da Villa Mar." />
+                <meta property="og:image" content="/villamar-hero.svg" />
+                <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+                <link rel="apple-touch-icon" href="/villamar-mark.svg" />
             </Head>
 
             <main className={styles.main}>
+                <div className={styles.ambientGlowLeft} />
+                <div className={styles.ambientGlowRight} />
+                <div className={styles.gridGlow} />
+
                 <div className={styles.content}>
-
-                    <div className={styles.header}>
-                        <div className={styles.logoIcon}>🌊</div>
-                        <h1>Villa Mar</h1>
-                        <p>Sistema de Gestão Interno</p>
-                    </div>
-
-                    <div className={styles.grid}>
-                        <button className={styles.card} onClick={() => handleOpenSelector('employee')}>
-                            <div className={`${styles.iconContainer} ${styles.blue}`}>
-                                <User size={32} strokeWidth={1.5} />
+                    <section className={styles.heroSection}>
+                        <div className={styles.heroCopy}>
+                            <div className={styles.brandPill}>
+                                <Image src="/villamar-mark.svg" alt="Marca Villa Mar" width={52} height={52} className={styles.brandMark} />
+                                <div>
+                                    <span className={styles.brandEyebrow}>Plataforma interna Villa Mar</span>
+                                    <strong className={styles.brandName}>villamaracesso.pt</strong>
+                                </div>
                             </div>
-                            <div className={styles.cardInfo}>
-                                <h2>Equipa</h2>
-                                <p>Entrar como funcionário</p>
-                            </div>
-                            <ChevronRight className={styles.arrow} />
-                        </button>
 
-                        <button className={styles.card} onClick={() => handleOpenSelector('admin')}>
-                            <div className={`${styles.iconContainer} ${styles.gray}`}>
-                                <Shield size={32} strokeWidth={1.5} />
+                            <div className={styles.heroHeading}>
+                                <span className={styles.heroBadge}>
+                                    <Sparkles size={16} />
+                                    Sistema vivo, bonito e pronto para a rotina real
+                                </span>
+                                <h1>Uma entrada à altura da Villa Mar, não só um ecrã de login.</h1>
+                                <p>
+                                    Escalas, presenças, plano de tarefas, fraldas, área médica, relatórios e gestão num só ambiente.
+                                    Tudo online, instalado no telemóvel e pensado para ser claro tanto para a direção como para a equipa.
+                                </p>
                             </div>
-                            <div className={styles.cardInfo}>
-                                <h2>Admin & Direção</h2>
-                                <p>Gestão restrita</p>
-                            </div>
-                            <ChevronRight className={styles.arrow} />
-                        </button>
-                    </div>
 
-                    <p className={styles.footer}>v2.0 • {employees.length} funcionários no sistema</p>
+                            <div className={styles.highlightGrid}>
+                                {landingHighlights.map((item) => {
+                                    const Icon = item.icon;
+                                    return (
+                                        <div key={item.label} className={styles.highlightCard}>
+                                            <div className={styles.highlightIcon}>
+                                                <Icon size={18} />
+                                            </div>
+                                            <span>{item.label}</span>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+
+                            <div className={styles.metricStrip}>
+                                <div className={styles.metricCard}>
+                                    <strong>{teamCount}</strong>
+                                    <span>profissionais registados</span>
+                                </div>
+                                <div className={styles.metricCard}>
+                                    <strong>{unreadAlerts}</strong>
+                                    <span>alertas no sistema</span>
+                                </div>
+                                <div className={styles.metricCard}>
+                                    <strong>100%</strong>
+                                    <span>web app e telemóvel</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className={styles.heroVisual}>
+                            <div className={styles.heroArtFrame}>
+                                <Image src="/villamar-hero.svg" alt="Pré-visualização do sistema Villa Mar" width={840} height={660} className={styles.heroArt} priority />
+                            </div>
+                            <div className={styles.visualMiniCards}>
+                                <div className={styles.visualMiniCard}>
+                                    <Bell size={18} />
+                                    <div>
+                                        <strong>Operação diária num só sítio</strong>
+                                        <span>Tarefas, avisos, fraldas e controlo da casa sem ruído.</span>
+                                    </div>
+                                </div>
+                                <div className={styles.visualMiniCard}>
+                                    <Smartphone size={18} />
+                                    <div>
+                                        <strong>Instalável no telemóvel</strong>
+                                        <span>Funciona como app web, pronta para iPhone, Android, tablet e desktop.</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+
+                    <section className={styles.accessSection}>
+                        <div className={styles.sectionHeader}>
+                            <div>
+                                <span className={styles.sectionEyebrow}>Entradas</span>
+                                <h2>Aceder à plataforma</h2>
+                            </div>
+                            <p>
+                                A mesma casa, com acessos diferentes para quem cuida, para quem gere e para quem coordena a operação.
+                            </p>
+                        </div>
+
+                        <div className={styles.accessGrid}>
+                            <button className={`${styles.accessCard} ${styles.accessCardPrimary}`} onClick={() => handleOpenSelector('employee')}>
+                                <div className={`${styles.accessIconWrap} ${styles.accessBlue}`}>
+                                    <User size={30} strokeWidth={1.7} />
+                                </div>
+                                <div className={styles.accessInfo}>
+                                    <h3>Equipa</h3>
+                                    <p>Entrar como funcionário com PIN, acesso rápido à rotina, tarefas, fraldas, escalas e área médica.</p>
+                                </div>
+                                <div className={styles.accessMeta}>
+                                    <span>{teamCount} colaboradores ativos</span>
+                                    <ChevronRight className={styles.arrow} />
+                                </div>
+                            </button>
+
+                            <button className={styles.accessCard} onClick={() => handleOpenSelector('admin')}>
+                                <div className={`${styles.accessIconWrap} ${styles.accessDark}`}>
+                                    <Shield size={30} strokeWidth={1.7} />
+                                </div>
+                                <div className={styles.accessInfo}>
+                                    <h3>Admin & Direção</h3>
+                                    <p>Gestão restrita com controlo da equipa, reposição, relatórios, configurações, utilizadores e operação global.</p>
+                                </div>
+                                <div className={styles.accessMeta}>
+                                    <span>Acesso protegido por email e senha</span>
+                                    <ChevronRight className={styles.arrow} />
+                                </div>
+                            </button>
+                        </div>
+
+                        <div className={styles.bottomNote}>
+                            <span>Villa Mar v2.0</span>
+                            <span>Experiência otimizada para web, desktop e telemóvel</span>
+                        </div>
+                    </section>
+
+                    <section className={styles.pillarsSection}>
+                        {landingPillars.map((item) => {
+                            const Icon = item.icon;
+                            return (
+                                <article key={item.title} className={styles.pillarCard}>
+                                    <div className={styles.pillarIcon}>
+                                        <Icon size={20} />
+                                    </div>
+                                    <h3>{item.title}</h3>
+                                    <p>{item.description}</p>
+                                </article>
+                            );
+                        })}
+                    </section>
+
                 </div>
             </main>
 
