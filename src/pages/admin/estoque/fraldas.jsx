@@ -966,7 +966,20 @@ export default function FraldasPage() {
                                 <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '800px', tableLayout: 'fixed' }}>
                                     <thead>
                                         <tr>
-                                            <th style={{ padding: '16px', textAlign: 'left', borderBottom: '2px solid #E5E7EB', width: '200px' }}>Utente</th>
+                                            <th style={{
+                                                padding: '16px',
+                                                textAlign: 'left',
+                                                borderBottom: '2px solid #E5E7EB',
+                                                width: '200px',
+                                                position: 'sticky',
+                                                left: 0,
+                                                zIndex: 6,
+                                                background: '#FFFFFF',
+                                                boxShadow: '1px 0 0 #E5E7EB'
+                                            }}
+                                            >
+                                                Utente
+                                            </th>
                                             {weekDates.map(d => (
                                                 <th key={d.toISOString()} style={{ padding: '16px 8px', textAlign: 'center', borderBottom: '2px solid #E5E7EB', background: toISODate(d) === todayStr ? '#FEF9C3' : 'transparent', width: '100px' }}>
                                                     <div style={{ fontSize: '12px', color: '#6B7280', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
@@ -993,7 +1006,16 @@ export default function FraldasPage() {
 
                                             return (
                                                 <tr key={patient.id} style={{ borderBottom: '1px solid #E5E7EB' }}>
-                                                    <td style={{ padding: '16px', borderRight: '1px solid #F3F4F6' }}>
+                                                    <td style={{
+                                                        padding: '16px',
+                                                        borderRight: '1px solid #F3F4F6',
+                                                        position: 'sticky',
+                                                        left: 0,
+                                                        zIndex: 5,
+                                                        background: '#FFFFFF',
+                                                        boxShadow: '1px 0 0 #E5E7EB'
+                                                    }}
+                                                    >
                                                         <strong style={{ display: 'block', fontSize: '15px', color: '#111827' }}>{patient.name}</strong>
                                                         <span style={{ fontSize: '12px', color: '#6B7280', display: 'flex', alignItems: 'center', gap: '4px', marginTop: '4px', flexWrap: 'wrap' }}>
                                                             {diaperType ? (
