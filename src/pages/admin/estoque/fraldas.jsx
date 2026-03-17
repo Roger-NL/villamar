@@ -323,6 +323,19 @@ export default function FraldasPage() {
             .reduce((sum, log) => sum + Number(log.amountAdded || 0), 0);
     }, [diaperLogs, effectiveWeeklyOwnSupplyPatientId, weekDates]);
 
+    const houseReplenishedTotalByPatient = useMemo(() => {
+        const totals = new Map();
+        (diaperLogs || []).forEach((log) => {
+            if (log.type !== 'replenishment' || !log.patientId) return;
+            const amountAdded = Number(log.amountAdded || 0);
+            if (!Number.isFinite(amountAdded) || amountAdded <= 0) return;
+            const diaperItem = diaperInventory.find((item) => item.id === log.diaperId) || getInventoryItemConfig(log.diaperId);
+            if (!diaperItem || diaperItem.origin !== 'Casa') return;
+            totals.set(log.patientId, (totals.get(log.patientId) || 0) + amountAdded);
+        });
+        return totals;
+    }, [diaperLogs, diaperInventory]);
+
     // Diaper usages of the selected day
     const usagesForSelectedDay = useMemo(() => {
         const dateStr = toISODate(selectedDay);
@@ -928,6 +941,7 @@ export default function FraldasPage() {
                                         {orderedDiaperPatients && orderedDiaperPatients.length > 0 ? orderedDiaperPatients.map(patient => {
                                             const diaperType = diaperInventory.find(d => d.id === patient.diaperId) || getInventoryItemConfig(patient.diaperId);
                                             const isDirectSupply = isDirectFamilySupplyPatient(patient);
+                                            const totalHouseReplenished = Number(houseReplenishedTotalByPatient.get(patient.id) || 0);
 
                                             return (
                                                 <tr key={patient.id} style={{ borderBottom: '1px solid #E5E7EB' }}>
@@ -954,6 +968,11 @@ export default function FraldasPage() {
                                                                 <span style={{ background: '#E0F2FE', color: '#0369A1', padding: '2px 6px', borderRadius: '4px', fontSize: '10px', fontWeight: 800, marginLeft: '4px' }}>PRÓPRIA</span>
                                                             )}
                                                         </span>
+                                                        {patient.origin === 'Própria' && totalHouseReplenished > 0 && (
+                                                            <div style={{ marginTop: '6px', fontSize: '11px', fontWeight: 800, color: '#B91C1C' }}>
+                                                                Quantidade de fraldas da casa repostas no total: {totalHouseReplenished}
+                                                            </div>
+                                                        )}
                                                     </td>
 
                                                     {weekDates.map(d => {
