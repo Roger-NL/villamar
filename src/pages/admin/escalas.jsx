@@ -217,7 +217,7 @@ export default function AdminEscalasPage() {
                                             {section.employees.map((emp, ei) => {
                                                 // Calcular stats
                                                 const codes = emp.days;
-                                                const isMe = emp.id === currentUser?.id;
+                                                const isMe = String(emp.id) === String(currentUser?.id || '');
                                                 let fds = 0, folgas = 0, dias = 0;
                                                 codes.forEach((code, idx) => {
                                                     const d = daysInMonth[idx];
@@ -233,8 +233,10 @@ export default function AdminEscalasPage() {
                                                 return (
                                                     <tr key={`${si}-${ei}`} className={`${escStyles.empRow} ${isMe ? escStyles.myRow : ''}`}>
                                                         <td className={`${escStyles.nameCell} ${isMe ? escStyles.myNameCell : ''}`}>
-                                                            <span className={escStyles.empName}>{emp.name.split(' ')[0]}</span>
-                                                            <span className={escStyles.empCode}>{emp.code}</span>
+                                                            <div className={escStyles.nameCellContent}>
+                                                                <span className={escStyles.empName}>{emp.name.split(' ')[0]}</span>
+                                                                <span className={escStyles.empCode}>{emp.code}</span>
+                                                            </div>
                                                         </td>
                                                         {codes.map((code, di) => {
                                                             const d = daysInMonth[di];

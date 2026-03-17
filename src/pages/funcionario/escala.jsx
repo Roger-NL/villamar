@@ -232,7 +232,7 @@ export default function EscalaPage() {
                                             </tr>
                                             {section.employees.map((emp, ei) => {
                                                 const codes = emp.days;
-                                                const isMe = emp.id === currentUser?.id;
+                                                const isMe = String(emp.id) === String(currentUser?.id || '');
 
                                                 // Logica de trocas
                                                 const canSwap = !isMe;
@@ -240,10 +240,12 @@ export default function EscalaPage() {
                                                 return (
                                                     <tr key={`${si}-${ei}`} className={`${escStyles.empRow} ${isMe ? escStyles.myRow : ''}`}>
                                                         <td className={`${escStyles.nameCell} ${isMe ? escStyles.myNameCell : ''}`}>
-                                                            <span className={escStyles.empName} style={{ fontWeight: isMe ? 700 : 500 }}>
-                                                                {emp.name.split(' ')[0]} {isMe && '(Eu)'}
-                                                            </span>
-                                                            <span className={escStyles.empCode}>{emp.code}</span>
+                                                            <div className={escStyles.nameCellContent}>
+                                                                <span className={escStyles.empName} style={{ fontWeight: isMe ? 700 : 500 }}>
+                                                                    {emp.name.split(' ')[0]} {isMe && '(Eu)'}
+                                                                </span>
+                                                                <span className={escStyles.empCode}>{emp.code}</span>
+                                                            </div>
                                                         </td>
                                                         {codes.map((code, di) => {
                                                             const d = daysInMonth[di];
