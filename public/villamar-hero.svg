@@ -1,67 +1,83 @@
 <svg width="840" height="660" viewBox="0 0 840 660" fill="none" xmlns="http://www.w3.org/2000/svg">
   <defs>
-    <linearGradient id="panel" x1="120" y1="76" x2="706" y2="566" gradientUnits="userSpaceOnUse">
-      <stop stop-color="#F9FCFF"/>
-      <stop offset="1" stop-color="#E9F4FF"/>
+    <linearGradient id="frame" x1="132" y1="78" x2="730" y2="564" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FBFDFF"/>
+      <stop offset="1" stop-color="#EAF4FF"/>
     </linearGradient>
-    <linearGradient id="accent" x1="488" y1="92" x2="720" y2="258" gradientUnits="userSpaceOnUse">
-      <stop stop-color="#0D5ED3"/>
-      <stop offset="1" stop-color="#74C7F1"/>
+    <linearGradient id="blueCard" x1="454" y1="174" x2="694" y2="338" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#0C5FCF"/>
+      <stop offset="1" stop-color="#72C5F2"/>
     </linearGradient>
-    <linearGradient id="green" x1="482" y1="358" x2="654" y2="472" gradientUnits="userSpaceOnUse">
-      <stop stop-color="#35C88A"/>
-      <stop offset="1" stop-color="#8CE7B4"/>
+    <linearGradient id="brand" x1="182" y1="154" x2="318" y2="322" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#0C4EA2"/>
+      <stop offset="0.55" stop-color="#1183D8"/>
+      <stop offset="1" stop-color="#8ED8F8"/>
     </linearGradient>
-    <filter id="shadow" x="68" y="36" width="704" height="588" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+    <filter id="shadow" x="72" y="38" width="708" height="594" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
       <feFlood flood-opacity="0" result="BackgroundImageFix"/>
       <feColorMatrix in="SourceAlpha" type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0" result="hardAlpha"/>
       <feOffset dy="22"/>
-      <feGaussianBlur stdDeviation="26"/>
-      <feColorMatrix type="matrix" values="0 0 0 0 0.044 0 0 0 0 0.145 0 0 0 0 0.286 0 0 0 0.14 0"/>
+      <feGaussianBlur stdDeviation="24"/>
+      <feColorMatrix type="matrix" values="0 0 0 0 0.043 0 0 0 0 0.145 0 0 0 0 0.286 0 0 0 0.14 0"/>
       <feBlend mode="normal" in2="BackgroundImageFix" result="effect1_dropShadow_0_1"/>
       <feBlend mode="normal" in="SourceGraphic" in2="effect1_dropShadow_0_1" result="shape"/>
     </filter>
   </defs>
 
-  <rect width="840" height="660" rx="40" fill="#EEF6FF"/>
-  <circle cx="690" cy="118" r="86" fill="#C9EBFF"/>
-  <circle cx="146" cy="548" r="118" fill="#DFF6FF"/>
+  <rect width="840" height="660" rx="40" fill="#EDF6FF"/>
+  <circle cx="700" cy="118" r="88" fill="#D7EEFF"/>
+  <circle cx="152" cy="538" r="112" fill="#DFF6FF"/>
 
   <g filter="url(#shadow)">
-    <rect x="120" y="76" width="600" height="484" rx="34" fill="url(#panel)"/>
-    <rect x="120" y="76" width="600" height="76" rx="34" fill="#FFFFFF"/>
-    <rect x="120" y="118" width="600" height="1" fill="#E2ECF8"/>
-    <circle cx="164" cy="114" r="8" fill="#FF8E8E"/>
-    <circle cx="192" cy="114" r="8" fill="#FFD163"/>
-    <circle cx="220" cy="114" r="8" fill="#64DC8A"/>
-    <rect x="264" y="98" width="156" height="32" rx="16" fill="#EFF5FD"/>
-    <rect x="288" y="110" width="108" height="8" rx="4" fill="#BFD4EA"/>
+    <rect x="120" y="76" width="600" height="492" rx="34" fill="url(#frame)"/>
+    <rect x="120" y="76" width="600" height="74" rx="34" fill="white"/>
+    <rect x="120" y="114" width="600" height="1" fill="#E0EAF5"/>
+    <circle cx="164" cy="112" r="8" fill="#FF8D8D"/>
+    <circle cx="192" cy="112" r="8" fill="#FFD262"/>
+    <circle cx="220" cy="112" r="8" fill="#63DC8A"/>
+    <rect x="266" y="96" width="144" height="32" rx="16" fill="#EEF5FC"/>
+    <rect x="292" y="108" width="94" height="8" rx="4" fill="#BFD1E4"/>
 
-    <rect x="156" y="186" width="250" height="208" rx="28" fill="#FFFFFF"/>
-    <rect x="178" y="210" width="104" height="16" rx="8" fill="#CAD8E8"/>
-    <rect x="178" y="246" width="184" height="74" rx="22" fill="#EDF5FF"/>
-    <path d="M198 292C224.553 269.676 259.247 265.49 287 282.5C314.459 299.331 347.585 299.482 370 283" stroke="#1490E3" stroke-width="16" stroke-linecap="round"/>
-    <path d="M198 334C222.616 317.753 253.941 316.011 278 332.5C302.346 349.186 333.736 348.899 362 327" stroke="#A9DBF5" stroke-width="10" stroke-linecap="round"/>
-    <rect x="178" y="340" width="84" height="14" rx="7" fill="#CAD8E8"/>
-    <rect x="178" y="366" width="148" height="12" rx="6" fill="#E4EDF7"/>
+    <rect x="156" y="178" width="250" height="206" rx="30" fill="white"/>
+    <rect x="178" y="202" width="140" height="16" rx="8" fill="#D7E3F0"/>
+    <rect x="178" y="236" width="206" height="124" rx="26" fill="#F4FAFF"/>
+    <rect x="206" y="262" width="92" height="92" rx="28" fill="url(#brand)"/>
+    <path d="M224 307L252 283L280 307" stroke="white" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M232 305V327C232 331.418 235.582 335 240 335H264C268.418 335 272 331.418 272 327V305" stroke="white" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M198 332C216.154 316.791 239.739 314.263 258.5 325.5C277.079 336.627 299.404 336.662 317 325.5" stroke="#E8FBFF" stroke-width="10" stroke-linecap="round"/>
+    <rect x="318" y="264" width="44" height="14" rx="7" fill="#D3DDEA"/>
+    <rect x="318" y="290" width="54" height="12" rx="6" fill="#E3EBF5"/>
+    <rect x="318" y="314" width="42" height="12" rx="6" fill="#E3EBF5"/>
 
-    <rect x="432" y="186" width="252" height="124" rx="28" fill="url(#accent)"/>
-    <rect x="458" y="216" width="112" height="14" rx="7" fill="white" fill-opacity="0.92"/>
-    <rect x="458" y="246" width="178" height="12" rx="6" fill="white" fill-opacity="0.52"/>
-    <rect x="458" y="270" width="138" height="12" rx="6" fill="white" fill-opacity="0.52"/>
-    <rect x="598" y="214" width="56" height="56" rx="18" fill="white" fill-opacity="0.16"/>
-    <path d="M618 250L626.5 222L635 250C639.731 256.226 646.059 260 654 260" stroke="white" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>
+    <rect x="432" y="178" width="252" height="132" rx="30" fill="url(#blueCard)"/>
+    <text x="458" y="216" fill="white" font-family="Inter, Arial, sans-serif" font-size="16" font-weight="800">Acessos rápidos</text>
+    <rect x="458" y="236" width="98" height="12" rx="6" fill="white" fill-opacity="0.5"/>
+    <rect x="458" y="262" width="96" height="34" rx="17" fill="white" fill-opacity="0.16"/>
+    <text x="478" y="284" fill="white" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700">Equipa + PIN</text>
+    <rect x="570" y="262" width="88" height="34" rx="17" fill="white" fill-opacity="0.16"/>
+    <text x="586" y="284" fill="white" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700">Admin</text>
 
-    <rect x="432" y="334" width="118" height="160" rx="28" fill="#FFFFFF"/>
-    <rect x="454" y="358" width="56" height="12" rx="6" fill="#BFD4EA"/>
-    <rect x="454" y="388" width="72" height="72" rx="22" fill="#EAF3FF"/>
-    <rect x="470" y="404" width="40" height="40" rx="14" fill="#147EE3"/>
-    <path d="M482 424H498" stroke="white" stroke-width="6" stroke-linecap="round"/>
-    <path d="M490 416V432" stroke="white" stroke-width="6" stroke-linecap="round"/>
+    <rect x="156" y="410" width="252" height="122" rx="30" fill="white"/>
+    <text x="182" y="442" fill="#10253D" font-family="Inter, Arial, sans-serif" font-size="22" font-weight="800">Fluxo diário</text>
+    <rect x="182" y="460" width="112" height="34" rx="17" fill="#EDF5FF"/>
+    <text x="204" y="482" fill="#0B63C9" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700">Plano diário</text>
+    <rect x="304" y="460" width="84" height="34" rx="17" fill="#F4F7FB"/>
+    <text x="325" y="482" fill="#4C647E" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700">Escalas</text>
+    <rect x="182" y="504" width="88" height="34" rx="17" fill="#EEFDF5"/>
+    <text x="208" y="526" fill="#15925D" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700">Fraldas</text>
+    <rect x="280" y="504" width="102" height="34" rx="17" fill="#FFF5E8"/>
+    <text x="301" y="526" fill="#C7761F" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700">Área médica</text>
 
-    <rect x="566" y="334" width="118" height="160" rx="28" fill="url(#green)"/>
-    <rect x="588" y="358" width="58" height="12" rx="6" fill="white" fill-opacity="0.9"/>
-    <rect x="588" y="388" width="74" height="74" rx="22" fill="white" fill-opacity="0.14"/>
-    <path d="M603 426L619 442L646 410" stroke="white" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>
+    <rect x="432" y="334" width="252" height="198" rx="30" fill="white"/>
+    <text x="458" y="366" fill="#10253D" font-family="Inter, Arial, sans-serif" font-size="22" font-weight="800">Operação ligada</text>
+    <rect x="458" y="386" width="172" height="14" rx="7" fill="#D7E2EF"/>
+    <rect x="458" y="418" width="94" height="76" rx="24" fill="#EBF4FF"/>
+    <text x="476" y="448" fill="#0B63C9" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="800">Avisos</text>
+    <text x="476" y="474" fill="#4D6480" font-family="Inter, Arial, sans-serif" font-size="12" font-weight="600">alertas da</text>
+    <text x="476" y="492" fill="#4D6480" font-family="Inter, Arial, sans-serif" font-size="12" font-weight="600">equipa</text>
+    <rect x="566" y="418" width="92" height="76" rx="24" fill="#EEFDF5"/>
+    <text x="587" y="448" fill="#15925D" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="800">Stock</text>
+    <text x="586" y="474" fill="#4D6480" font-family="Inter, Arial, sans-serif" font-size="12" font-weight="600">reposição</text>
+    <text x="586" y="492" fill="#4D6480" font-family="Inter, Arial, sans-serif" font-size="12" font-weight="600">em tempo real</text>
   </g>
 </svg>

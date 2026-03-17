@@ -67,7 +67,7 @@
 
 .heroCopy,
 .heroVisual,
-.accessSection,
+.pillarsShell,
 .pillarCard {
   border: 1px solid rgba(255, 255, 255, 0.72);
   box-shadow: 0 18px 54px rgba(26, 54, 93, 0.08);
@@ -75,7 +75,7 @@
 
 .heroCopy,
 .heroVisual,
-.accessSection {
+.pillarsShell {
   background: rgba(255, 255, 255, 0.74);
   backdrop-filter: blur(22px);
   -webkit-backdrop-filter: blur(22px);
@@ -228,6 +228,45 @@
   gap: 16px;
 }
 
+.loginPanel {
+  padding: 22px;
+  border-radius: 28px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(235, 245, 255, 0.96));
+  border: 1px solid rgba(12, 78, 162, 0.08);
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.loginPanelHeader h2 {
+  margin: 0;
+  font-size: clamp(1.7rem, 2vw, 2.2rem);
+  color: #10253d;
+}
+
+.loginPanelHeader p {
+  margin: 8px 0 0;
+  font-size: 14px;
+  line-height: 1.65;
+  color: #607489;
+}
+
+.loginGrid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 14px;
+}
+
+.loginFootnote {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+  padding-top: 2px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #6f8499;
+}
+
 .heroArtFrame {
   position: relative;
   overflow: hidden;
@@ -279,7 +318,7 @@
   color: #607489;
 }
 
-.accessSection {
+.pillarsShell {
   padding: 28px;
   display: flex;
   flex-direction: column;
@@ -316,19 +355,13 @@
   color: #607489;
 }
 
-.accessGrid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 16px;
-}
-
 .accessCard {
   display: flex;
   flex-direction: column;
-  gap: 18px;
-  padding: 24px;
+  gap: 16px;
+  padding: 20px;
   background: linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(240, 246, 255, 0.94));
-  border-radius: 28px;
+  border-radius: 24px;
   border: 1px solid rgba(12, 78, 162, 0.08);
   text-align: left;
   cursor: pointer;
@@ -583,7 +616,7 @@
   }
 
   .heroCopy,
-  .accessSection,
+  .pillarsShell,
   .heroVisual {
     padding: 20px;
   }

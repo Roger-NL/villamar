@@ -230,6 +230,49 @@ export default function Home() {
                         </div>
 
                         <div className={styles.heroVisual}>
+                            <div className={styles.loginPanel}>
+                                <div className={styles.loginPanelHeader}>
+                                    <span className={styles.sectionEyebrow}>Entrar agora</span>
+                                    <h2>Escolha o seu acesso</h2>
+                                    <p>Equipa entra com PIN. Administração e direção entram com email e senha.</p>
+                                </div>
+
+                                <div className={styles.loginGrid}>
+                                    <button className={`${styles.accessCard} ${styles.accessCardPrimary}`} onClick={() => handleOpenSelector('employee')}>
+                                        <div className={`${styles.accessIconWrap} ${styles.accessBlue}`}>
+                                            <User size={30} strokeWidth={1.7} />
+                                        </div>
+                                        <div className={styles.accessInfo}>
+                                            <h3>Equipa</h3>
+                                            <p>Entrada rápida para quem está em operação, com PIN e acesso às áreas de trabalho do dia.</p>
+                                        </div>
+                                        <div className={styles.accessMeta}>
+                                            <span>{teamCount} colaboradores ativos</span>
+                                            <ChevronRight className={styles.arrow} />
+                                        </div>
+                                    </button>
+
+                                    <button className={styles.accessCard} onClick={() => handleOpenSelector('admin')}>
+                                        <div className={`${styles.accessIconWrap} ${styles.accessDark}`}>
+                                            <Shield size={30} strokeWidth={1.7} />
+                                        </div>
+                                        <div className={styles.accessInfo}>
+                                            <h3>Admin & Direção</h3>
+                                            <p>Acesso protegido para gestão, relatórios, configurações, equipas e controlo global da operação.</p>
+                                        </div>
+                                        <div className={styles.accessMeta}>
+                                            <span>Acesso protegido por email e senha</span>
+                                            <ChevronRight className={styles.arrow} />
+                                        </div>
+                                    </button>
+                                </div>
+
+                                <div className={styles.loginFootnote}>
+                                    <span>Villa Mar v2.0</span>
+                                    <span>Experiência otimizada para web, desktop e telemóvel</span>
+                                </div>
+                            </div>
+
                             <div className={styles.heroArtFrame}>
                                 <Image src="/villamar-hero.svg" alt="Pré-visualização do sistema Villa Mar" width={840} height={660} className={styles.heroArt} priority />
                             </div>
@@ -252,68 +295,32 @@ export default function Home() {
                         </div>
                     </section>
 
-                    <section className={styles.accessSection}>
+                    <section className={styles.pillarsShell}>
                         <div className={styles.sectionHeader}>
                             <div>
-                                <span className={styles.sectionEyebrow}>Entradas</span>
-                                <h2>Aceder à plataforma</h2>
+                                <span className={styles.sectionEyebrow}>Porque resulta</span>
+                                <h2>Desenhado para parecer premium e funcionar como ferramenta séria</h2>
                             </div>
                             <p>
-                                A mesma casa, com acessos diferentes para quem cuida, para quem gere e para quem coordena a operação.
+                                Não é uma landing a vender em voz alta. É uma apresentação limpa do que o produto já resolve dentro da casa.
                             </p>
                         </div>
 
-                        <div className={styles.accessGrid}>
-                            <button className={`${styles.accessCard} ${styles.accessCardPrimary}`} onClick={() => handleOpenSelector('employee')}>
-                                <div className={`${styles.accessIconWrap} ${styles.accessBlue}`}>
-                                    <User size={30} strokeWidth={1.7} />
-                                </div>
-                                <div className={styles.accessInfo}>
-                                    <h3>Equipa</h3>
-                                    <p>Entrar como funcionário com PIN, acesso rápido à rotina, tarefas, fraldas, escalas e área médica.</p>
-                                </div>
-                                <div className={styles.accessMeta}>
-                                    <span>{teamCount} colaboradores ativos</span>
-                                    <ChevronRight className={styles.arrow} />
-                                </div>
-                            </button>
-
-                            <button className={styles.accessCard} onClick={() => handleOpenSelector('admin')}>
-                                <div className={`${styles.accessIconWrap} ${styles.accessDark}`}>
-                                    <Shield size={30} strokeWidth={1.7} />
-                                </div>
-                                <div className={styles.accessInfo}>
-                                    <h3>Admin & Direção</h3>
-                                    <p>Gestão restrita com controlo da equipa, reposição, relatórios, configurações, utilizadores e operação global.</p>
-                                </div>
-                                <div className={styles.accessMeta}>
-                                    <span>Acesso protegido por email e senha</span>
-                                    <ChevronRight className={styles.arrow} />
-                                </div>
-                            </button>
-                        </div>
-
-                        <div className={styles.bottomNote}>
-                            <span>Villa Mar v2.0</span>
-                            <span>Experiência otimizada para web, desktop e telemóvel</span>
+                        <div className={styles.pillarsSection}>
+                            {landingPillars.map((item) => {
+                                const Icon = item.icon;
+                                return (
+                                    <article key={item.title} className={styles.pillarCard}>
+                                        <div className={styles.pillarIcon}>
+                                            <Icon size={20} />
+                                        </div>
+                                        <h3>{item.title}</h3>
+                                        <p>{item.description}</p>
+                                    </article>
+                                );
+                            })}
                         </div>
                     </section>
-
-                    <section className={styles.pillarsSection}>
-                        {landingPillars.map((item) => {
-                            const Icon = item.icon;
-                            return (
-                                <article key={item.title} className={styles.pillarCard}>
-                                    <div className={styles.pillarIcon}>
-                                        <Icon size={20} />
-                                    </div>
-                                    <h3>{item.title}</h3>
-                                    <p>{item.description}</p>
-                                </article>
-                            );
-                        })}
-                    </section>
-
                 </div>
             </main>
 
