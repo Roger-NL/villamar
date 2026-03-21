@@ -239,7 +239,7 @@ export default function FraldasPage() {
     const [weekOffset, setWeekOffset] = useState(0);
     const [dayOffset, setDayOffset] = useState(0); // Para a aba 'Diárias'
     const [depositUsageDate, setDepositUsageDate] = useState(todayStr);
-    const [arrivalForm, setArrivalForm] = useState({ itemId: '', date: todayStr, quantity: '' });
+    const [arrivalForm, setArrivalForm] = useState({ itemId: '', date: todayStr, packageCount: '', looseUnits: '' });
     const [selectedWeeklyOwnSupplyPatientId, setSelectedWeeklyOwnSupplyPatientId] = useState('');
     const [isCompactMobile, setIsCompactMobile] = useState(false);
 
@@ -451,26 +451,44 @@ export default function FraldasPage() {
             .sort((a, b) => new Date(b.date || b.timestamp || 0) - new Date(a.date || a.timestamp || 0))
     );
 
+    const getPackageSummary = (item, totalUnits = Number(item?.stockDepot || 0)) => {
+        const packSize = Math.max(1, getPackSize(item));
+        const safeUnits = Math.max(0, Number(totalUnits || 0));
+        return {
+            fullPacks: Math.floor(safeUnits / packSize),
+            looseUnits: safeUnits % packSize,
+            packSize
+        };
+    };
+
     const openArrivalHistory = (item) => {
         setExpandedArrivalItemId((current) => current === item.id ? '' : item.id);
         setArrivalForm({
             itemId: item.id,
             date: todayStr,
-            quantity: ''
+            packageCount: '',
+            looseUnits: ''
         });
     };
 
     const handleSaveArrival = async (item) => {
-        const quantity = Number(arrivalForm.quantity);
-        if (!arrivalForm.date || Number.isNaN(quantity) || quantity <= 0) {
-            alert('Indique a data e a quantidade recebida.');
+        const packageCount = Number(arrivalForm.packageCount || 0);
+        const looseUnits = Number(arrivalForm.looseUnits || 0);
+        const hasInvalidPackageCount = Number.isNaN(packageCount) || packageCount < 0;
+        const hasInvalidLooseUnits = Number.isNaN(looseUnits) || looseUnits < 0;
+        if (!arrivalForm.date || hasInvalidPackageCount || hasInvalidLooseUnits || (packageCount <= 0 && looseUnits <= 0)) {
+            alert('Indique a data e a quantidade recebida em pacotes e/ou unidades.');
             return;
         }
+
+        const quantity = (packageCount * getPackSize(item)) + looseUnits;
 
         const arrivalEntry = {
             id: Date.now().toString(),
             date: arrivalForm.date,
             quantity,
+            packageCount,
+            looseUnits,
             createdAt: new Date().toISOString(),
             createdBy: currentUser?.name || 'Admin'
         };
@@ -480,9 +498,9 @@ export default function FraldasPage() {
             arrivalHistory: [...(item.arrivalHistory || []), arrivalEntry]
         });
 
-        setToast(`Chegada registada em ${item.name}: +${quantity}`);
+        setToast(`Chegada registada em ${item.name}: +${packageCount} pacotes e +${looseUnits} unidades (${quantity} no total)`);
         setTimeout(() => setToast(''), 3000);
-        setArrivalForm({ itemId: item.id, date: todayStr, quantity: '' });
+        setArrivalForm({ itemId: item.id, date: todayStr, packageCount: '', looseUnits: '' });
     };
 
     // EXPORT PDF
@@ -1528,16 +1546,27 @@ export default function FraldasPage() {
                                 </h3>
                                 {inventoryEditorItems.filter(i => i.origin === 'Casa').length > 0 ? (
                                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '20px' }}>
-                                        {inventoryEditorItems.filter(i => i.origin === 'Casa').map(item => (
+                                        {inventoryEditorItems.filter(i => i.origin === 'Casa').map(item => {
+                                            const packageSummary = getPackageSummary(item);
+                                            return (
                                             <div key={item.id} style={{ background: 'white', padding: '20px', border: '1px solid #E5E7EB', borderRadius: '20px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)', display: 'flex', flexDirection: 'column' }}>
                                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '20px' }}>
                                                     <div>
                                                         <h4 style={{ margin: '0 0 6px 0', fontSize: '18px', color: '#111827', fontWeight: '800' }}>{item.name}</h4>
                                                         <span style={{ background: '#DCFCE7', color: '#166534', padding: '4px 10px', borderRadius: '8px', fontSize: '11px', fontWeight: 800 }}>ESTOQUE DA CASA</span>
                                                     </div>
-                                                    <div style={{ background: item.stockDepot < 30 ? '#FEF2F2' : '#F3F4F6', border: item.stockDepot < 30 ? '1px solid #FECACA' : '1px solid transparent', padding: '12px 16px', borderRadius: '16px', textAlign: 'center', minWidth: '80px' }}>
-                                                        <span style={{ display: 'block', fontSize: '28px', fontWeight: 900, color: item.stockDepot < 30 ? '#EF4444' : '#111827', lineHeight: 1 }}>{item.stockDepot}</span>
-                                                        <span style={{ fontSize: '10px', color: '#6B7280', fontWeight: 800, marginTop: '4px', display: 'block' }}>UNIDADES</span>
+                                                    <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+                                                        <div style={{ background: item.stockDepot < 30 ? '#FEF2F2' : '#F3F4F6', border: item.stockDepot < 30 ? '1px solid #FECACA' : '1px solid transparent', padding: '12px 16px', borderRadius: '16px', textAlign: 'center', minWidth: '80px' }}>
+                                                            <span style={{ display: 'block', fontSize: '28px', fontWeight: 900, color: item.stockDepot < 30 ? '#EF4444' : '#111827', lineHeight: 1 }}>{item.stockDepot}</span>
+                                                            <span style={{ fontSize: '10px', color: '#6B7280', fontWeight: 800, marginTop: '4px', display: 'block' }}>UNIDADES</span>
+                                                        </div>
+                                                        <div style={{ background: '#EFF6FF', border: '1px solid #BFDBFE', padding: '12px 16px', borderRadius: '16px', textAlign: 'center', minWidth: '80px' }}>
+                                                            <span style={{ display: 'block', fontSize: '28px', fontWeight: 900, color: '#1D4ED8', lineHeight: 1 }}>{packageSummary.fullPacks}</span>
+                                                            <span style={{ fontSize: '10px', color: '#6B7280', fontWeight: 800, marginTop: '4px', display: 'block' }}>PACOTES</span>
+                                                            {packageSummary.looseUnits > 0 && (
+                                                                <span style={{ fontSize: '10px', color: '#1D4ED8', fontWeight: 700, marginTop: '4px', display: 'block' }}>+{packageSummary.looseUnits} soltas</span>
+                                                            )}
+                                                        </div>
                                                     </div>
                                                 </div>
 
@@ -1563,14 +1592,18 @@ export default function FraldasPage() {
 
                                                     {expandedArrivalItemId === item.id && (
                                                         <div style={{ marginTop: '12px', display: 'flex', flexDirection: 'column', gap: '10px', background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: '14px', padding: '12px' }}>
-                                                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr auto', gap: '8px', alignItems: 'end' }}>
+                                                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr auto', gap: '8px', alignItems: 'end' }}>
                                                                 <label style={{ fontSize: '12px', fontWeight: 800, color: '#475569' }}>
                                                                     Data
-                                                                    <input type="date" value={arrivalForm.itemId === item.id ? arrivalForm.date : todayStr} max={todayStr} onChange={(e) => setArrivalForm({ itemId: item.id, date: e.target.value, quantity: arrivalForm.itemId === item.id ? arrivalForm.quantity : '' })} style={{ width: '100%', marginTop: '6px', padding: '10px', borderRadius: '10px', border: '1px solid #CBD5E1' }} />
+                                                                    <input type="date" value={arrivalForm.itemId === item.id ? arrivalForm.date : todayStr} max={todayStr} onChange={(e) => setArrivalForm({ itemId: item.id, date: e.target.value, packageCount: arrivalForm.itemId === item.id ? arrivalForm.packageCount : '', looseUnits: arrivalForm.itemId === item.id ? arrivalForm.looseUnits : '' })} style={{ width: '100%', marginTop: '6px', padding: '10px', borderRadius: '10px', border: '1px solid #CBD5E1' }} />
                                                                 </label>
                                                                 <label style={{ fontSize: '12px', fontWeight: 800, color: '#475569' }}>
-                                                                    Quantidade recebida
-                                                                    <input type="number" min="1" placeholder="Ex: 104" value={arrivalForm.itemId === item.id ? arrivalForm.quantity : ''} onChange={(e) => setArrivalForm({ itemId: item.id, date: arrivalForm.itemId === item.id ? arrivalForm.date : todayStr, quantity: e.target.value })} style={{ width: '100%', marginTop: '6px', padding: '10px', borderRadius: '10px', border: '1px solid #CBD5E1' }} />
+                                                                    Pacotes recebidos
+                                                                    <input type="number" min="0" placeholder="Ex: 10" value={arrivalForm.itemId === item.id ? arrivalForm.packageCount : ''} onChange={(e) => setArrivalForm({ itemId: item.id, date: arrivalForm.itemId === item.id ? arrivalForm.date : todayStr, packageCount: e.target.value, looseUnits: arrivalForm.itemId === item.id ? arrivalForm.looseUnits : '' })} style={{ width: '100%', marginTop: '6px', padding: '10px', borderRadius: '10px', border: '1px solid #CBD5E1' }} />
+                                                                </label>
+                                                                <label style={{ fontSize: '12px', fontWeight: 800, color: '#475569' }}>
+                                                                    Unidades avulsas
+                                                                    <input type="number" min="0" placeholder="Ex: 6" value={arrivalForm.itemId === item.id ? arrivalForm.looseUnits : ''} onChange={(e) => setArrivalForm({ itemId: item.id, date: arrivalForm.itemId === item.id ? arrivalForm.date : todayStr, packageCount: arrivalForm.itemId === item.id ? arrivalForm.packageCount : '', looseUnits: e.target.value })} style={{ width: '100%', marginTop: '6px', padding: '10px', borderRadius: '10px', border: '1px solid #CBD5E1' }} />
                                                                 </label>
                                                                 <button type="button" onClick={() => handleSaveArrival(item)} style={{ padding: '10px 14px', borderRadius: '10px', border: 'none', background: '#16A34A', color: 'white', fontWeight: 900, cursor: 'pointer' }}>
                                                                     Guardar
@@ -1582,7 +1615,11 @@ export default function FraldasPage() {
                                                                     <div key={entry.id || `${entry.date}-${entry.quantity}`} style={{ display: 'flex', justifyContent: 'space-between', gap: '12px', background: 'white', border: '1px solid #E2E8F0', borderRadius: '12px', padding: '10px 12px' }}>
                                                                         <div>
                                                                             <div style={{ fontWeight: 900, color: '#0F172A' }}>{new Date(`${entry.date}T00:00:00`).toLocaleDateString('pt-PT')}</div>
-                                                                            <div style={{ fontSize: '12px', color: '#64748B', fontWeight: 700 }}>Registado por {entry.createdBy || 'Admin'}</div>
+                                                                            <div style={{ fontSize: '12px', color: '#64748B', fontWeight: 700 }}>
+                                                                                Registado por {entry.createdBy || 'Admin'}
+                                                                                {Number(entry.packageCount || 0) > 0 ? ` | ${entry.packageCount} pacotes` : ''}
+                                                                                {Number(entry.looseUnits || 0) > 0 ? ` | ${entry.looseUnits} soltas` : ''}
+                                                                            </div>
                                                                         </div>
                                                                         <div style={{ fontWeight: 900, color: '#166534' }}>+{entry.quantity}</div>
                                                                     </div>
@@ -1610,7 +1647,7 @@ export default function FraldasPage() {
                                                     </button>
                                                 </div>
                                             </div>
-                                        ))}
+                                        )})}
                                     </div>
                                 ) : (
                                     <div className={formStyles.emptyState} style={{ padding: '32px', background: 'white', borderRadius: '20px', border: '1px dashed #D1D5DB' }}>
@@ -1627,16 +1664,27 @@ export default function FraldasPage() {
                                 </h3>
                                 {inventoryEditorItems.filter(i => i.origin === 'Própria').length > 0 ? (
                                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '20px' }}>
-                                        {inventoryEditorItems.filter(i => i.origin === 'Própria').map(item => (
+                                        {inventoryEditorItems.filter(i => i.origin === 'Própria').map(item => {
+                                            const packageSummary = getPackageSummary(item);
+                                            return (
                                             <div key={item.id} style={{ background: 'white', padding: '20px', border: '1px solid #E5E7EB', borderRadius: '20px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)', display: 'flex', flexDirection: 'column' }}>
                                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '20px' }}>
                                                     <div>
                                                         <h4 style={{ margin: '0 0 6px 0', fontSize: '18px', color: '#111827', fontWeight: '800' }}>{item.name}</h4>
                                                         <span style={{ background: '#E0F2FE', color: '#0369A1', padding: '4px 10px', borderRadius: '8px', fontSize: '11px', fontWeight: 800 }}>FAMÍLIA: {item.patientName || 'Desconhecido'}</span>
                                                     </div>
-                                                    <div style={{ background: item.stockDepot < 30 ? '#FEF2F2' : '#F3F4F6', border: item.stockDepot < 30 ? '1px solid #FECACA' : '1px solid transparent', padding: '12px 16px', borderRadius: '16px', textAlign: 'center', minWidth: '80px' }}>
-                                                        <span style={{ display: 'block', fontSize: '28px', fontWeight: 900, color: item.stockDepot < 30 ? '#EF4444' : '#111827', lineHeight: 1 }}>{item.stockDepot}</span>
-                                                        <span style={{ fontSize: '10px', color: '#6B7280', fontWeight: 800, marginTop: '4px', display: 'block' }}>UNIDADES</span>
+                                                    <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+                                                        <div style={{ background: item.stockDepot < 30 ? '#FEF2F2' : '#F3F4F6', border: item.stockDepot < 30 ? '1px solid #FECACA' : '1px solid transparent', padding: '12px 16px', borderRadius: '16px', textAlign: 'center', minWidth: '80px' }}>
+                                                            <span style={{ display: 'block', fontSize: '28px', fontWeight: 900, color: item.stockDepot < 30 ? '#EF4444' : '#111827', lineHeight: 1 }}>{item.stockDepot}</span>
+                                                            <span style={{ fontSize: '10px', color: '#6B7280', fontWeight: 800, marginTop: '4px', display: 'block' }}>UNIDADES</span>
+                                                        </div>
+                                                        <div style={{ background: '#EFF6FF', border: '1px solid #BFDBFE', padding: '12px 16px', borderRadius: '16px', textAlign: 'center', minWidth: '80px' }}>
+                                                            <span style={{ display: 'block', fontSize: '28px', fontWeight: 900, color: '#1D4ED8', lineHeight: 1 }}>{packageSummary.fullPacks}</span>
+                                                            <span style={{ fontSize: '10px', color: '#6B7280', fontWeight: 800, marginTop: '4px', display: 'block' }}>PACOTES</span>
+                                                            {packageSummary.looseUnits > 0 && (
+                                                                <span style={{ fontSize: '10px', color: '#1D4ED8', fontWeight: 700, marginTop: '4px', display: 'block' }}>+{packageSummary.looseUnits} soltas</span>
+                                                            )}
+                                                        </div>
                                                     </div>
                                                 </div>
 
@@ -1662,14 +1710,18 @@ export default function FraldasPage() {
 
                                                     {expandedArrivalItemId === item.id && (
                                                         <div style={{ marginTop: '12px', display: 'flex', flexDirection: 'column', gap: '10px', background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: '14px', padding: '12px' }}>
-                                                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr auto', gap: '8px', alignItems: 'end' }}>
+                                                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr auto', gap: '8px', alignItems: 'end' }}>
                                                                 <label style={{ fontSize: '12px', fontWeight: 800, color: '#475569' }}>
                                                                     Data
-                                                                    <input type="date" value={arrivalForm.itemId === item.id ? arrivalForm.date : todayStr} max={todayStr} onChange={(e) => setArrivalForm({ itemId: item.id, date: e.target.value, quantity: arrivalForm.itemId === item.id ? arrivalForm.quantity : '' })} style={{ width: '100%', marginTop: '6px', padding: '10px', borderRadius: '10px', border: '1px solid #CBD5E1' }} />
+                                                                    <input type="date" value={arrivalForm.itemId === item.id ? arrivalForm.date : todayStr} max={todayStr} onChange={(e) => setArrivalForm({ itemId: item.id, date: e.target.value, packageCount: arrivalForm.itemId === item.id ? arrivalForm.packageCount : '', looseUnits: arrivalForm.itemId === item.id ? arrivalForm.looseUnits : '' })} style={{ width: '100%', marginTop: '6px', padding: '10px', borderRadius: '10px', border: '1px solid #CBD5E1' }} />
                                                                 </label>
                                                                 <label style={{ fontSize: '12px', fontWeight: 800, color: '#475569' }}>
-                                                                    Quantidade recebida
-                                                                    <input type="number" min="1" placeholder="Ex: 104" value={arrivalForm.itemId === item.id ? arrivalForm.quantity : ''} onChange={(e) => setArrivalForm({ itemId: item.id, date: arrivalForm.itemId === item.id ? arrivalForm.date : todayStr, quantity: e.target.value })} style={{ width: '100%', marginTop: '6px', padding: '10px', borderRadius: '10px', border: '1px solid #CBD5E1' }} />
+                                                                    Pacotes recebidos
+                                                                    <input type="number" min="0" placeholder="Ex: 12" value={arrivalForm.itemId === item.id ? arrivalForm.packageCount : ''} onChange={(e) => setArrivalForm({ itemId: item.id, date: arrivalForm.itemId === item.id ? arrivalForm.date : todayStr, packageCount: e.target.value, looseUnits: arrivalForm.itemId === item.id ? arrivalForm.looseUnits : '' })} style={{ width: '100%', marginTop: '6px', padding: '10px', borderRadius: '10px', border: '1px solid #CBD5E1' }} />
+                                                                </label>
+                                                                <label style={{ fontSize: '12px', fontWeight: 800, color: '#475569' }}>
+                                                                    Unidades avulsas
+                                                                    <input type="number" min="0" placeholder="Ex: 3" value={arrivalForm.itemId === item.id ? arrivalForm.looseUnits : ''} onChange={(e) => setArrivalForm({ itemId: item.id, date: arrivalForm.itemId === item.id ? arrivalForm.date : todayStr, packageCount: arrivalForm.itemId === item.id ? arrivalForm.packageCount : '', looseUnits: e.target.value })} style={{ width: '100%', marginTop: '6px', padding: '10px', borderRadius: '10px', border: '1px solid #CBD5E1' }} />
                                                                 </label>
                                                                 <button type="button" onClick={() => handleSaveArrival(item)} style={{ padding: '10px 14px', borderRadius: '10px', border: 'none', background: '#0284C7', color: 'white', fontWeight: 900, cursor: 'pointer' }}>
                                                                     Guardar
@@ -1681,7 +1733,11 @@ export default function FraldasPage() {
                                                                     <div key={entry.id || `${entry.date}-${entry.quantity}`} style={{ display: 'flex', justifyContent: 'space-between', gap: '12px', background: 'white', border: '1px solid #E2E8F0', borderRadius: '12px', padding: '10px 12px' }}>
                                                                         <div>
                                                                             <div style={{ fontWeight: 900, color: '#0F172A' }}>{new Date(`${entry.date}T00:00:00`).toLocaleDateString('pt-PT')}</div>
-                                                                            <div style={{ fontSize: '12px', color: '#64748B', fontWeight: 700 }}>Registado por {entry.createdBy || 'Admin'}</div>
+                                                                            <div style={{ fontSize: '12px', color: '#64748B', fontWeight: 700 }}>
+                                                                                Registado por {entry.createdBy || 'Admin'}
+                                                                                {Number(entry.packageCount || 0) > 0 ? ` | ${entry.packageCount} pacotes` : ''}
+                                                                                {Number(entry.looseUnits || 0) > 0 ? ` | ${entry.looseUnits} soltas` : ''}
+                                                                            </div>
                                                                         </div>
                                                                         <div style={{ fontWeight: 900, color: '#0284C7' }}>+{entry.quantity}</div>
                                                                     </div>
@@ -1709,7 +1765,7 @@ export default function FraldasPage() {
                                                     </button>
                                                 </div>
                                             </div>
-                                        ))}
+                                        )})}
                                     </div>
                                 ) : (
                                     <div className={formStyles.emptyState} style={{ padding: '32px', background: 'white', borderRadius: '20px', border: '1px dashed #D1D5DB' }}>
