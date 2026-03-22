@@ -4,7 +4,7 @@
  */
 import { createContext, useContext, useState, useEffect, useCallback, startTransition } from 'react';
 import { mockEmployees as initialEmployees, mockTasks as initialTasks, mockSwapRequests as initialSwaps, taskCategories as initialTaskCategories, getPrebuiltSchedule } from '@/data/mockData';
-import { db } from '@/config/firebase';
+import { auth, db } from '@/config/firebase';
 import { collection, doc, setDoc, deleteDoc, onSnapshot, getDocs, writeBatch } from 'firebase/firestore';
 
 const DataContext = createContext();
@@ -63,6 +63,29 @@ export function DataProvider({ children }) {
             localStorage.setItem(STORAGE_KEYS.EMPLOYEES_CACHE, JSON.stringify(items));
         } catch {
             // Ignore cache write issues (private mode / storage limit)
+        }
+    };
+
+    const loadEmployeesFromAdminApi = async () => {
+        if (!auth?.currentUser) return [];
+        try {
+            const idToken = await auth.currentUser.getIdToken();
+            const response = await fetch('/api/admin/list-employees', {
+                method: 'GET',
+                headers: {
+                    Authorization: `Bearer ${idToken}`
+                }
+            });
+            if (!response.ok) return [];
+            const payload = await response.json();
+            const items = Array.isArray(payload?.employees) ? payload.employees : [];
+            if (items.length > 0) {
+                setEmployees(items);
+                writeEmployeesCache(items);
+            }
+            return items;
+        } catch {
+            return [];
         }
     };
 
@@ -140,6 +163,8 @@ export function DataProvider({ children }) {
                     if (cachedEmployees.length > 0) {
                         setEmployees(cachedEmployees);
                     }
+                    // Last-resort fallback for admin sessions when Firestore rules block direct reads.
+                    loadEmployeesFromAdminApi();
                 }
             );
             const unsubTasks = onSnapshot(collection(db, 'tasks'), (snapshot) => {
