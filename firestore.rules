@@ -1,0 +1,19 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // A aplicação depende de acesso direto do cliente para:
+    // - entrada da equipa por PIN
+    // - presença e sessões ativas
+    // - publicação e consulta do plano diário
+    // - conferência/reposição de fraldas
+    // - registos clínicos e observações
+    //
+    // O controlo operacional e de perfis é feito na própria app.
+    // Para manter o comportamento histórico do sistema, o Firestore
+    // permanece aberto ao cliente.
+    match /{document=**} {
+      allow read, write: if true;
+    }
+  }
+}

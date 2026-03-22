@@ -6,6 +6,7 @@ import { createContext, useContext, useState, useEffect, useCallback, startTrans
 import { mockEmployees as initialEmployees, mockTasks as initialTasks, mockSwapRequests as initialSwaps, taskCategories as initialTaskCategories, getPrebuiltSchedule } from '@/data/mockData';
 import { auth, db } from '@/config/firebase';
 import { collection, doc, setDoc, deleteDoc, onSnapshot, getDocs, writeBatch } from 'firebase/firestore';
+import { clearCollectionViaBridge, deleteDocumentViaBridge, listCollectionViaBridge, setDocumentViaBridge } from '@/lib/firestoreBridgeClient';
 
 const DataContext = createContext();
 
@@ -15,13 +16,17 @@ const STORAGE_KEYS = {
     EMPLOYEES_CACHE: 'villamar_employees_cache',
     TASKS: 'villamar_tasks',
     SWAPS: 'villamar_swaps',
+    NOTIFICATIONS: 'villamar_notifications',
     TIME_RECORDS: 'villamar_time_records',
     ACTIVE_SESSIONS: 'villamar_active_sessions',
     SCHEDULES: 'villamar_schedules',
+    LEAVES: 'villamar_leaves',
     INVENTORY: 'villamar_inventory',
     INSULIN_PATIENTS: 'villamar_insulin_patients',
     INSULIN_LOGS: 'villamar_insulin_logs',
     MEDICAL_NOTES: 'villamar_medical_notes',
+    DIAPER_PATIENTS: 'villamar_diaper_patients',
+    DIAPER_LOGS: 'villamar_diaper_logs',
     DAILY_PLANS: 'villamar_daily_plans',
     DAILY_ANNOUNCEMENTS: 'villamar_daily_announcements',
 };
@@ -75,6 +80,108 @@ export function DataProvider({ children }) {
         }
     };
 
+    const applyCollectionItems = useCallback((collectionName, items) => {
+        switch (collectionName) {
+        case 'employees':
+            setEmployees(items);
+            writeEmployeesCache(items);
+            writeLocalCache(STORAGE_KEYS.EMPLOYEES, items);
+            break;
+        case 'tasks':
+            setTasks(items);
+            writeLocalCache(STORAGE_KEYS.TASKS, items);
+            break;
+        case 'swapRequests':
+            setSwapRequests(items);
+            writeLocalCache(STORAGE_KEYS.SWAPS, items);
+            break;
+        case 'notifications': {
+            const sorted = [...items].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+            setNotifications(sorted);
+            writeLocalCache(STORAGE_KEYS.NOTIFICATIONS, sorted);
+            break;
+        }
+        case 'timeRecords':
+            setTimeRecords(items);
+            writeLocalCache(STORAGE_KEYS.TIME_RECORDS, items);
+            break;
+        case 'activeSessions': {
+            const sessions = {};
+            items.forEach((item) => {
+                sessions[item.id] = item;
+            });
+            setActiveSessions(sessions);
+            writeLocalCache(STORAGE_KEYS.ACTIVE_SESSIONS, sessions);
+            break;
+        }
+        case 'schedules': {
+            const schedules = {};
+            items.forEach((item) => {
+                schedules[item.id] = item;
+            });
+            setSavedSchedules(schedules);
+            writeLocalCache(STORAGE_KEYS.SCHEDULES, schedules);
+            break;
+        }
+        case 'leaves':
+            setLeaves(items);
+            writeLocalCache(STORAGE_KEYS.LEAVES, items);
+            break;
+        case 'inventoryItems':
+            setInventoryItems(items);
+            writeLocalCache(STORAGE_KEYS.INVENTORY, items);
+            break;
+        case 'insulinPatients':
+            setInsulinPatients(items);
+            writeLocalCache(STORAGE_KEYS.INSULIN_PATIENTS, items);
+            break;
+        case 'insulinLogs':
+            setInsulinLogs(items);
+            writeLocalCache(STORAGE_KEYS.INSULIN_LOGS, items);
+            break;
+        case 'medicalNotes':
+            setMedicalNotes(items);
+            writeLocalCache(STORAGE_KEYS.MEDICAL_NOTES, items);
+            break;
+        case 'diaperPatients':
+            setDiaperPatients(items);
+            writeLocalCache(STORAGE_KEYS.DIAPER_PATIENTS, items);
+            break;
+        case 'diaperLogs':
+            setDiaperLogs(items);
+            writeLocalCache(STORAGE_KEYS.DIAPER_LOGS, items);
+            break;
+        case 'dailyPlans': {
+            const plans = {};
+            items.forEach((item) => {
+                plans[item.id] = item;
+            });
+            setDailyPlans(plans);
+            writeLocalCache(STORAGE_KEYS.DAILY_PLANS, plans);
+            break;
+        }
+        case 'dailyAnnouncements': {
+            const sorted = [...items].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+            setDailyAnnouncements(sorted);
+            writeLocalCache(STORAGE_KEYS.DAILY_ANNOUNCEMENTS, sorted);
+            break;
+        }
+        default:
+            break;
+        }
+    }, []);
+
+    const refreshCollectionFromApi = useCallback(async (collectionName) => {
+        try {
+            const items = await listCollectionViaBridge(collectionName);
+            applyCollectionItems(collectionName, items);
+            return items;
+        } catch (error) {
+            console.error(`Falha ao recarregar ${collectionName} via bridge:`, error);
+            return [];
+        }
+    }, [applyCollectionItems]);
+
     const loadEmployeesFromAdminApi = async () => {
         if (!auth?.currentUser) return [];
         try {
@@ -124,6 +231,22 @@ export function DataProvider({ children }) {
                 setEmployees(payload.employees);
                 writeEmployeesCache(payload.employees);
             }
+            if (Array.isArray(payload?.tasks)) {
+                setTasks(payload.tasks);
+                writeLocalCache(STORAGE_KEYS.TASKS, payload.tasks);
+            }
+            if (Array.isArray(payload?.swapRequests)) {
+                setSwapRequests(payload.swapRequests);
+                writeLocalCache(STORAGE_KEYS.SWAPS, payload.swapRequests);
+            }
+            if (Array.isArray(payload?.notifications)) {
+                setNotifications(payload.notifications);
+                writeLocalCache(STORAGE_KEYS.NOTIFICATIONS, payload.notifications);
+            }
+            if (Array.isArray(payload?.timeRecords)) {
+                setTimeRecords(payload.timeRecords);
+                writeLocalCache(STORAGE_KEYS.TIME_RECORDS, payload.timeRecords);
+            }
             if (payload?.activeSessions && typeof payload.activeSessions === 'object') {
                 setActiveSessions(payload.activeSessions);
                 writeLocalCache(STORAGE_KEYS.ACTIVE_SESSIONS, payload.activeSessions);
@@ -131,6 +254,10 @@ export function DataProvider({ children }) {
             if (payload?.savedSchedules && typeof payload.savedSchedules === 'object') {
                 setSavedSchedules(payload.savedSchedules);
                 writeLocalCache(STORAGE_KEYS.SCHEDULES, payload.savedSchedules);
+            }
+            if (Array.isArray(payload?.leaves)) {
+                setLeaves(payload.leaves);
+                writeLocalCache(STORAGE_KEYS.LEAVES, payload.leaves);
             }
             if (payload?.dailyPlans && typeof payload.dailyPlans === 'object') {
                 setDailyPlans(payload.dailyPlans);
@@ -158,9 +285,11 @@ export function DataProvider({ children }) {
             }
             if (Array.isArray(payload?.diaperPatients)) {
                 setDiaperPatients(payload.diaperPatients);
+                writeLocalCache(STORAGE_KEYS.DIAPER_PATIENTS, payload.diaperPatients);
             }
             if (Array.isArray(payload?.diaperLogs)) {
                 setDiaperLogs(payload.diaperLogs);
+                writeLocalCache(STORAGE_KEYS.DIAPER_LOGS, payload.diaperLogs);
             }
             return payload;
         } catch {
@@ -276,16 +405,24 @@ export function DataProvider({ children }) {
             const unsubTasks = onSnapshot(collection(db, 'tasks'), (snapshot) => {
                 const items = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id }));
                 setTasks(items);
+            }, () => {
+                refreshCollectionFromApi('tasks');
             });
             const unsubSwaps = onSnapshot(collection(db, 'swapRequests'), (snapshot) => {
                 const items = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id }));
                 setSwapRequests(items);
+            }, () => {
+                refreshCollectionFromApi('swapRequests');
             });
             const unsubNotifications = onSnapshot(collection(db, 'notifications'), (snapshot) => {
                 setNotifications(snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id })).sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)));
+            }, () => {
+                refreshCollectionFromApi('notifications');
             });
             const unsubTimeRecords = onSnapshot(collection(db, 'timeRecords'), (snapshot) => {
                 setTimeRecords(snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id })));
+            }, () => {
+                refreshCollectionFromApi('timeRecords');
             });
             const unsubActiveSessions = onSnapshot(
                 collection(db, 'activeSessions'),
@@ -313,6 +450,8 @@ export function DataProvider({ children }) {
             );
             const unsubLeaves = onSnapshot(collection(db, 'leaves'), (snapshot) => {
                 setLeaves(snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id })));
+            }, () => {
+                refreshCollectionFromApi('leaves');
             });
             const unsubInventory = onSnapshot(
                 collection(db, 'inventoryItems'),
@@ -422,13 +561,18 @@ export function DataProvider({ children }) {
                 unsubDailyAnnouncements();
             };
         }
-    }, []);
+    }, [refreshCollectionFromApi]);
 
     // Helper para DB Write (Firebase fallback to LocalStorage)
     const writeDB = async (collectionName, docId, data, isMerge = true) => {
         if (db) {
-            const docRef = doc(db, collectionName, docId.toString());
-            await setDoc(docRef, data, { merge: isMerge });
+            try {
+                const docRef = doc(db, collectionName, docId.toString());
+                await setDoc(docRef, data, { merge: isMerge });
+            } catch (error) {
+                await setDocumentViaBridge(collectionName, docId, data, isMerge);
+                await refreshCollectionFromApi(collectionName);
+            }
         } else {
             // Fallbacks logic are handled in the specific useEffect hooks below
         }
@@ -436,18 +580,30 @@ export function DataProvider({ children }) {
 
     const deleteDB = async (collectionName, docId) => {
         if (db) {
-            await deleteDoc(doc(db, collectionName, docId.toString()));
+            try {
+                await deleteDoc(doc(db, collectionName, docId.toString()));
+            } catch (error) {
+                await deleteDocumentViaBridge(collectionName, docId);
+                await refreshCollectionFromApi(collectionName);
+            }
         }
     };
 
     const seedCollection = async (collectionName, items) => {
         if (!db) return;
-        const batch = writeBatch(db);
-        items.forEach(item => {
-            const docRef = doc(db, collectionName, item.id.toString());
-            batch.set(docRef, item);
-        });
-        await batch.commit();
+        try {
+            const batch = writeBatch(db);
+            items.forEach(item => {
+                const docRef = doc(db, collectionName, item.id.toString());
+                batch.set(docRef, item);
+            });
+            await batch.commit();
+        } catch (error) {
+            for (const item of items) {
+                await setDocumentViaBridge(collectionName, item.id, item, true);
+            }
+            await refreshCollectionFromApi(collectionName);
+        }
     };
 
     // Keep Local Storage active ONLY if no DB
@@ -795,22 +951,34 @@ export function DataProvider({ children }) {
             for (let c of selectedCollections) {
                 // Caso especial para Presenças (duas coleções)
                 if (c === 'timeRecords') {
-                    const snapshotP = await getDocs(collection(db, 'timeRecords'));
-                    const batchP = writeBatch(db);
-                    snapshotP.docs.forEach(d => batchP.delete(d.ref));
-                    await batchP.commit();
+                    try {
+                        const snapshotP = await getDocs(collection(db, 'timeRecords'));
+                        const batchP = writeBatch(db);
+                        snapshotP.docs.forEach(d => batchP.delete(d.ref));
+                        await batchP.commit();
 
-                    const snapshotS = await getDocs(collection(db, 'activeSessions'));
-                    const batchS = writeBatch(db);
-                    snapshotS.docs.forEach(d => batchS.delete(d.ref));
-                    await batchS.commit();
+                        const snapshotS = await getDocs(collection(db, 'activeSessions'));
+                        const batchS = writeBatch(db);
+                        snapshotS.docs.forEach(d => batchS.delete(d.ref));
+                        await batchS.commit();
+                    } catch (error) {
+                        await clearCollectionViaBridge('timeRecords');
+                        await clearCollectionViaBridge('activeSessions');
+                        await refreshCollectionFromApi('timeRecords');
+                        await refreshCollectionFromApi('activeSessions');
+                    }
                     continue;
                 }
 
-                const snapshot = await getDocs(collection(db, c));
-                const batch = writeBatch(db);
-                snapshot.docs.forEach(d => batch.delete(d.ref));
-                await batch.commit();
+                try {
+                    const snapshot = await getDocs(collection(db, c));
+                    const batch = writeBatch(db);
+                    snapshot.docs.forEach(d => batch.delete(d.ref));
+                    await batch.commit();
+                } catch (error) {
+                    await clearCollectionViaBridge(c);
+                    await refreshCollectionFromApi(c);
+                }
 
                 // Re-semear se necessário
                 if (c === 'tasks' && initialTasks?.length > 0) await seedCollection('tasks', initialTasks);

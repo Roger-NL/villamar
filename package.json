@@ -6,7 +6,8 @@
     "dev": "next dev -p 3001",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "deploy:firestore-rules": "node ./scripts/deploy-firestore-rules.mjs"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",

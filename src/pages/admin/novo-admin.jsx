@@ -14,6 +14,7 @@ import { getAuth, createUserWithEmailAndPassword, signOut } from 'firebase/auth'
 import { doc, setDoc } from 'firebase/firestore';
 import { Shield, ArrowLeft, Mail, Lock, User, Plus } from 'lucide-react';
 import { isSuperAdminEmail } from '@/lib/authRoles';
+import { setDocumentViaBridge } from '@/lib/firestoreBridgeClient';
 
 export default function NovoAdminPage() {
     const router = useRouter();
@@ -62,7 +63,11 @@ export default function NovoAdminPage() {
                 createdAt: new Date().toISOString()
             };
 
-            await setDoc(doc(db, 'employees', user.uid), newUser);
+            try {
+                await setDoc(doc(db, 'employees', user.uid), newUser);
+            } catch (writeError) {
+                await setDocumentViaBridge('employees', user.uid, newUser, true);
+            }
 
             // Faz logout na app secundária para limpá-la
             await signOut(secondaryAuth);
