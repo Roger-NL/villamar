@@ -66,6 +66,15 @@ export function DataProvider({ children }) {
         }
     };
 
+    const writeLocalCache = (key, value) => {
+        if (typeof window === 'undefined') return;
+        try {
+            localStorage.setItem(key, JSON.stringify(value));
+        } catch {
+            // Ignore cache write issues
+        }
+    };
+
     const loadEmployeesFromAdminApi = async () => {
         if (!auth?.currentUser) return [];
         try {
@@ -102,6 +111,38 @@ export function DataProvider({ children }) {
             return items;
         } catch {
             return [];
+        }
+    };
+
+    const loadOperationalBootstrapFromPublicApi = async () => {
+        try {
+            const response = await fetch('/api/public/bootstrap', { method: 'GET' });
+            if (!response.ok) return null;
+
+            const payload = await response.json();
+            if (Array.isArray(payload?.employees)) {
+                setEmployees(payload.employees);
+                writeEmployeesCache(payload.employees);
+            }
+            if (payload?.activeSessions && typeof payload.activeSessions === 'object') {
+                setActiveSessions(payload.activeSessions);
+                writeLocalCache(STORAGE_KEYS.ACTIVE_SESSIONS, payload.activeSessions);
+            }
+            if (payload?.savedSchedules && typeof payload.savedSchedules === 'object') {
+                setSavedSchedules(payload.savedSchedules);
+                writeLocalCache(STORAGE_KEYS.SCHEDULES, payload.savedSchedules);
+            }
+            if (payload?.dailyPlans && typeof payload.dailyPlans === 'object') {
+                setDailyPlans(payload.dailyPlans);
+                writeLocalCache(STORAGE_KEYS.DAILY_PLANS, payload.dailyPlans);
+            }
+            if (Array.isArray(payload?.dailyAnnouncements)) {
+                setDailyAnnouncements(payload.dailyAnnouncements);
+                writeLocalCache(STORAGE_KEYS.DAILY_ANNOUNCEMENTS, payload.dailyAnnouncements);
+            }
+            return payload;
+        } catch {
+            return null;
         }
     };
 
@@ -199,9 +240,13 @@ export function DataProvider({ children }) {
                     }
                     // Fallback 1: public team list for PIN login / dashboards when direct Firestore read is blocked.
                     // Fallback 2: authenticated admin route (extra safety for admin sessions).
-                    loadEmployeesFromPublicApi().then((items) => {
-                        if (!items.length) {
-                            loadEmployeesFromAdminApi();
+                    loadOperationalBootstrapFromPublicApi().then((payload) => {
+                        if (!payload?.employees?.length) {
+                            loadEmployeesFromPublicApi().then((items) => {
+                                if (!items.length) {
+                                    loadEmployeesFromAdminApi();
+                                }
+                            });
                         }
                     });
                 }
@@ -220,16 +265,30 @@ export function DataProvider({ children }) {
             const unsubTimeRecords = onSnapshot(collection(db, 'timeRecords'), (snapshot) => {
                 setTimeRecords(snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id })));
             });
-            const unsubActiveSessions = onSnapshot(collection(db, 'activeSessions'), (snapshot) => {
-                const sessions = {};
-                snapshot.docs.forEach(doc => { sessions[doc.id] = { ...doc.data(), id: doc.id }; });
-                setActiveSessions(sessions);
-            });
-            const unsubSchedules = onSnapshot(collection(db, 'schedules'), (snapshot) => {
-                const schedules = {};
-                snapshot.docs.forEach(doc => { schedules[doc.id] = { ...doc.data(), id: doc.id }; });
-                setSavedSchedules(schedules);
-            });
+            const unsubActiveSessions = onSnapshot(
+                collection(db, 'activeSessions'),
+                (snapshot) => {
+                    const sessions = {};
+                    snapshot.docs.forEach(doc => { sessions[doc.id] = { ...doc.data(), id: doc.id }; });
+                    setActiveSessions(sessions);
+                    writeLocalCache(STORAGE_KEYS.ACTIVE_SESSIONS, sessions);
+                },
+                () => {
+                    loadOperationalBootstrapFromPublicApi();
+                }
+            );
+            const unsubSchedules = onSnapshot(
+                collection(db, 'schedules'),
+                (snapshot) => {
+                    const schedules = {};
+                    snapshot.docs.forEach(doc => { schedules[doc.id] = { ...doc.data(), id: doc.id }; });
+                    setSavedSchedules(schedules);
+                    writeLocalCache(STORAGE_KEYS.SCHEDULES, schedules);
+                },
+                () => {
+                    loadOperationalBootstrapFromPublicApi();
+                }
+            );
             const unsubLeaves = onSnapshot(collection(db, 'leaves'), (snapshot) => {
                 setLeaves(snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id })));
             });
@@ -251,14 +310,29 @@ export function DataProvider({ children }) {
             const unsubDiaperLogs = onSnapshot(collection(db, 'diaperLogs'), (snapshot) => {
                 setDiaperLogs(snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id })));
             });
-            const unsubDailyPlans = onSnapshot(collection(db, 'dailyPlans'), (snapshot) => {
-                const plans = {};
-                snapshot.docs.forEach(doc => { plans[doc.id] = { ...doc.data(), id: doc.id }; });
-                setDailyPlans(plans);
-            });
-            const unsubDailyAnnouncements = onSnapshot(collection(db, 'dailyAnnouncements'), (snapshot) => {
-                setDailyAnnouncements(snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id })).sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)));
-            });
+            const unsubDailyPlans = onSnapshot(
+                collection(db, 'dailyPlans'),
+                (snapshot) => {
+                    const plans = {};
+                    snapshot.docs.forEach(doc => { plans[doc.id] = { ...doc.data(), id: doc.id }; });
+                    setDailyPlans(plans);
+                    writeLocalCache(STORAGE_KEYS.DAILY_PLANS, plans);
+                },
+                () => {
+                    loadOperationalBootstrapFromPublicApi();
+                }
+            );
+            const unsubDailyAnnouncements = onSnapshot(
+                collection(db, 'dailyAnnouncements'),
+                (snapshot) => {
+                    const announcements = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id })).sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+                    setDailyAnnouncements(announcements);
+                    writeLocalCache(STORAGE_KEYS.DAILY_ANNOUNCEMENTS, announcements);
+                },
+                () => {
+                    loadOperationalBootstrapFromPublicApi();
+                }
+            );
 
             startTransition(() => {
                 setIsHydrated(true);
