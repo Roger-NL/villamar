@@ -105,6 +105,24 @@ export function DataProvider({ children }) {
         }
     };
 
+    const saveDailyPlanViaAdminApi = useCallback(async (dateStr, plan) => {
+        if (!auth?.currentUser) throw new Error('NO_AUTH_USER');
+        const idToken = await auth.currentUser.getIdToken();
+        const response = await fetch('/api/admin/daily-plan', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                Authorization: `Bearer ${idToken}`
+            },
+            body: JSON.stringify({ dateStr, plan })
+        });
+        if (!response.ok) {
+            const payload = await response.json().catch(() => ({}));
+            throw new Error(payload?.error || 'ADMIN_DAILY_PLAN_SAVE_FAILED');
+        }
+        return true;
+    }, []);
+
     // Initial Sync from LocalStorage or Firebase
     useEffect(() => {
         if (!db && typeof window !== 'undefined') {
@@ -794,16 +812,33 @@ export function DataProvider({ children }) {
         const plan = dailyPlans[dateStr] || { id: dateStr, date: dateStr, assignments: {}, statuses: {}, customLabels: {}, groupResidents: {}, residentStatuses: {}, customResidentNames: {}, publishedAt: null };
         const newPlan = { ...plan, assignments, customLabels, groupResidents, residentStatuses, customResidentNames };
 
-        if (!db) setDailyPlans(prev => ({ ...prev, [dateStr]: newPlan }));
-        else await writeDB('dailyPlans', dateStr, newPlan);
-    }, [db, dailyPlans]);
+        // Optimistic update keeps UI responsive even if snapshot reads are blocked.
+        setDailyPlans(prev => ({ ...prev, [dateStr]: newPlan }));
+
+        if (!db) return;
+
+        try {
+            await writeDB('dailyPlans', dateStr, newPlan);
+        } catch (error) {
+            await saveDailyPlanViaAdminApi(dateStr, newPlan);
+            console.warn('Fallback API usada para gravar dailyPlans (updateDailyPlan):', error);
+        }
+    }, [db, dailyPlans, saveDailyPlanViaAdminApi]);
 
     const publishDailyPlan = useCallback(async (dateStr) => {
         const plan = dailyPlans[dateStr] || { id: dateStr, date: dateStr, assignments: {}, statuses: {} };
         const newPlan = { ...plan, publishedAt: new Date().toISOString() };
 
-        if (!db) setDailyPlans(prev => ({ ...prev, [dateStr]: newPlan }));
-        else await writeDB('dailyPlans', dateStr, newPlan);
+        setDailyPlans(prev => ({ ...prev, [dateStr]: newPlan }));
+
+        if (db) {
+            try {
+                await writeDB('dailyPlans', dateStr, newPlan);
+            } catch (error) {
+                await saveDailyPlanViaAdminApi(dateStr, newPlan);
+                console.warn('Fallback API usada para gravar dailyPlans (publishDailyPlan):', error);
+            }
+        }
 
         addNotification({
             type: 'daily_plan_published',
@@ -811,7 +846,7 @@ export function DataProvider({ children }) {
             message: `Plano Diário para ${dateStr} foi publicado.`,
             forAdmin: false // General notification
         });
-    }, [db, dailyPlans, addNotification]);
+    }, [db, dailyPlans, addNotification, saveDailyPlanViaAdminApi]);
 
     const toggleDailyTaskComplete = useCallback(async (dateStr, taskId, employeeId) => {
         const plan = dailyPlans[dateStr] || { id: dateStr, date: dateStr, assignments: {}, statuses: {}, publishedAt: null };
@@ -826,9 +861,17 @@ export function DataProvider({ children }) {
 
         const newPlan = { ...plan, statuses: newStatuses };
 
-        if (!db) setDailyPlans(prev => ({ ...prev, [dateStr]: newPlan }));
-        else await writeDB('dailyPlans', dateStr, newPlan);
-    }, [db, dailyPlans]);
+        setDailyPlans(prev => ({ ...prev, [dateStr]: newPlan }));
+
+        if (!db) return;
+
+        try {
+            await writeDB('dailyPlans', dateStr, newPlan);
+        } catch (error) {
+            await saveDailyPlanViaAdminApi(dateStr, newPlan);
+            console.warn('Fallback API usada para gravar dailyPlans (toggleDailyTaskComplete):', error);
+        }
+    }, [db, dailyPlans, saveDailyPlanViaAdminApi]);
 
     // === AVISOS DIÁRIOS ===
     const addDailyAnnouncement = useCallback(async (text, authorName, severity = 'normal') => {
