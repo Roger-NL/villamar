@@ -89,6 +89,22 @@ export function DataProvider({ children }) {
         }
     };
 
+    const loadEmployeesFromPublicApi = async () => {
+        try {
+            const response = await fetch('/api/public/employees', { method: 'GET' });
+            if (!response.ok) return [];
+            const payload = await response.json();
+            const items = Array.isArray(payload?.employees) ? payload.employees : [];
+            if (items.length > 0) {
+                setEmployees(items);
+                writeEmployeesCache(items);
+            }
+            return items;
+        } catch {
+            return [];
+        }
+    };
+
     // Initial Sync from LocalStorage or Firebase
     useEffect(() => {
         if (!db && typeof window !== 'undefined') {
@@ -163,8 +179,13 @@ export function DataProvider({ children }) {
                     if (cachedEmployees.length > 0) {
                         setEmployees(cachedEmployees);
                     }
-                    // Last-resort fallback for admin sessions when Firestore rules block direct reads.
-                    loadEmployeesFromAdminApi();
+                    // Fallback 1: public team list for PIN login / dashboards when direct Firestore read is blocked.
+                    // Fallback 2: authenticated admin route (extra safety for admin sessions).
+                    loadEmployeesFromPublicApi().then((items) => {
+                        if (!items.length) {
+                            loadEmployeesFromAdminApi();
+                        }
+                    });
                 }
             );
             const unsubTasks = onSnapshot(collection(db, 'tasks'), (snapshot) => {
