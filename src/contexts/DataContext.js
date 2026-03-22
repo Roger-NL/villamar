@@ -12,6 +12,7 @@ const DataContext = createContext();
 // Chaves do localStorage fallback
 const STORAGE_KEYS = {
     EMPLOYEES: 'villamar_employees',
+    EMPLOYEES_CACHE: 'villamar_employees_cache',
     TASKS: 'villamar_tasks',
     SWAPS: 'villamar_swaps',
     TIME_RECORDS: 'villamar_time_records',
@@ -44,6 +45,26 @@ export function DataProvider({ children }) {
     const [dailyPlans, setDailyPlans] = useState({}); // Planos Diários de Tarefas (Assignments + Status)
     const [dailyAnnouncements, setDailyAnnouncements] = useState([]); // Avisos Diários
     const [isHydrated, setIsHydrated] = useState(false);
+
+    const readEmployeesCache = () => {
+        if (typeof window === 'undefined') return [];
+        try {
+            const raw = localStorage.getItem(STORAGE_KEYS.EMPLOYEES_CACHE);
+            const parsed = raw ? JSON.parse(raw) : [];
+            return Array.isArray(parsed) ? parsed : [];
+        } catch {
+            return [];
+        }
+    };
+
+    const writeEmployeesCache = (items = []) => {
+        if (typeof window === 'undefined') return;
+        try {
+            localStorage.setItem(STORAGE_KEYS.EMPLOYEES_CACHE, JSON.stringify(items));
+        } catch {
+            // Ignore cache write issues (private mode / storage limit)
+        }
+    };
 
     // Initial Sync from LocalStorage or Firebase
     useEffect(() => {
@@ -98,18 +119,29 @@ export function DataProvider({ children }) {
             });
         } else if (db) {
             // WITH FIREBASE
-            const unsubEmployees = onSnapshot(collection(db, 'employees'), (snapshot) => {
-                let items = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id }));
+            const unsubEmployees = onSnapshot(
+                collection(db, 'employees'),
+                (snapshot) => {
+                    let items = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id }));
 
-                // Resolver o problema de duas contas do "Roger": 
-                // Se existe uma conta do Firebase Auth para o Roger, remover o mock (Id 9)
-                const firebaseRoger = items.find(e => e.name?.toLowerCase().includes('roger') && e.id !== 9 && e.id !== '9');
-                if (firebaseRoger) {
-                    items = items.filter(e => !(e.name?.toLowerCase().includes('roger') && (e.id === 9 || e.id === '9')));
+                    // Resolver o problema de duas contas do "Roger":
+                    // Se existe uma conta do Firebase Auth para o Roger, remover o mock (Id 9)
+                    const firebaseRoger = items.find(e => e.name?.toLowerCase().includes('roger') && e.id !== 9 && e.id !== '9');
+                    if (firebaseRoger) {
+                        items = items.filter(e => !(e.name?.toLowerCase().includes('roger') && (e.id === 9 || e.id === '9')));
+                    }
+
+                    setEmployees(items);
+                    writeEmployeesCache(items);
+                },
+                (error) => {
+                    console.error('Falha ao carregar funcionários do Firebase:', error);
+                    const cachedEmployees = readEmployeesCache();
+                    if (cachedEmployees.length > 0) {
+                        setEmployees(cachedEmployees);
+                    }
                 }
-
-                setEmployees(items);
-            });
+            );
             const unsubTasks = onSnapshot(collection(db, 'tasks'), (snapshot) => {
                 const items = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id }));
                 setTasks(items);
