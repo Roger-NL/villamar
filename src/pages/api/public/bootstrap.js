@@ -55,12 +55,30 @@ export default async function handler(req, res) {
         const accessToken = await getIdentityToolkitAccessToken();
         const projectId = getFirebaseAdminProjectId();
 
-        const [employeesList, activeSessionsList, schedulesList, dailyPlansList, dailyAnnouncementsList] = await Promise.all([
+        const [
+            employeesList,
+            activeSessionsList,
+            schedulesList,
+            dailyPlansList,
+            dailyAnnouncementsList,
+            inventoryItemsList,
+            insulinPatientsList,
+            insulinLogsList,
+            medicalNotesList,
+            diaperPatientsList,
+            diaperLogsList
+        ] = await Promise.all([
             listCollection('employees', accessToken, projectId),
             listCollection('activeSessions', accessToken, projectId),
             listCollection('schedules', accessToken, projectId),
             listCollection('dailyPlans', accessToken, projectId),
-            listCollection('dailyAnnouncements', accessToken, projectId)
+            listCollection('dailyAnnouncements', accessToken, projectId),
+            listCollection('inventoryItems', accessToken, projectId),
+            listCollection('insulinPatients', accessToken, projectId),
+            listCollection('insulinLogs', accessToken, projectId),
+            listCollection('medicalNotes', accessToken, projectId),
+            listCollection('diaperPatients', accessToken, projectId),
+            listCollection('diaperLogs', accessToken, projectId)
         ]);
 
         const activeSessions = {};
@@ -85,7 +103,13 @@ export default async function handler(req, res) {
             activeSessions,
             savedSchedules,
             dailyPlans,
-            dailyAnnouncements
+            dailyAnnouncements,
+            inventoryItems: inventoryItemsList,
+            insulinPatients: insulinPatientsList,
+            insulinLogs: insulinLogsList,
+            medicalNotes: medicalNotesList,
+            diaperPatients: diaperPatientsList,
+            diaperLogs: diaperLogsList
         });
     } catch (error) {
         console.error('public bootstrap api error', error);

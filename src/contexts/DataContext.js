@@ -140,6 +140,28 @@ export function DataProvider({ children }) {
                 setDailyAnnouncements(payload.dailyAnnouncements);
                 writeLocalCache(STORAGE_KEYS.DAILY_ANNOUNCEMENTS, payload.dailyAnnouncements);
             }
+            if (Array.isArray(payload?.inventoryItems)) {
+                setInventoryItems(payload.inventoryItems);
+                writeLocalCache(STORAGE_KEYS.INVENTORY, payload.inventoryItems);
+            }
+            if (Array.isArray(payload?.insulinPatients)) {
+                setInsulinPatients(payload.insulinPatients);
+                writeLocalCache(STORAGE_KEYS.INSULIN_PATIENTS, payload.insulinPatients);
+            }
+            if (Array.isArray(payload?.insulinLogs)) {
+                setInsulinLogs(payload.insulinLogs);
+                writeLocalCache(STORAGE_KEYS.INSULIN_LOGS, payload.insulinLogs);
+            }
+            if (Array.isArray(payload?.medicalNotes)) {
+                setMedicalNotes(payload.medicalNotes);
+                writeLocalCache(STORAGE_KEYS.MEDICAL_NOTES, payload.medicalNotes);
+            }
+            if (Array.isArray(payload?.diaperPatients)) {
+                setDiaperPatients(payload.diaperPatients);
+            }
+            if (Array.isArray(payload?.diaperLogs)) {
+                setDiaperLogs(payload.diaperLogs);
+            }
             return payload;
         } catch {
             return null;
@@ -292,24 +314,68 @@ export function DataProvider({ children }) {
             const unsubLeaves = onSnapshot(collection(db, 'leaves'), (snapshot) => {
                 setLeaves(snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id })));
             });
-            const unsubInventory = onSnapshot(collection(db, 'inventoryItems'), (snapshot) => {
-                setInventoryItems(snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id })));
-            });
-            const unsubInsulinPatients = onSnapshot(collection(db, 'insulinPatients'), (snapshot) => {
-                setInsulinPatients(snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id })));
-            });
-            const unsubInsulinLogs = onSnapshot(collection(db, 'insulinLogs'), (snapshot) => {
-                setInsulinLogs(snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id })));
-            });
-            const unsubMedicalNotes = onSnapshot(collection(db, 'medicalNotes'), (snapshot) => {
-                setMedicalNotes(snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id })));
-            });
-            const unsubDiaperPatients = onSnapshot(collection(db, 'diaperPatients'), (snapshot) => {
-                setDiaperPatients(snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id })));
-            });
-            const unsubDiaperLogs = onSnapshot(collection(db, 'diaperLogs'), (snapshot) => {
-                setDiaperLogs(snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id })));
-            });
+            const unsubInventory = onSnapshot(
+                collection(db, 'inventoryItems'),
+                (snapshot) => {
+                    const items = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id }));
+                    setInventoryItems(items);
+                    writeLocalCache(STORAGE_KEYS.INVENTORY, items);
+                },
+                () => {
+                    loadOperationalBootstrapFromPublicApi();
+                }
+            );
+            const unsubInsulinPatients = onSnapshot(
+                collection(db, 'insulinPatients'),
+                (snapshot) => {
+                    const items = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id }));
+                    setInsulinPatients(items);
+                    writeLocalCache(STORAGE_KEYS.INSULIN_PATIENTS, items);
+                },
+                () => {
+                    loadOperationalBootstrapFromPublicApi();
+                }
+            );
+            const unsubInsulinLogs = onSnapshot(
+                collection(db, 'insulinLogs'),
+                (snapshot) => {
+                    const items = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id }));
+                    setInsulinLogs(items);
+                    writeLocalCache(STORAGE_KEYS.INSULIN_LOGS, items);
+                },
+                () => {
+                    loadOperationalBootstrapFromPublicApi();
+                }
+            );
+            const unsubMedicalNotes = onSnapshot(
+                collection(db, 'medicalNotes'),
+                (snapshot) => {
+                    const items = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id }));
+                    setMedicalNotes(items);
+                    writeLocalCache(STORAGE_KEYS.MEDICAL_NOTES, items);
+                },
+                () => {
+                    loadOperationalBootstrapFromPublicApi();
+                }
+            );
+            const unsubDiaperPatients = onSnapshot(
+                collection(db, 'diaperPatients'),
+                (snapshot) => {
+                    setDiaperPatients(snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id })));
+                },
+                () => {
+                    loadOperationalBootstrapFromPublicApi();
+                }
+            );
+            const unsubDiaperLogs = onSnapshot(
+                collection(db, 'diaperLogs'),
+                (snapshot) => {
+                    setDiaperLogs(snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id })));
+                },
+                () => {
+                    loadOperationalBootstrapFromPublicApi();
+                }
+            );
             const unsubDailyPlans = onSnapshot(
                 collection(db, 'dailyPlans'),
                 (snapshot) => {
