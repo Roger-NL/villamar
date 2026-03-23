@@ -19,7 +19,12 @@ function getLocalISODate() {
     return now.toISOString().slice(0, 10);
 }
 
-function normalizePlanAssignments(assignments = {}, template) {
+function getDefaultReplenishmentAssigneeId(employees = []) {
+    const roger = employees.find((employee) => employee?.name?.toLowerCase().includes('roger'));
+    return roger?.id || null;
+}
+
+function normalizePlanAssignments(assignments = {}, template, employees = [], keepDefaultReplenishment = true) {
     const normalized = { ...assignments };
 
     template.blocks.forEach((block) => {
@@ -33,6 +38,16 @@ function normalizePlanAssignments(assignments = {}, template) {
             }
         });
     });
+
+    const defaultRogerId = getDefaultReplenishmentAssigneeId(employees);
+    if (
+        keepDefaultReplenishment
+        && template.id === 'plano_diario_v1'
+        && defaultRogerId
+        && !normalized.G_RepFraldas
+    ) {
+        normalized.G_RepFraldas = defaultRogerId;
+    }
 
     return normalized;
 }
@@ -318,6 +333,7 @@ export default function AdminTarefasPage() {
 
     const planKey = period === 'DAY' ? selectedDate : `${selectedDate}_NIGHT`;
     const currentTemplate = period === 'DAY' ? planoDiarioTemplate : planoDiarioNoturnoTemplate;
+    const defaultRogerId = useMemo(() => getDefaultReplenishmentAssigneeId(employees), [employees]);
 
     useEffect(() => {
         const updateViewportMode = () => {
@@ -346,14 +362,26 @@ export default function AdminTarefasPage() {
                 }
             });
             startTransition(() => {
-                setLocalAssignments(normalizePlanAssignments(plan?.assignments || {}, currentTemplate));
+                setLocalAssignments(normalizePlanAssignments(plan?.assignments || {}, currentTemplate, employees, !plan));
                 setCustomLabels(plan?.customLabels || {});
                 setResidentStatuses(plan?.residentStatuses || {});
                 setCustomResidentNames(plan?.customResidentNames || {});
                 setLocalGroupResidents(updatedGroups);
             });
         }
-    }, [planKey, dailyPlans, isHydrated, currentTemplate]);
+    }, [planKey, dailyPlans, isHydrated, currentTemplate, employees]);
+
+    useEffect(() => {
+        if (!isHydrated || period !== 'DAY' || !defaultRogerId) return;
+        const plan = dailyPlans[planKey];
+        if (plan) return;
+
+        const initialAssignments = normalizePlanAssignments({}, currentTemplate, employees, true);
+        if (!initialAssignments.G_RepFraldas) return;
+
+        setLocalAssignments(initialAssignments);
+        updateDailyPlan(planKey, initialAssignments, {}, {}, {}, {});
+    }, [isHydrated, period, defaultRogerId, dailyPlans, planKey, currentTemplate, employees, updateDailyPlan]);
 
     const getEmployeeName = (id) => employees.find(e => e.id == id)?.name.split(' ')[0] || null;
 
@@ -548,12 +576,15 @@ export default function AdminTarefasPage() {
 
     const handleClearPlan = () => {
         if (confirm("Tem certeza que deseja limpar todo o plano atual para recomeçar?")) {
-            setLocalAssignments({});
+            const defaultAssignments = period === 'DAY'
+                ? normalizePlanAssignments({}, currentTemplate, employees, true)
+                : {};
+            setLocalAssignments(defaultAssignments);
             setCustomLabels({});
             setLocalGroupResidents({});
             setResidentStatuses({});
             setCustomResidentNames({});
-            updateDailyPlan(planKey, {}, {}, {}, {}, {});
+            updateDailyPlan(planKey, defaultAssignments, {}, {}, {}, {});
         }
     };
 

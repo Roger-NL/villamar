@@ -26,12 +26,17 @@ export default function FraldasReposicaoFuncionarioPage() {
     const [directSupplyStatus, setDirectSupplyStatus] = useState('ok');
     const [showFlowGuide, setShowFlowGuide] = useState(false);
     const [expandedPickupSections, setExpandedPickupSections] = useState({});
-    const [todayStr] = useState(() => new Date().toISOString().split('T')[0]);
     const [todayPlanStr] = useState(() => {
         const now = new Date();
         const tzOffset = now.getTimezoneOffset() * 60000;
         return new Date(now.getTime() - tzOffset).toISOString().slice(0, 10);
     });
+    const [selectedDate, setSelectedDate] = useState(() => {
+        const now = new Date();
+        const tzOffset = now.getTimezoneOffset() * 60000;
+        return new Date(now.getTime() - tzOffset).toISOString().slice(0, 10);
+    });
+    const isHistoricalDate = selectedDate !== todayPlanStr;
 
     const hasAccess = useMemo(() => {
         if (!isHydrated || !currentUser || !dailyPlans) return false;
@@ -108,11 +113,13 @@ export default function FraldasReposicaoFuncionarioPage() {
 
         orderedPatients.forEach((patient) => {
             const patientLogs = (diaperLogs || [])
-                .filter((log) => log.patientId === patient.id && log.date === todayStr)
+                .filter((log) => log.patientId === patient.id && log.date === selectedDate)
                 .sort((a, b) => new Date(b.timestamp || b.date) - new Date(a.timestamp || a.date));
 
             const latestReplenishment = patientLogs.find((log) => log.type === 'replenishment');
-            const currentStock = patient.wardrobeStock !== undefined ? patient.wardrobeStock : TARGET_STOCK;
+            const currentStock = latestReplenishment?.newStock !== undefined
+                ? Number(latestReplenishment.newStock)
+                : (patient.wardrobeStock !== undefined ? patient.wardrobeStock : TARGET_STOCK);
             const missingToTarget = Math.max(0, TARGET_STOCK - currentStock);
             const checkedToday = Boolean(latestReplenishment);
             const replenishedToday = Number(latestReplenishment?.amountAdded || 0);
@@ -132,7 +139,7 @@ export default function FraldasReposicaoFuncionarioPage() {
         });
 
         return states;
-    }, [orderedPatients, diaperLogs, todayStr]);
+    }, [orderedPatients, diaperLogs, selectedDate]);
 
     const depotPickupSummary = useMemo(() => {
         const summary = new Map();
@@ -329,15 +336,17 @@ export default function FraldasReposicaoFuncionarioPage() {
                 return;
             }
 
-            if (Number(diaperType.stockDepot || 0) < state.missingToTarget) {
+            if (!isHistoricalDate && Number(diaperType.stockDepot || 0) < state.missingToTarget) {
                 shortages.push(`${patient.name}: ${diaperType.name} tem apenas ${diaperType.stockDepot}`);
                 return;
             }
 
-            inventoryMap.set(diaperType.id, {
-                ...diaperType,
-                stockDepot: Number(diaperType.stockDepot || 0) - state.missingToTarget
-            });
+            if (!isHistoricalDate) {
+                inventoryMap.set(diaperType.id, {
+                    ...diaperType,
+                    stockDepot: Number(diaperType.stockDepot || 0) - state.missingToTarget
+                });
+            }
         });
 
         if (shortages.length > 0) {
@@ -354,7 +363,9 @@ export default function FraldasReposicaoFuncionarioPage() {
             const amountAdded = Number(state.missingToTarget || 0);
             const newStock = previousStock + amountAdded;
 
-            updatedStocks.set(diaperType.id, Number(diaperType.stockDepot || 0));
+            if (!isHistoricalDate) {
+                updatedStocks.set(diaperType.id, Number(diaperType.stockDepot || 0));
+            }
 
             await addDiaperLog({
                 type: 'replenishment',
@@ -362,29 +373,34 @@ export default function FraldasReposicaoFuncionarioPage() {
                 patientName: patient.name,
                 diaperId: diaperType.id,
                 diaperName: diaperType.name,
-                date: todayStr,
+                date: selectedDate,
                 time: new Date().toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' }),
                 amountAdded,
                 previousStock,
                 newStock,
+                isHistoricalEntry: isHistoricalDate,
                 executorId: currentUser?.id,
                 executorName: currentUser?.name || 'Funcionário'
             });
 
-            await updateDiaperPatient(patient.id, {
-                wardrobeStock: newStock,
-                hasAnomaly: false,
-                currentWardrobeDiaperId: diaperType.id,
-                currentWardrobeDiaperName: diaperType.name,
-                currentWardrobeOrigin: diaperType.origin || 'Casa'
-            });
+            if (!isHistoricalDate) {
+                await updateDiaperPatient(patient.id, {
+                    wardrobeStock: newStock,
+                    hasAnomaly: false,
+                    currentWardrobeDiaperId: diaperType.id,
+                    currentWardrobeDiaperName: diaperType.name,
+                    currentWardrobeOrigin: diaperType.origin || 'Casa'
+                });
+            }
         }
 
         for (const [inventoryId, stockDepot] of updatedStocks.entries()) {
             await updateInventoryItem(inventoryId, { stockDepot });
         }
 
-        setToast(`Reposição completa: ${readyPatients.length} quartos atualizados`);
+        setToast(isHistoricalDate
+            ? `Reposição retroativa guardada para ${readyPatients.length} quartos em ${selectedDate}`
+            : `Reposição completa: ${readyPatients.length} quartos atualizados`);
         setTimeout(() => setToast(''), 3000);
     };
 
@@ -405,27 +421,30 @@ export default function FraldasReposicaoFuncionarioPage() {
                 patientName: patient.name,
                 diaperId: '',
                 diaperName: 'Fralda própria no quarto',
-                date: todayStr,
+                date: selectedDate,
                 time: new Date().toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' }),
                 amountAdded: 0,
                 previousStock: stockValue,
                 newStock: stockValue,
                 directSupplyStatus,
+                isHistoricalEntry: isHistoricalDate,
                 executorId: currentUser?.id,
                 executorName: currentUser?.name || 'Funcionário'
             });
 
-            await updateDiaperPatient(patient.id, {
-                wardrobeStock: stockValue,
-                hasAnomaly: directSupplyStatus !== 'ok',
-                currentWardrobeDiaperId: '',
-                currentWardrobeDiaperName: '',
-                currentWardrobeOrigin: 'Própria'
-            });
+            if (!isHistoricalDate) {
+                await updateDiaperPatient(patient.id, {
+                    wardrobeStock: stockValue,
+                    hasAnomaly: directSupplyStatus !== 'ok',
+                    currentWardrobeDiaperId: '',
+                    currentWardrobeDiaperName: '',
+                    currentWardrobeOrigin: 'Própria'
+                });
+            }
 
             setToast(directSupplyStatus === 'ok'
-                ? `${patient.name}: confirmado com fralda própria`
-                : `${patient.name}: marcado sem fralda`);
+                ? `${patient.name}: confirmado${isHistoricalDate ? ` em ${selectedDate}` : ' com fralda própria'}`
+                : `${patient.name}: marcado sem fralda${isHistoricalDate ? ` em ${selectedDate}` : ''}`);
             setTimeout(() => setToast(''), 3000);
             closeReplaceModal();
             return;
@@ -450,14 +469,14 @@ export default function FraldasReposicaoFuncionarioPage() {
             return;
         }
 
-        if (shouldAdjustInventory && diaperType.stockDepot < amountToReplenish) {
+        if (!isHistoricalDate && shouldAdjustInventory && diaperType.stockDepot < amountToReplenish) {
             alert(`Falta stock no depósito. Existem apenas ${diaperType.stockDepot} de ${diaperType.name}.`);
             return;
         }
 
         const finalStock = currentInRoom + amountToReplenish;
 
-        if (shouldAdjustInventory) {
+        if (!isHistoricalDate && shouldAdjustInventory) {
             await updateInventoryItem(diaperType.id, {
                 stockDepot: Math.max(0, diaperType.stockDepot - amountToReplenish)
             });
@@ -469,26 +488,33 @@ export default function FraldasReposicaoFuncionarioPage() {
             patientName: patient.name,
             diaperId: diaperType ? diaperType.id : '',
             diaperName: diaperType ? diaperType.name : '',
-            date: todayStr,
+            date: selectedDate,
             time: new Date().toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' }),
             amountAdded: amountToReplenish,
             previousStock: currentInRoom,
             newStock: finalStock,
+            isHistoricalEntry: isHistoricalDate,
             executorId: currentUser?.id,
             executorName: currentUser?.name || 'Funcionário'
         });
 
-        await updateDiaperPatient(patient.id, {
-            wardrobeStock: finalStock,
-            hasAnomaly: false,
-            currentWardrobeDiaperId: diaperType ? diaperType.id : (patient.currentWardrobeDiaperId || patient.diaperId || ''),
-            currentWardrobeDiaperName: diaperType ? diaperType.name : (patient.currentWardrobeDiaperName || ''),
-            currentWardrobeOrigin: diaperType ? (diaperType.origin || patient.origin || '') : (patient.currentWardrobeOrigin || patient.origin || '')
-        });
+        if (!isHistoricalDate) {
+            await updateDiaperPatient(patient.id, {
+                wardrobeStock: finalStock,
+                hasAnomaly: false,
+                currentWardrobeDiaperId: diaperType ? diaperType.id : (patient.currentWardrobeDiaperId || patient.diaperId || ''),
+                currentWardrobeDiaperName: diaperType ? diaperType.name : (patient.currentWardrobeDiaperName || ''),
+                currentWardrobeOrigin: diaperType ? (diaperType.origin || patient.origin || '') : (patient.currentWardrobeOrigin || patient.origin || '')
+            });
+        }
 
         setToast(amountToReplenish > 0
-            ? `${patient.name}: conferido e reposto (+${amountToReplenish})`
-            : `${patient.name}: conferido sem reposição`);
+            ? (isHistoricalDate
+                ? `${patient.name}: reposição retroativa guardada em ${selectedDate}`
+                : `${patient.name}: conferido e reposto (+${amountToReplenish})`)
+            : (isHistoricalDate
+                ? `${patient.name}: conferido em ${selectedDate} sem reposição`
+                : `${patient.name}: conferido sem reposição`));
         setTimeout(() => setToast(''), 3000);
         closeReplaceModal();
     };
@@ -555,7 +581,7 @@ export default function FraldasReposicaoFuncionarioPage() {
                     ) : null}
                     {state?.checkedToday ? (
                         <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '8px 10px', borderRadius: '14px', background: '#f0fdf4', color: '#15803d', fontSize: '13px', fontWeight: 800 }}>
-                            {`Repostas hoje: ${state?.replenishedToday ?? 0}`}
+                            {`${isHistoricalDate ? 'Repostas na data' : 'Repostas hoje'}: ${state?.replenishedToday ?? 0}`}
                         </div>
                     ) : null}
                     {state?.checkedToday && missing === 0 ? (
@@ -587,7 +613,7 @@ export default function FraldasReposicaoFuncionarioPage() {
                         <div>
                             <div style={{ fontSize: '18px', fontWeight: 900, color: '#0f172a' }}>{group.label}</div>
                             <div style={{ marginTop: '4px', fontSize: '12px', fontWeight: 800, color: '#64748b' }}>
-                                Tem agora: {group.currentStockTotal} | Repostas hoje: {group.replenishedToday}
+                                Tem agora: {group.currentStockTotal} | {isHistoricalDate ? 'Repostas na data' : 'Repostas hoje'}: {group.replenishedToday}
                             </div>
                         </div>
                         <div style={{ padding: '6px 10px', borderRadius: '999px', background: accent.badgeBg, color: accent.badgeColor, fontSize: '12px', fontWeight: 800 }}>
@@ -623,6 +649,29 @@ export default function FraldasReposicaoFuncionarioPage() {
                         </p>
                     </div>
 
+                    <div style={{ background: 'white', borderRadius: '18px', padding: '14px 16px', border: '1px solid #e2e8f0', boxShadow: '0 8px 24px rgba(15, 23, 42, 0.05)', marginBottom: '16px', display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '12px', justifyContent: 'space-between' }}>
+                        <div>
+                            <div style={{ fontSize: '12px', fontWeight: 900, color: '#64748b', textTransform: 'uppercase' }}>Data da reposição</div>
+                            <div style={{ marginTop: '4px', fontSize: '16px', fontWeight: 900, color: '#0f172a' }}>
+                                {isHistoricalDate ? `Modo retroativo: ${selectedDate}` : `Hoje: ${selectedDate}`}
+                            </div>
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+                            <input
+                                type="date"
+                                value={selectedDate}
+                                max={todayPlanStr}
+                                onChange={(e) => setSelectedDate(e.target.value)}
+                                style={{ padding: '12px 14px', borderRadius: '14px', border: '1px solid #cbd5e1', fontWeight: 800, color: '#0f172a', background: 'white' }}
+                            />
+                            {isHistoricalDate ? (
+                                <div style={{ padding: '10px 12px', borderRadius: '14px', background: '#fff7ed', color: '#c2410c', fontSize: '13px', fontWeight: 800 }}>
+                                    Registo histórico: não desconta novamente do depósito nem altera o stock atual.
+                                </div>
+                            ) : null}
+                        </div>
+                    </div>
+
                     {toast && (
                         <div style={{ background: '#DCFCE7', color: '#166534', padding: '16px', borderRadius: '16px', fontSize: '1rem', marginBottom: '24px', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '8px', boxShadow: '0 4px 6px rgba(0,0,0,0.05)' }}>
                             <CheckCircle2 size={20} /> {toast}
@@ -636,7 +685,7 @@ export default function FraldasReposicaoFuncionarioPage() {
                                 <div style={{ marginTop: '4px', fontSize: '30px', fontWeight: 900, color: '#ef4444', lineHeight: 1 }}>{summaryTotals.pending}</div>
                             </div>
                             <div style={{ minWidth: 0, padding: '0 8px', borderRight: '1px solid #e2e8f0' }}>
-                                <div style={{ fontSize: '11px', fontWeight: 800, color: '#64748b', textTransform: 'uppercase' }}>Conferidos hoje</div>
+                                <div style={{ fontSize: '11px', fontWeight: 800, color: '#64748b', textTransform: 'uppercase' }}>{isHistoricalDate ? 'Conferidos na data' : 'Conferidos hoje'}</div>
                                 <div style={{ marginTop: '4px', fontSize: '30px', fontWeight: 900, color: '#0284c7', lineHeight: 1 }}>{summaryTotals.checked}</div>
                             </div>
                             <div style={{ minWidth: 0, paddingLeft: '8px' }}>
@@ -849,7 +898,7 @@ export default function FraldasReposicaoFuncionarioPage() {
                                 })
                             ) : (
                                 <div style={{ background: '#f8fafc', borderRadius: '18px', padding: '18px', color: '#475569', fontWeight: 700 }}>
-                                    Todos os quartos já foram conferidos hoje.
+                                    {isHistoricalDate ? 'Todos os quartos desta data já foram conferidos.' : 'Todos os quartos já foram conferidos hoje.'}
                                 </div>
                             )}
                         </section>
