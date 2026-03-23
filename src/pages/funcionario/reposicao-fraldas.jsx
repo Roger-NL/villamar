@@ -336,17 +336,15 @@ export default function FraldasReposicaoFuncionarioPage() {
                 return;
             }
 
-            if (!isHistoricalDate && Number(diaperType.stockDepot || 0) < state.missingToTarget) {
+            if (Number(diaperType.stockDepot || 0) < state.missingToTarget) {
                 shortages.push(`${patient.name}: ${diaperType.name} tem apenas ${diaperType.stockDepot}`);
                 return;
             }
 
-            if (!isHistoricalDate) {
-                inventoryMap.set(diaperType.id, {
-                    ...diaperType,
-                    stockDepot: Number(diaperType.stockDepot || 0) - state.missingToTarget
-                });
-            }
+            inventoryMap.set(diaperType.id, {
+                ...diaperType,
+                stockDepot: Number(diaperType.stockDepot || 0) - state.missingToTarget
+            });
         });
 
         if (shortages.length > 0) {
@@ -363,9 +361,7 @@ export default function FraldasReposicaoFuncionarioPage() {
             const amountAdded = Number(state.missingToTarget || 0);
             const newStock = previousStock + amountAdded;
 
-            if (!isHistoricalDate) {
-                updatedStocks.set(diaperType.id, Number(diaperType.stockDepot || 0));
-            }
+            updatedStocks.set(diaperType.id, Number(diaperType.stockDepot || 0));
 
             await addDiaperLog({
                 type: 'replenishment',
@@ -469,14 +465,14 @@ export default function FraldasReposicaoFuncionarioPage() {
             return;
         }
 
-        if (!isHistoricalDate && shouldAdjustInventory && diaperType.stockDepot < amountToReplenish) {
+        if (shouldAdjustInventory && diaperType.stockDepot < amountToReplenish) {
             alert(`Falta stock no depósito. Existem apenas ${diaperType.stockDepot} de ${diaperType.name}.`);
             return;
         }
 
         const finalStock = currentInRoom + amountToReplenish;
 
-        if (!isHistoricalDate && shouldAdjustInventory) {
+        if (shouldAdjustInventory) {
             await updateInventoryItem(diaperType.id, {
                 stockDepot: Math.max(0, diaperType.stockDepot - amountToReplenish)
             });
@@ -666,7 +662,7 @@ export default function FraldasReposicaoFuncionarioPage() {
                             />
                             {isHistoricalDate ? (
                                 <div style={{ padding: '10px 12px', borderRadius: '14px', background: '#fff7ed', color: '#c2410c', fontSize: '13px', fontWeight: 800 }}>
-                                    Registo histórico: não desconta novamente do depósito nem altera o stock atual.
+                                    Registo retroativo: desconta agora do depósito e guarda na data escolhida, sem mexer no stock atual do quarto.
                                 </div>
                             ) : null}
                         </div>
